@@ -3,6 +3,11 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getSupabaseClient } from '@/utils/client'
+
+console.log('=== Login Page Loaded ===')
+console.log('NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+console.log('Has publishable key:', !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -16,25 +21,35 @@ export default function Login() {
     setLoading(true)
     setError(null)
 
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-    )
+    try {
+      const supabase = getSupabaseClient()
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+      console.log('Attempting login with email:', email)
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (authError) {
-      setError(authError.message)
+      console.log('Auth result:', { data, authError })
+
+      if (authError) {
+        setError(authError.message)
+        setLoading(false)
+      } else if (data?.session) {
+        console.log('Login successful, redirecting...')
+        router.push('/dashboard')
+        router.refresh()
+      } else {
+        console.log('No session returned - checking if email confirmation needed')
+        setError('Login may require email confirmation. Check your email.')
+        setLoading(false)
+      }
+    } catch (err: any) {
+      console.error('Login error:', err)
+      setError(err?.message || 'Failed to sign in. Please try again.')
       setLoading(false)
-    } else {
-      router.push('/dashboard')
-      router.refresh()
     }
-  }, [router])
+  }, [router, email, password])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12 lg:px-8">

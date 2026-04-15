@@ -3,36 +3,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
-async function getChapterRequests() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Record<string, unknown>)
-            )
-          } catch {
-          }
-        },
-      },
-    }
-  )
-  
-  const { data } = await supabase
-    .from('chapter_requests')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(50)
-  
-  return data || []
-}
+// Force dynamic rendering to prevent caching
+export const dynamic = 'force-dynamic'
 
 export default async function AdminChapters() {
   const cookieStore = await cookies()
@@ -55,19 +27,37 @@ export default async function AdminChapters() {
       },
     }
   )
-  
-  const { data: { session } } = await supabase.auth.getSession()
 
-  if (!session) {
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
     redirect('/login')
   }
 
-  // Check if user is platform owner (for now, allow coordinators to access)
-  const userType = session.user.user_metadata?.user_type
+  // Check if user is platform owner
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const isPlatformOwner = profile?.role === 'platform_owner'
   
-  const requests = await getChapterRequests()
-  const pendingRequests = requests.filter(r => r.status === 'pending')
-  const processedRequests = requests.filter(r => r.status !== 'pending')
+  // If not platform owner, redirect to dashboard
+  if (!isPlatformOwner) {
+    redirect('/dashboard')
+  }
+
+// Fetch chapter requests - force fresh data
+  const { data: requests } = await supabase
+    .from('chapter_requests')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50)
+  
+  const allRequests = requests || []
+  const pendingRequests = allRequests.filter((r: any) => r.status === 'pending')
+  const processedRequests = allRequests.filter((r: any) => r.status !== 'pending')
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -94,9 +84,9 @@ export default async function AdminChapters() {
 
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Chapter Requests</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Organization Requests</h1>
           <p className="text-slate-600 mt-1">
-            Review and approve requests to start new Tennis-Flex chapters.
+            Review and approve requests to start new Tennis-Flex organizations.
           </p>
         </div>
 
@@ -113,14 +103,14 @@ export default async function AdminChapters() {
           
           {pendingRequests.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-              <p className="text-slate-500">No pending chapter requests.</p>
+              <p className="text-slate-500">No pending organization requests.</p>
               <p className="text-sm text-slate-400 mt-1">
-                Requests will appear here when someone submits "Request a Chapter".
+                Requests will appear here when someone submits "Request an Organization".
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {pendingRequests.map(request => (
+              {pendingRequests.map((request: any) => (
                 <div 
                   key={request.id}
                   className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm"
@@ -183,7 +173,7 @@ export default async function AdminChapters() {
           <section>
             <h2 className="text-xl font-bold text-slate-900 mb-4">Processed Requests</h2>
             <div className="space-y-4">
-              {processedRequests.map(request => (
+              {processedRequests.map((request: any) => (
                 <div 
                   key={request.id}
                   className="bg-white rounded-xl border border-slate-200 p-4 opacity-75"

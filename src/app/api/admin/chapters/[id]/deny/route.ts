@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 
 export async function POST(
   request: Request,
@@ -32,19 +33,32 @@ export async function POST(
     }
   )
   
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
   
-  if (!session) {
+  if (!user) {
     return redirect('/login')
+  }
+  
+  // Check if user is platform owner
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'platform_owner') {
+    return redirect('/dashboard')
   }
   
   // Mark request as denied
   await supabase.from('chapter_requests').update({
     status: 'denied',
-    reviewed_by: session.user.id,
+    reviewed_by: user.id,
     reviewed_at: new Date().toISOString(),
     denial_reason: denialReason,
   }).eq('id', id)
+  
+  revalidatePath('/admin/chapters')
   
   return redirect('/admin/chapters')
 }
