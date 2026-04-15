@@ -1,0 +1,139 @@
+'use client'
+
+import { useState, useCallback, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { getSupabaseClient } from '@/utils/client'
+
+export default function SetPassword() {
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    // Check if we have a session (the callback should have set it)
+    const checkSession = async () => {
+      const supabase = getSupabaseClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setError('No active session found. Please try the link in your email again.')
+      }
+    }
+    checkSession()
+  }, [])
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const supabase = getSupabaseClient()
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
+      })
+
+      if (updateError) {
+        setError(updateError.message)
+      } else {
+        setMessage('Password set successfully! Redirecting to dashboard...')
+        setTimeout(() => {
+          router.push('/dashboard')
+          router.refresh()
+        }, 2000)
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to set password.')
+    } finally {
+      setLoading(false)
+    }
+  }, [router, password, confirmPassword])
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12 lg:px-8">
+      <div className="w-full max-w-md space-y-8 bg-white p-10 rounded-2xl shadow-xl shadow-slate-200">
+        <div>
+          <div className="mx-auto w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center mb-6">
+            <span className="text-white font-bold text-2xl leading-none">T</span>
+          </div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight text-slate-900">
+            Set Your Password
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-600">
+            Create a password for your new Tennis-Flex account.
+          </p>
+        </div>
+        
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="text-sm text-red-700">{error}</div>
+            </div>
+          )}
+          {message && (
+            <div className="rounded-md bg-emerald-50 p-4">
+              <div className="text-sm text-emerald-700">{message}</div>
+            </div>
+          )}
+          
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
+                New Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="confirm-password" className="block text-sm font-medium text-slate-700 mb-1">
+                Confirm Password
+              </label>
+              <input
+                id="confirm-password"
+                name="confirm-password"
+                type="password"
+                required
+                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={loading || !!message}
+              className="group relative flex w-full justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+            >
+              {loading ? 'Setting password...' : 'Set Password'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}

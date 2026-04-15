@@ -72,13 +72,10 @@ export async function POST(
     return redirect('/admin/chapters')
   }
   
-  // Now create the user account for the requester using admin API
-  // Generate a temporary password (they can reset it)
-  const tempPassword = Math.random().toString(36).slice(-12) + 'A1!'
-  
+  // Initialize admin Supabase client with service role key
   const adminSupabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.SUPABASE_SECRET_KEY || '', // Use service role key for admin operations
+    process.env.SUPABASE_SECRET_KEY || '',
     {
       cookies: {
         getAll() {
@@ -95,11 +92,11 @@ export async function POST(
       },
     }
   )
-  
-  // Create the user account (bypassing email confirmation for admin-created accounts)
+
+  // Create the user account (bypassing email confirmation)
   const { data: newUser, error: userError } = await adminSupabase.auth.admin.createUser({
     email: originalRequest?.email,
-    email_confirm: true, // Auto-confirm email
+    email_confirm: true,
     user_metadata: {
       full_name: originalRequest?.full_name,
       user_type: 'coordinator'
@@ -107,22 +104,46 @@ export async function POST(
   })
   
   if (userError) {
-    console.error('Failed to create user account:', userError)
-    // Org was created but account creation failed - still mark as approved
-  } else if (newUser?.user) {
+    console.error('Failed to create user:', userError)
+    // If user already exists, that's fine, we still want to send a reset link
+  }
+  
+  const userId = newUser?.user?.id
+  
+  if (userId) {
     // Make them a coordinator of the new organization
     await supabase.from('coordinators').insert({
-      profile_id: newUser.user.id,
+      profile_id: userId,
       organization_id: newOrg.id,
       role: 'admin'
     })
-    
-    // Send password reset email so they can set their own password
-    await adminSupabase.auth.admin.generateLink({
-      type: 'recovery',
-      email: originalRequest?.email
-    })
   }
+
+  // Generate a magic link (bypasses email rate limits during development)
+  const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
+    type: 'recovery',
+    email: originalRequest?.email as string,
+    options: {
+      redirectTo: `${new URL(request.url).origin}/auth/callback?next=/set-password`
+    }
+  })
+
+  if (linkError) {
+    console.error('Failed to generate magic link:', linkError)
+  } else if (linkData?.properties?.action_link) {
+    console.log('\n\n--- 🎾 TENNIS-FLEX DEVELOPMENT MAGIC LINK ---')
+    console.log('Copy and paste this into your browser to set the password:')
+    console.log(linkData.properties.action_link)
+    console.log('---------------------------------------------\n\n')
+  }
+
+  // Also try to send the actual email (might fail due to rate limit, but that's okay now)
+  await supabase.auth.resetPasswordForEmail(
+    originalRequest?.email as string,
+    {
+      redirectTo: `${new URL(request.url).origin}/auth/callback?next=/set-password`
+    }
+  )
   
   // Mark request as approved
   await supabase.from('chapter_requests').update({
