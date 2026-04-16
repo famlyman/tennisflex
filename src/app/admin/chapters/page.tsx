@@ -1,63 +1,112 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
-// Force dynamic rendering to prevent caching
-export const dynamic = 'force-dynamic'
+interface ChapterRequest {
+  id: string
+  chapter_name: string
+  region: string
+  reason: string
+  full_name: string
+  email: string
+  status: string
+  created_at: string
+}
 
-export default async function AdminChapters() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Record<string, unknown>)
-            )
-          } catch {
-          }
-        },
-      },
+export default function AdminChapters() {
+  const [pendingRequests, setPendingRequests] = useState<ChapterRequest[]>([])
+  const [processedRequests, setProcessedRequests] = useState<ChapterRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  async function loadData() {
+    try {
+      const response = await fetch('/api/admin/chapters/data', {
+        cache: 'no-store'
+      })
+      if (response.redirected || response.url.includes('/login')) {
+        window.location.href = '/login'
+        return
+      }
+      if (!response.ok) {
+        throw new Error('Failed to load requests')
+      }
+      const data = await response.json()
+      setPendingRequests(data.pending)
+      setProcessedRequests(data.processed)
+    } catch (err) {
+      setError('Failed to load requests')
+      console.error(err)
+    } finally {
+      setLoading(false)
     }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
   }
 
-  // Check if user is platform owner
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  const isPlatformOwner = profile?.role === 'platform_owner'
-  
-  // If not platform owner, redirect to dashboard
-  if (!isPlatformOwner) {
-    redirect('/dashboard')
+  async function handleApprove(requestId: string, flexName: string, region: string) {
+    setActionLoading(requestId)
+    try {
+      const formData = new FormData()
+      formData.append('chapter_name', flexName)
+      formData.append('region', region)
+      
+      const response = await fetch(`/api/admin/chapters/${requestId}/approve`, {
+        method: 'POST',
+        body: formData,
+      })
+      
+      if (response.ok || response.redirected) {
+        window.location.href = '/admin/chapters'
+      } else {
+        throw new Error('Failed to approve')
+      }
+    } catch (err) {
+      console.error('Approve error:', err)
+      setActionLoading(null)
+    }
   }
 
-// Fetch Flex requests - force fresh data
-  const { data: requests } = await supabase
-    .from('chapter_requests')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(50)
-  
-  const allRequests = requests || []
-  const pendingRequests = allRequests.filter((r: any) => r.status === 'pending')
-  const processedRequests = allRequests.filter((r: any) => r.status !== 'pending')
+  async function handleDeny(requestId: string) {
+    setActionLoading(requestId)
+    try {
+      const formData = new FormData()
+      
+      const response = await fetch(`/api/admin/chapters/${requestId}/deny`, {
+        method: 'POST',
+        body: formData,
+      })
+      
+      if (response.ok || response.redirected) {
+        window.location.href = '/admin/chapters'
+      } else {
+        throw new Error('Failed to deny')
+      }
+    } catch (err) {
+      console.error('Deny error:', err)
+      setActionLoading(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-slate-500">Loading...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-red-500">{error}</div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -90,7 +139,6 @@ export default async function AdminChapters() {
           </p>
         </div>
 
-        {/* Pending Requests */}
         <section className="mb-12">
           <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
             Pending Requests
@@ -103,14 +151,14 @@ export default async function AdminChapters() {
           
           {pendingRequests.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-              <p className="text-slate-500">No pending organization requests.</p>
+              <p className="text-slate-500">No pending Flex requests.</p>
               <p className="text-sm text-slate-400 mt-1">
                 Requests will appear here when someone submits "Request Your Flex".
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {pendingRequests.map((request: any) => (
+              {pendingRequests.map((request) => (
                 <div 
                   key={request.id}
                   className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm"
@@ -142,24 +190,20 @@ export default async function AdminChapters() {
                     </div>
                     
                     <div className="flex flex-col sm:flex-row gap-3 lg:flex-col">
-                      <form action={`/api/admin/chapters/${request.id}/approve`} method="POST">
-                        <input type="hidden" name="chapter_name" value={request.chapter_name} />
-                        <input type="hidden" name="region" value={request.region} />
-                        <button 
-                          type="submit"
-                          className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
-                        >
-                          Approve
-                        </button>
-                      </form>
-                      <form action={`/api/admin/chapters/${request.id}/deny`} method="POST">
-                        <button 
-                          type="submit"
-                          className="w-full px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
-                        >
-                          Deny
-                        </button>
-                      </form>
+                      <button
+                        onClick={() => handleApprove(request.id, request.chapter_name, request.region)}
+                        disabled={actionLoading !== null}
+                        className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                      >
+                        {actionLoading !== null ? 'Processing...' : 'Approve'}
+                      </button>
+                      <button
+                        onClick={() => handleDeny(request.id)}
+                        disabled={actionLoading !== null}
+                        className="w-full px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
+                      >
+                        Deny
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -168,12 +212,11 @@ export default async function AdminChapters() {
           )}
         </section>
 
-        {/* Processed Requests */}
         {processedRequests.length > 0 && (
           <section>
             <h2 className="text-xl font-bold text-slate-900 mb-4">Processed Requests</h2>
             <div className="space-y-4">
-              {processedRequests.map((request: any) => (
+              {processedRequests.map((request) => (
                 <div 
                   key={request.id}
                   className="bg-white rounded-xl border border-slate-200 p-4 opacity-75"
