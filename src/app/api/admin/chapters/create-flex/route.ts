@@ -92,10 +92,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Failed to create organization: ${orgError.message}` }, { status: 500 })
     }
 
+    let emailSent = false
     let userId: string | null = null
     
     try {
-      const { data: newUser, error: userError } = await adminSupabase.auth.admin.createUser({
+      const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
         email: email,
         email_confirm: true,
         user_metadata: {
@@ -104,13 +105,32 @@ export async function POST(request: Request) {
         }
       })
       
-      if (userError) {
-        console.error('Failed to create user:', userError.message)
-      } else {
-        userId = newUser?.user?.id
+      if (createError) {
+        console.error('Failed to create user:', createError.message)
+        return NextResponse.json({ error: `Failed to create user: ${createError.message}` }, { status: 500 })
       }
+      
+      userId = newUser?.user?.id
+      
+      const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: email,
+        options: {
+          redirectTo: `${new URL(request.url).origin}/set-password`
+        }
+      })
+
+      if (linkError) {
+        console.error('Failed to generate link:', linkError.message)
+        return NextResponse.json({ error: `Failed to generate link: ${linkError.message}` }, { status: 500 })
+      }
+      
+      emailSent = true
+      console.log(`\n--- Password setup link generated for ${email} ---\n`)
+      console.log('Link:', linkData.properties?.action_link)
     } catch (err) {
-      console.error('Admin user creation threw:', err)
+      console.error('User creation threw:', err)
+      return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
     }
     
     if (userId) {
@@ -119,31 +139,6 @@ export async function POST(request: Request) {
         organization_id: newOrg.id,
         role: 'admin'
       })
-    }
-
-    let emailSent = false
-    
-    try {
-      const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(
-        email,
-        {
-          data: {
-            full_name: fullName,
-            user_type: 'coordinator'
-          },
-          redirectTo: `${new URL(request.url).origin}/set-password`
-        }
-      )
-
-      if (inviteError) {
-        console.error('Failed to send invitation:', inviteError.message)
-      } else {
-        emailSent = true
-        console.log(`\n--- Invitation sent to ${email} ---\n`)
-        console.log('User ID:', inviteData.user?.id)
-      }
-    } catch (err) {
-      console.error('Invitation threw:', err)
     }
     
     if (requestId) {
