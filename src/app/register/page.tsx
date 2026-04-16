@@ -91,7 +91,7 @@ function RegisterForm() {
               <span className="text-white font-bold text-2xl leading-none">T</span>
             </div>
             <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight text-slate-900">
-              {isOrganizationRequest ? 'Request an Organization' : 'Create your account'}
+              {isOrganizationRequest ? 'Request Your Flex' : 'Create your account'}
             </h2>
             <p className="mt-2 text-center text-sm text-slate-600">
               {!isOrganizationRequest && (
@@ -162,7 +162,7 @@ function RegisterForm() {
             {isOrganizationRequest && (
               <div className="space-y-4 rounded-lg bg-amber-50 p-4 -mt-4 border border-amber-200">
                 <p className="text-sm text-amber-800">
-                  Submit your organization request. You'll receive an email to create your account once it's approved.
+                  Submit your Flex request. You'll receive an email to create your account once it's approved.
                 </p>
               </div>
             )}
@@ -228,7 +228,7 @@ function RegisterForm() {
 
                   <div>
                     <label htmlFor="org-name" className="block text-sm font-medium text-slate-700 mb-1">
-                      Proposed Organization Name
+                      Proposed Flex Name
                     </label>
                     <input
                       id="org-name"
@@ -236,7 +236,7 @@ function RegisterForm() {
                       type="text"
                       required
                       className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                      placeholder="Tennis-Flex Foothills"
+                      placeholder="Tennis-Flex Seattle"
                       value={orgName}
                       onChange={(e) => setOrgName(e.target.value)}
                     />
@@ -260,7 +260,7 @@ function RegisterForm() {
 
                   <div>
                     <label htmlFor="reason" className="block text-sm font-medium text-slate-700 mb-1">
-                      Why do you want to start an organization?
+                      Why do you want to start a Flex?
                     </label>
                     <textarea
                       id="reason"

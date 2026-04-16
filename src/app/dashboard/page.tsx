@@ -272,8 +272,8 @@ export default async function Dashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                   </div>
-                  <p className="font-semibold text-slate-900">Manage Chapters</p>
-                  <p className="text-sm text-slate-500">Approve/deny organization requests</p>
+                  <p className="font-semibold text-slate-900">Manage Flexes</p>
+                  <p className="text-sm text-slate-500">Approve/deny Flex requests</p>
                 </Link>
                 <Link href="/seasons/create" className="p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors">
                   <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center mb-3">
@@ -362,7 +362,7 @@ export default async function Dashboard() {
           <div className="bg-indigo-50 rounded-2xl p-6 border border-indigo-100">
             <h3 className="font-semibold text-indigo-900 mb-2">Get Started</h3>
             <p className="text-sm text-indigo-700">
-              Join a chapter and register for a season to start playing!
+              Join a Flex and register for a season to start playing!
             </p>
           </div>
         )}

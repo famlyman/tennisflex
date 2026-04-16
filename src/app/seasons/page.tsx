@@ -74,9 +74,9 @@ export default async function SeasonsPage() {
           <div className="bg-white rounded-2xl p-8 text-center">
             <p className="text-slate-500">No seasons in your organizations yet.</p>
             <p className="text-sm text-slate-400 mt-2">
-              Join a chapter to start playing! 
-              <Link href="/" className="text-indigo-600 hover:underline ml-1">
-                Browse chapters
+Join a Flex to start playing! 
+                <Link href="/#flexes" className="text-indigo-600 hover:underline ml-1">
+                  Browse Flexes
               </Link>
             </p>
           </div>

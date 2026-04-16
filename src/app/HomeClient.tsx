@@ -93,14 +93,14 @@ function ChapterCard({
                 {name}
               </h3>
               <p className={`text-sm ${isActive ? "text-slate-500" : "text-slate-400"}`}>
-                {isActive ? "View chapter" : "Coming soon"}
+                {isActive ? "View Flex" : "Coming soon"}
               </p>
             </div>
           </div>
           {isActive && (
             <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span>Active chapter</span>
+              <span>Active Flex</span>
             </div>
           )}
         </div>
@@ -144,7 +144,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
               <span className="font-bold text-xl tracking-tight text-slate-900">Tennis-Flex</span>
             </Link>
             <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-              <Link href="#chapters" className="text-slate-600 hover:text-indigo-600 transition-colors">Find Chapter</Link>
+              <Link href="#flexes" className="text-slate-600 hover:text-indigo-600 transition-colors">Find Your Flex</Link>
               <Link href="#features" className="text-slate-600 hover:text-indigo-600 transition-colors">How It Works</Link>
               <Link href="#ratings" className="text-slate-600 hover:text-indigo-600 transition-colors">TFR System</Link>
               <Link 
@@ -169,8 +169,8 @@ export default function HomeClient({ organizations }: HomeClientProps) {
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div>
                 <AnimatedSection>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-full text-indigo-700 text-sm font-medium mb-6">
-                    <span className="w-2 h-2 bg-indigo-500 rounded-full" />
+                  <div className="inline-flex items-center gap-2 px-6 py-2 bg-indigo-50 rounded-full text-indigo-700 text-sm font-medium mb-6">
+                    <span className="w-4 h-4 bg-indigo-500 rounded-full" />
                     Fresh balls, fair calls, flexible schedule
                   </div>
                 </AnimatedSection>
@@ -401,12 +401,12 @@ export default function HomeClient({ organizations }: HomeClientProps) {
           </div>
         </section>
 
-        <section id="chapters" className="px-6 py-24 bg-white">
+        <section id="flexes" className="px-6 py-24 bg-white">
           <div className="max-w-5xl mx-auto">
             <AnimatedSection>
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4">
-                  Find Your Chapter
+                  Choose Your Flex
                 </h2>
                 <p className="text-xl text-slate-600 max-w-2xl mx-auto">
                   Local tennis communities across the country. Find one near you.
@@ -438,7 +438,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
               <p className="text-center mt-8 text-slate-500">
                 Don&apos;t see your area?{" "}
                 <Link href="/register?type=request" className="text-indigo-600 font-medium hover:underline">
-                  Request a new chapter
+                  Request Your Flex
                 </Link>
               </p>
             </AnimatedSection>
@@ -495,7 +495,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
             © 2026 Tennis-Flex. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm font-medium text-slate-500">
-            <Link href="/register?type=request" className="hover:text-indigo-600 transition-colors">Request Chapter</Link>
+            <Link href="/register?type=request" className="hover:text-indigo-600 transition-colors">Request Flex</Link>
             <Link href="#" className="hover:text-indigo-600 transition-colors">Privacy</Link>
             <Link href="#" className="hover:text-indigo-600 transition-colors">Terms</Link>
           </div>

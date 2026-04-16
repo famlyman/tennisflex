@@ -1,4 +1,4 @@
-// Server action to fetch organizations (chapters) - Server Component only
+// Server action to fetch organizations (Flexes) - Server Component only
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 

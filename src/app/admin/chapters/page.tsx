@@ -48,7 +48,7 @@ export default async function AdminChapters() {
     redirect('/dashboard')
   }
 
-// Fetch chapter requests - force fresh data
+// Fetch Flex requests - force fresh data
   const { data: requests } = await supabase
     .from('chapter_requests')
     .select('*')
@@ -84,9 +84,9 @@ export default async function AdminChapters() {
 
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Organization Requests</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Flex Requests</h1>
           <p className="text-slate-600 mt-1">
-            Review and approve requests to start new Tennis-Flex organizations.
+            Review and approve requests to start new Tennis-Flex Flexes.
           </p>
         </div>
 
@@ -105,7 +105,7 @@ export default async function AdminChapters() {
             <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
               <p className="text-slate-500">No pending organization requests.</p>
               <p className="text-sm text-slate-400 mt-1">
-                Requests will appear here when someone submits "Request an Organization".
+                Requests will appear here when someone submits "Request Your Flex".
               </p>
             </div>
           ) : (

@@ -55,7 +55,7 @@ function SeasonCard({ season }: { season: Season }) {
   )
 }
 
-export default async function ChapterPage({ params }: { params: Promise<{ chapter: string }> }) {
+export default async function FlexPage({ params }: { params: Promise<{ chapter: string }> }) {
   const { chapter: slug } = await params
   
   // Fetch organization by slug
@@ -92,10 +92,10 @@ export default async function ChapterPage({ params }: { params: Promise<{ chapte
       </header>
 
       <main className="flex-1">
-        {/* Chapter Hero */}
+        {/* Flex Hero */}
         <section className="px-6 py-16 md:py-24 flex flex-col items-center text-center max-w-3xl mx-auto">
           <div className="mb-4 text-sm font-medium text-indigo-600 bg-indigo-50 px-4 py-1 rounded-full">
-            Local Chapter
+            Tennis-Flex Flex
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
             {organization.name}
@@ -108,7 +108,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ chapte
               href="/register?type=player"
               className="px-8 py-4 bg-indigo-600 text-white rounded-full text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
             >
-              Join This Chapter
+              Join This Flex
             </Link>
             <Link 
               href="#seasons"
@@ -171,7 +171,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ chapte
             <span className="text-sm text-slate-500">Part of Tennis-Flex</span>
           </div>
           <div className="flex gap-6 text-sm text-slate-500">
-            <Link href="/" className="hover:text-indigo-600">All Chapters</Link>
+            <Link href="/" className="hover:text-indigo-600">All Flexes</Link>
             <Link href="#" className="hover:text-indigo-600">Contact</Link>
           </div>
         </div>
