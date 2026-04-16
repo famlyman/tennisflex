@@ -16,10 +16,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
     
+    if (!process.env.SUPABASE_SECRET_KEY) {
+      console.error('SUPABASE_SECRET_KEY not configured')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+    
     const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options as Record<string, unknown>)
+              )
+            } catch {
+            }
+          },
+        },
+      }
+    )
+    
+    const adminSupabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SECRET_KEY,
       {
         cookies: {
           getAll() {
@@ -56,7 +81,7 @@ export async function POST(request: Request) {
     const slugPart = flexName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     const slug = `tennis-flex-${slugPart}`
     
-    const { data: newOrg, error: orgError } = await supabase.from('organizations').insert({
+    const { data: newOrg, error: orgError } = await adminSupabase.from('organizations').insert({
       name: flexName,
       slug,
       region,
@@ -64,33 +89,8 @@ export async function POST(request: Request) {
     
     if (orgError) {
       console.error('Failed to create organization:', orgError)
-      return NextResponse.json({ error: 'Failed to create organization' }, { status: 500 })
+      return NextResponse.json({ error: `Failed to create organization: ${orgError.message}` }, { status: 500 })
     }
-    
-    if (!process.env.SUPABASE_SECRET_KEY) {
-      console.error('SUPABASE_SECRET_KEY not configured')
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
-    
-    const adminSupabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SECRET_KEY,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options as Record<string, unknown>)
-              )
-            } catch {
-            }
-          },
-        },
-      }
-    )
 
     let userId: string | null = null
     
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
     }
     
     if (userId) {
-      await supabase.from('coordinators').insert({
+      await adminSupabase.from('coordinators').insert({
         profile_id: userId,
         organization_id: newOrg.id,
         role: 'admin'
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
     }
     
     if (requestId) {
-      await supabase.from('chapter_requests').update({
+      await adminSupabase.from('chapter_requests').update({
         status: 'approved',
         reviewed_by: user.id,
         reviewed_at: new Date().toISOString(),
