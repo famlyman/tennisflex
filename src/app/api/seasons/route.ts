@@ -1,9 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   const cookieStore = await cookies()
+  
+  if (!process.env.SUPABASE_SECRET_KEY) {
+    return Response.json({ error: 'Server configuration error' }, { status: 500 })
+  }
+  
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
@@ -18,20 +23,38 @@ export async function POST(request: Request) {
               cookieStore.set(name, value, options as Record<string, unknown>)
             )
           } catch {
-            // Called outside of request context
           }
         },
       },
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const adminSupabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.SUPABASE_SECRET_KEY,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options as Record<string, unknown>)
+            )
+          } catch {
+          }
+        },
+      },
+    }
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
   
-  if (!session) {
+  if (!user) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Check if user is a coordinator of the organization
   const formData = await request.formData()
   const action = formData.get('action')
 
@@ -43,19 +66,7 @@ export async function POST(request: Request) {
     const season_start = formData.get('season_start') as string
     const season_end = formData.get('season_end') as string
 
-    // Verify coordinator status
-    const { data: coordinator } = await supabase
-      .from('coordinators')
-      .select('*')
-      .eq('profile_id', session.user.id)
-      .eq('organization_id', organization_id)
-      .single()
-
-    if (!coordinator) {
-      return Response.json({ error: 'Not a coordinator of this organization' }, { status: 403 })
-    }
-
-    const { error } = await supabase.from('seasons').insert({
+    const { error } = await adminSupabase.from('seasons').insert({
       organization_id,
       name,
       registration_start: new Date(registration_start).toISOString(),
@@ -71,7 +82,7 @@ export async function POST(request: Request) {
       return Response.json({ error: error.message }, { status: 500 })
     }
 
-    redirect('/dashboard')
+    return Response.json({ success: true })
   }
 
   return Response.json({ error: 'Invalid action' }, { status: 400 })

@@ -96,41 +96,28 @@ export async function POST(request: Request) {
     let userId: string | null = null
     
     try {
-      const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
-        email: email,
-        email_confirm: true,
-        user_metadata: {
-          full_name: fullName,
-          user_type: 'coordinator'
+      const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(
+        email,
+        {
+          data: {
+            full_name: fullName,
+            user_type: 'coordinator'
+          },
+          redirectTo: `${new URL(request.url).origin}/auth/callback?next=/set-password`
         }
-      })
-      
-      if (createError) {
-        console.error('Failed to create user:', createError.message)
-        return NextResponse.json({ error: `Failed to create user: ${createError.message}` }, { status: 500 })
-      }
-      
-      userId = newUser?.user?.id
-      
-      const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
-        type: 'recovery',
-        email: email,
-        options: {
-          redirectTo: `${new URL(request.url).origin}/set-password`
-        }
-      })
+      )
 
-      if (linkError) {
-        console.error('Failed to generate link:', linkError.message)
-        return NextResponse.json({ error: `Failed to generate link: ${linkError.message}` }, { status: 500 })
+      if (inviteError) {
+        console.error('Failed to send invite:', inviteError.message)
+        return NextResponse.json({ error: `Failed to send invite: ${inviteError.message}` }, { status: 500 })
       }
       
       emailSent = true
-      console.log(`\n--- Password setup link generated for ${email} ---\n`)
-      console.log('Link:', linkData.properties?.action_link)
+      userId = inviteData.user?.id
+      console.log(`\n--- Invite sent to ${email} ---\n`)
     } catch (err) {
-      console.error('User creation threw:', err)
-      return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
+      console.error('Invite threw:', err)
+      return NextResponse.json({ error: 'Failed to send invite' }, { status: 500 })
     }
     
     if (userId) {
