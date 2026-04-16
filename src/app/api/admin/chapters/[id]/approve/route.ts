@@ -59,7 +59,8 @@ export async function POST(
     .single()
   
   // Create the organization
-  const slug = chapterName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const slugPart = chapterName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const slug = `tennis-flex-${slugPart}`
   
   const { data: newOrg, error: orgError } = await supabase.from('organizations').insert({
     name: chapterName,

@@ -146,11 +146,11 @@ Platform Owner
 | 1 | Landing page + Auth | ✅ Complete |
 | 2 | Supabase schema | ✅ Complete |
 | 3 | PWA setup | ✅ Complete |
-| 4 | Chapter model | ⏳ Pending |
+| 4 | Chapter model | ✅ Complete |
 | 5 | Find Chapter UI | ⏳ Pending |
-| 6 | Request Chapter flow | ⏳ Pending |
+| 6 | Request Chapter flow | ✅ Complete |
 | 7 | Chapter dashboard | ⏳ Pending |
-| 8 | Player registration | ⏳ Pending |
+| 8 | Player registration | ✅ Complete |
 | 9 | Match pages + messaging | ⏳ Pending |
 | 10 | Score submission | ⏳ Pending |
 | 11 | Leaderboard | ⏳ Pending |
@@ -166,6 +166,18 @@ Platform Owner
 - Login/Register
 - Auth callback
 - Dashboard
+
+### Phase 4 & 6: Chapter Model & Request Flow ✅
+- Multi-tenant organization structure
+- Public "Request a Chapter" form
+- Admin Approval/Denial API and UI
+- Automated Coordinator onboarding via email/magic-links
+
+### Auth Improvements ✅
+- **Set Password Page:** Dedicated UI for invited/new users to set credentials.
+- **Forgot Password Flow:** Full reset cycle with email notification.
+- **Enhanced Auth Callback:** Support for `next` redirect parameters.
+- **Dev Tooling:** Magic-link terminal logging to bypass Supabase email rate limits.
 
 ### Phase 2: Supabase Setup ✅
 - Database schema
