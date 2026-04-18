@@ -8,36 +8,55 @@ export default function SetPassword() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
-    // Check if we have a session (the callback should have set it)
+    const supabase = getSupabaseClient()
+    
     const checkSession = async () => {
-      const supabase = getSupabaseClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         setError('No active session found. Please try the link in your email again.')
+      } else {
+        setError(null)
       }
+      setCheckingSession(false)
     }
+    
     checkSession()
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setError(null)
+        setCheckingSession(false)
+      } else if (event === 'SIGNED_OUT') {
+        setError('No active session found. Please try the link in your email again.')
+        setCheckingSession(false)
+      }
+    })
+    
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setSubmitting(true)
     setError(null)
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
-      setLoading(false)
+      setSubmitting(false)
       return
     }
 
     if (password.length < 8) {
       setError('Password must be at least 8 characters long')
-      setLoading(false)
+      setSubmitting(false)
       return
     }
 
@@ -59,9 +78,11 @@ export default function SetPassword() {
     } catch (err: any) {
       setError(err?.message || 'Failed to set password.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }, [router, password, confirmPassword])
+
+  const isLoading = checkingSession || submitting
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12 lg:px-8">
@@ -100,7 +121,8 @@ export default function SetPassword() {
                 name="password"
                 type="password"
                 required
-                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                disabled={checkingSession}
+                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -115,7 +137,8 @@ export default function SetPassword() {
                 name="confirm-password"
                 type="password"
                 required
-                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                disabled={checkingSession}
+                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -126,10 +149,10 @@ export default function SetPassword() {
           <div>
             <button
               type="submit"
-              disabled={loading || !!message}
+              disabled={isLoading || !!message}
               className="group relative flex w-full justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
             >
-              {loading ? 'Setting password...' : 'Set Password'}
+              {isLoading ? 'Setting password...' : 'Set Password'}
             </button>
           </div>
         </form>

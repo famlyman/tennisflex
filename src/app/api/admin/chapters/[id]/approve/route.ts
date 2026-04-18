@@ -131,7 +131,7 @@ export async function POST(
 
     try {
       const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
-        type: 'recovery',
+        type: 'invite',
         email: originalRequest.email,
         options: {
           redirectTo: `${new URL(request.url).origin}/auth/callback?next=/set-password`
