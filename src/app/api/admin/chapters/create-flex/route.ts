@@ -94,27 +94,30 @@ export async function POST(request: Request) {
     }
 
     let userId: string | null = null
+    const baseUrl = new URL(request.url).origin
     
-    // Step 1: Create user with confirmed email (doesn't send email)
+    // Step 1: Invite user (this ALWAYS sends an email)
     try {
-      const { data: newUser, error: userError } = await adminSupabase.auth.admin.createUser({
+      const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(
         email,
-        email_confirm: true,
-        user_metadata: {
-          full_name: fullName,
-          user_type: 'coordinator'
+        {
+          data: {
+            full_name: fullName,
+            user_type: 'coordinator'
+          }
         }
-      })
+      )
       
-      if (userError) {
-        console.error('Failed to create user:', userError.message)
-        return NextResponse.json({ error: `Failed to create user: ${userError.message}` }, { status: 500 })
+      if (inviteError) {
+        console.error('Failed to invite user:', inviteError.message)
+        return NextResponse.json({ error: `Failed to invite user: ${inviteError.message}` }, { status: 500 })
       }
       
-      userId = newUser?.user?.id
+      userId = inviteData.user?.id
+      console.log(`\n--- Invite sent to ${email} ---\n`)
     } catch (err) {
-      console.error('Create user threw:', err)
-      return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
+      console.error('Invite threw:', err)
+      return NextResponse.json({ error: 'Failed to invite user' }, { status: 500 })
     }
     
     // Step 2: Create coordinator link
@@ -126,44 +129,22 @@ export async function POST(request: Request) {
       })
     }
     
-    // Step 3: Generate signed token for password setup
-    const baseUrl = new URL(request.url).origin
-    const token = await createSetPasswordToken({
-      userId: userId!,
-      email,
-      purpose: 'set-password',
-      organizationId: newOrg.id
-    })
-    
-    // Step 4: Generate magic link via Supabase and send email
-    try {
-      const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
-        type: 'invite',
+    // Step 3: Generate signed token for password setup (for manual fallback)
+    if (userId) {
+      const token = await createSetPasswordToken({
+        userId,
         email,
-        options: {
-          redirectTo: `${baseUrl}/set-password?token=${token}`
-        }
+        purpose: 'set-password',
+        organizationId: newOrg.id
       })
-
-      if (linkError) {
-        console.error('Failed to generate magic link:', linkError.message)
-        // Still return success but note the issue
-      } else if (linkData?.properties?.action_link) {
-        console.log('\n--- SET PASSWORD LINK (DEV) ---')
-        console.log('Use this link to set password:')
-        console.log(`${baseUrl}/set-password?token=${token}`)
-        console.log('-------------------------------\n')
-      }
-    } catch (err) {
-      console.error('Generate link threw:', err)
-      // Log fallback link even if Supabase email fails
+      
       console.log('\n--- SET PASSWORD LINK (FALLBACK) ---')
-      console.log('Supabase email may have failed. Use this link:')
+      console.log('If email not received, use this link:')
       console.log(`${baseUrl}/set-password?token=${token}`)
-      console.log('---------------------------------------\n')
+      console.log('-------------------------------------\n')
     }
     
-    // Step 5: Update chapter request if applicable
+    // Step 4: Update chapter request if applicable
     if (requestId) {
       await adminSupabase.from('chapter_requests').update({
         status: 'approved',
