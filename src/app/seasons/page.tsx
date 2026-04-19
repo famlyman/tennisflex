@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Organization } from '@/types/database'
 
+export const dynamic = 'force-dynamic'
+
 export default async function SeasonsPage() {
   const cookieStore = await cookies()
   const supabase = createServerClient(
