@@ -245,6 +245,48 @@ RESEND_API_KEY=                  # Resend API key for transactional emails (free
   - Updated `/set-password` page to verify token directly
   - Added `JWT_SECRET` to environment variables
 
+### Auto-seed Divisions
+When creating a season, 5 divisions + 6 skill levels are automatically created:
+- Men's Singles, Women's Singles, Men's Doubles, Women's Doubles, Mixed Doubles
+- Skill levels: 2.5, 3.0, 3.5, 4.0, 4.5, 5.0+
+
+### SQL to Seed Existing Seasons
+```sql
+-- First, check current enum values
+SELECT enumlabel FROM pg_enum 
+WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = 'division_type');
+
+-- Run this for each season that needs divisions (one at a time!)
+INSERT INTO divisions (season_id, name, type) VALUES 
+('YOUR_SEASON_ID', 'Men''s Singles', 'mens_singles'::division_type);
+
+INSERT INTO divisions (season_id, name, type) VALUES 
+('YOUR_SEASON_ID', 'Women''s Singles', 'womens_singles'::division_type);
+
+INSERT INTO divisions (season_id, name, type) VALUES 
+('YOUR_SEASON_ID', 'Men''s Doubles', 'mens_doubles'::division_type);
+
+INSERT INTO divisions (season_id, name, type) VALUES 
+('YOUR_SEASON_ID', 'Women''s Doubles', 'womens_doubles'::division_type);
+
+INSERT INTO divisions (season_id, name, type) VALUES 
+('YOUR_SEASON_ID', 'Mixed Doubles', 'mixed_doubles'::division_type);
+
+-- Then add skill levels
+INSERT INTO skill_levels (division_id, name, min_rating, max_rating)
+SELECT d.id, name, min_rating, max_rating FROM divisions d
+CROSS JOIN (
+  VALUES 
+    ('2.5', 2.5::numeric, 2.99::numeric),
+    ('3.0', 3.0::numeric, 3.49::numeric),
+    ('3.5', 3.5::numeric, 3.99::numeric),
+    ('4.0', 4.0::numeric, 4.49::numeric),
+    ('4.5', 4.5::numeric, 4.99::numeric),
+    ('5.0+', 5.0::numeric, NULL)
+) AS v(name, min_rating, max_rating)
+WHERE d.season_id = 'YOUR_SEASON_ID';
+```
+
 ---
 
 ## Known Issues
