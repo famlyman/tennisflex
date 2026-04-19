@@ -57,33 +57,31 @@ export default function ProfilePage() {
         setFullName(profile.full_name || '')
       }
 
-      // Get player data - try different approaches
+      // Get player data
       try {
-        // First try with user ID directly
-        let playerResult = await supabase
+        const { data: playerResult } = await supabase
           .from('players')
           .select('*')
           .eq('profile_id', session.user.id)
           .maybeSingle()
 
-        if (playerResult.data) {
-          setPlayerData(playerResult.data)
+        if (playerResult) {
+          setPlayerData(playerResult)
           setIsPlayer(true)
-          setInitialNtrpSingles(playerResult.data.initial_ntrp_singles?.toString() || '')
-          setInitialNtrpDoubles(playerResult.data.initial_ntrp_doubles?.toString() || '')
+          setInitialNtrpSingles(playerResult.initial_ntrp_singles?.toString() || '')
+          setInitialNtrpDoubles(playerResult.initial_ntrp_doubles?.toString() || '')
         } else {
-          // Try through coordinators - user might be a coordinator without player record
+          // Check if coordinator
           const { data: coords } = await supabase
             .from('coordinators')
             .select('organization_id')
             .eq('profile_id', session.user.id)
             
-          if (coords && coords.length > 0) {
-            setIsPlayer(false)
-          }
+          setIsPlayer(!!(coords && coords.length > 0))
         }
       } catch (err) {
         console.log('Player data fetch error:', err)
+        setIsPlayer(false)
       }
 
       setLoading(false)
@@ -102,7 +100,7 @@ export default function ProfilePage() {
     if (!session) return
 
     try {
-      // Update profile name
+      // Step 1: Always update profile name
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ full_name: fullName })
@@ -112,41 +110,54 @@ export default function ProfilePage() {
         throw new Error(profileError.message)
       }
 
-      // If player record exists, update ratings
-      if (playerData) {
-        const { error: playerError } = await supabase
-          .from('players')
-          .update({
-            initial_ntrp_singles: initialNtrpSingles ? parseFloat(initialNtrpSingles) : null,
-            initial_ntrp_doubles: initialNtrpDoubles ? parseFloat(initialNtrpDoubles) : null,
-          })
-          .eq('id', playerData.id)
-
-        if (playerError) {
-          throw new Error(playerError.message)
-        }
-      } else {
-        // Check if user is a coordinator - if so, they don't need player record yet
-        const { data: coords } = await supabase
-          .from('coordinators')
-          .select('organization_id')
-          .eq('profile_id', session.user.id)
-
-        if (!coords || coords.length === 0) {
-          // Create player record if they have no player or coordinator role
-          const { error: insertError } = await supabase
+      // Step 2: Try to create or update player record
+      try {
+        if (playerData) {
+          // Update existing
+          const { error: playerError } = await supabase
             .from('players')
-            .insert({
-              profile_id: session.user.id,
-              organization_id: '00000000-0000-0000-0000-000000000001', // placeholder
+            .update({
               initial_ntrp_singles: initialNtrpSingles ? parseFloat(initialNtrpSingles) : null,
               initial_ntrp_doubles: initialNtrpDoubles ? parseFloat(initialNtrpDoubles) : null,
             })
+            .eq('id', playerData.id)
 
-          if (insertError && !insertError.message.includes('violates foreign key')) {
-            console.log('Player insert error:', insertError.message)
+          if (playerError) {
+            console.log('Player update error:', playerError.message)
+          }
+        } else if (initialNtrpSingles || initialNtrpDoubles) {
+          // Check if user is a coordinator - get their organization
+          const { data: coords } = await supabase
+            .from('coordinators')
+            .select('organization_id')
+            .eq('profile_id', session.user.id)
+            .maybeSingle()
+
+          const orgId = coords?.organization_id
+
+          if (orgId) {
+            // Create player with coordinator's org
+            const { error: insertError } = await supabase
+              .from('players')
+              .insert({
+                profile_id: session.user.id,
+                organization_id: orgId,
+                initial_ntrp_singles: initialNtrpSingles ? parseFloat(initialNtrpSingles) : null,
+                initial_ntrp_doubles: initialNtrpDoubles ? parseFloat(initialNtrpDoubles) : null,
+              })
+
+            if (!insertError) {
+              setIsPlayer(true)
+            } else if (insertError.message.includes('row-level security')) {
+              // RLS issue - silently skip, profile still saved
+            } else {
+              console.log('Player insert error:', insertError.message)
+            }
           }
         }
+      } catch (playerErr) {
+        // Silently ignore player errors - profile should still save
+        console.log('Player operation error:', playerErr)
       }
 
       setSuccess('Profile updated successfully!')
@@ -205,48 +216,56 @@ export default function ProfilePage() {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">My Ratings</h2>
           
-          <div className="grid grid-cols-2 gap-6">
-            <div className="bg-slate-50 rounded-xl p-4">
-              <p className="text-sm text-slate-500 mb-1">Singles Rating</p>
-              <p className="text-3xl font-bold text-indigo-600">
-                {playerData?.tfr_singles?.toFixed(1) || initialNtrpSingles || '--'}
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                {playerData?.match_count_singles || 0} matches played
-              </p>
+          {!isPlayer && !playerData ? (
+            <div className="bg-amber-50 rounded-xl p-4 text-amber-800">
+              <p>Join a season or become a coordinator to track your ratings.</p>
             </div>
-            <div className="bg-slate-50 rounded-xl p-4">
-              <p className="text-sm text-slate-500 mb-1">Doubles Rating</p>
-              <p className="text-3xl font-bold text-indigo-600">
-                {playerData?.tfr_doubles?.toFixed(1) || initialNtrpDoubles || '--'}
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                {playerData?.match_count_doubles || 0} matches played
-              </p>
-            </div>
-          </div>
-
-          {playerData && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <div className="grid grid-cols-4 gap-4 text-center">
-                <div>
-                  <p className="text-xl font-bold text-emerald-600">{playerData.wins_singles || 0}</p>
-                  <p className="text-xs text-slate-500">Singles Wins</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-slate-50 rounded-xl p-4">
+                  <p className="text-sm text-slate-500 mb-1">Singles Rating</p>
+                  <p className="text-3xl font-bold text-indigo-600">
+                    {playerData?.tfr_singles?.toFixed(1) || initialNtrpSingles || '--'}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {playerData?.match_count_singles || 0} matches played
+                  </p>
                 </div>
-                <div>
-                  <p className="text-xl font-bold text-red-600">{playerData.losses_singles || 0}</p>
-                  <p className="text-xs text-slate-500">Singles Losses</p>
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-emerald-600">{playerData.wins_doubles || 0}</p>
-                  <p className="text-xs text-slate-500">Doubles Wins</p>
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-red-600">{playerData.losses_doubles || 0}</p>
-                  <p className="text-xs text-slate-500">Doubles Losses</p>
+                <div className="bg-slate-50 rounded-xl p-4">
+                  <p className="text-sm text-slate-500 mb-1">Doubles Rating</p>
+                  <p className="text-3xl font-bold text-indigo-600">
+                    {playerData?.tfr_doubles?.toFixed(1) || initialNtrpDoubles || '--'}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {playerData?.match_count_doubles || 0} matches played
+                  </p>
                 </div>
               </div>
-            </div>
+
+              {playerData && (
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                  <div className="grid grid-cols-4 gap-4 text-center">
+                    <div>
+                      <p className="text-xl font-bold text-emerald-600">{playerData.wins_singles || 0}</p>
+                      <p className="text-xs text-slate-500">Singles Wins</p>
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold text-red-600">{playerData.losses_singles || 0}</p>
+                      <p className="text-xs text-slate-500">Singles Losses</p>
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold text-emerald-600">{playerData.wins_doubles || 0}</p>
+                      <p className="text-xs text-slate-500">Doubles Wins</p>
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold text-red-600">{playerData.losses_doubles || 0}</p>
+                      <p className="text-xs text-slate-500">Doubles Losses</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 

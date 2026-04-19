@@ -245,6 +245,31 @@ RESEND_API_KEY=                  # Resend API key for transactional emails (free
   - Updated `/set-password` page to verify token directly
   - Added `JWT_SECRET` to environment variables
 
+### Quick SQL Reference
+
+```sql
+-- Add player RLS policies
+-- Allow users to insert their own record
+CREATE POLICY "players profile owner can insert" ON players
+FOR INSERT
+WITH CHECK (auth.uid() = profile_id);
+
+-- Allow users to update their own record
+CREATE POLICY "players profile owner can update" ON players
+FOR UPDATE
+USING (auth.uid() = profile_id);
+
+-- Allow users to read their own record
+CREATE POLICY "players profile owner can select" ON players
+FOR SELECT
+USING (auth.uid() = profile_id);
+
+-- Allow anyone to read players (for leaderboards)
+CREATE POLICY "players are readable" ON players
+FOR SELECT
+USING (true);
+```
+
 ### Auto-seed Divisions
 When creating a season, 5 divisions + 6 skill levels are automatically created:
 - Men's Singles, Women's Singles, Men's Doubles, Women's Doubles, Mixed Doubles
