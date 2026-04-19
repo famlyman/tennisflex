@@ -32,7 +32,14 @@ export default async function SeasonsPage() {
   // Admin client for data fetching
   const adminClient = createAdminClient()
 
-  // Fetch all seasons with admin client
+  // First, just count seasons
+  const { count, error: countError } = await adminClient
+    .from('seasons')
+    .select('*', { count: 'exact', head: true })
+
+  console.log('Season count:', count, 'Count error:', countError)
+
+  // Then fetch all seasons
   const { data: seasonsData, error } = await adminClient
     .from('seasons')
     .select('*')
