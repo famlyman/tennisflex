@@ -9,20 +9,36 @@ export const dynamic = 'force-dynamic'
 export default async function SeasonsPage() {
   const cookieStore = await cookies()
   
-  // Use admin client to bypass RLS
-  const adminClient = createAdminClient()
+  // Regular client for auth check
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll() {},
+      },
+    }
+  )
 
-  const { data: { session } } = await adminClient.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
 
   if (!session) {
     redirect('/login')
   }
+  
+  // Admin client for data fetching
+  const adminClient = createAdminClient()
 
   // Fetch all seasons with admin client
   const { data: seasonsData, error } = await adminClient
     .from('seasons')
     .select('*')
     .order('registration_start', { ascending: true })
+
+  console.log('Seasons query result:', seasonsData?.length, 'Error:', error)
 
   const seasons = seasonsData || []
 
