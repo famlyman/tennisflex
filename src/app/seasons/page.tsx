@@ -2,8 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { getSeasonsForUser } from '@/actions/organizations'
-import { Organization, Season } from '@/types/database'
+import { Organization } from '@/types/database'
 
 export default async function SeasonsPage() {
   const cookieStore = await cookies()
@@ -34,16 +33,33 @@ export default async function SeasonsPage() {
     redirect('/login')
   }
 
-  // Get seasons for user's organizations
-  console.log('Calling getSeasonsForUser for:', session.user.id)
-  const seasonsData = await getSeasonsForUser(session.user.id)
-  console.log('Seasons data returned:', seasonsData?.length)
+  // Get organizations where user is a coordinator
+  const { data: coordinatorOrgs } = await supabase
+    .from('coordinators')
+    .select('organization_id')
+    .eq('profile_id', session.user.id)
 
-  // Transform the data to handle nested organization
-  const seasons = seasonsData.map((s: any) => ({
-    ...s,
-    organization: s.organization as Organization
-  }))
+  const orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
+  
+  // Fetch seasons for these organizations
+  let seasons: any[] = []
+  if (orgIds.length > 0) {
+    const { data: seasonsData } = await supabase
+      .from('seasons')
+      .select(`
+        *,
+        organization:organizations!seasons_organization_id_fkey (
+          id,
+          name,
+          slug,
+          region
+        )
+      `)
+      .in('organization_id', orgIds)
+      .order('registration_start', { ascending: true })
+    
+    seasons = seasonsData || []
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
