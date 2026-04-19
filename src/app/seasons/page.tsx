@@ -32,20 +32,18 @@ export default async function SeasonsPage() {
   // Admin client for data fetching
   const adminClient = createAdminClient()
 
-  // First, just count seasons
-  const { count, error: countError } = await adminClient
-    .from('seasons')
-    .select('*', { count: 'exact', head: true })
+  // Log what's being used
+  console.log('=== SEASONS PAGE ===')
+  console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+  console.log('Has publishable key:', !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
+  console.log('Has secret key:', !!process.env.SUPABASE_SECRET_KEY)
 
-  console.log('Season count:', count, 'Count error:', countError)
-
-  // Then fetch all seasons
+  // Then fetch all seasons - no order to simplify
   const { data: seasonsData, error } = await adminClient
     .from('seasons')
     .select('*')
-    .order('registration_start', { ascending: true })
 
-  console.log('Seasons query result:', seasonsData?.length, 'Error:', error)
+  console.log('Seasons query result:', seasonsData, 'Error:', error)
 
   const seasons = seasonsData || []
 
