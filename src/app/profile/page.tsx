@@ -212,60 +212,52 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Profile Stats Card */}
+        {/* Self-Rating Display */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">My Ratings</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">My Self-Rating (NTRP)</h2>
           
-          {!isPlayer && !playerData ? (
-            <div className="bg-amber-50 rounded-xl p-4 text-amber-800">
-              <p>Join a season or become a coordinator to track your ratings.</p>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-indigo-50 rounded-xl p-4">
+              <p className="text-sm text-indigo-600 mb-1">Singles</p>
+              <p className="text-3xl font-bold text-indigo-600">
+                {initialNtrpSingles || '--'}
+              </p>
+              <p className="text-xs text-indigo-400 mt-1">
+                {playerData?.match_count_singles || 0} matches played
+              </p>
             </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="bg-slate-50 rounded-xl p-4">
-                  <p className="text-sm text-slate-500 mb-1">Singles Rating</p>
-                  <p className="text-3xl font-bold text-indigo-600">
-                    {playerData?.tfr_singles?.toFixed(1) || initialNtrpSingles || '--'}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {playerData?.match_count_singles || 0} matches played
-                  </p>
+            <div className="bg-indigo-50 rounded-xl p-4">
+              <p className="text-sm text-indigo-600 mb-1">Doubles</p>
+              <p className="text-3xl font-bold text-indigo-600">
+                {initialNtrpDoubles || '--'}
+              </p>
+              <p className="text-xs text-indigo-400 mt-1">
+                {playerData?.match_count_doubles || 0} matches played
+              </p>
+            </div>
+          </div>
+
+          {playerData && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <div className="grid grid-cols-4 gap-4 text-center">
+                <div>
+                  <p className="text-xl font-bold text-emerald-600">{playerData.wins_singles || 0}</p>
+                  <p className="text-xs text-slate-500">W</p>
                 </div>
-                <div className="bg-slate-50 rounded-xl p-4">
-                  <p className="text-sm text-slate-500 mb-1">Doubles Rating</p>
-                  <p className="text-3xl font-bold text-indigo-600">
-                    {playerData?.tfr_doubles?.toFixed(1) || initialNtrpDoubles || '--'}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {playerData?.match_count_doubles || 0} matches played
-                  </p>
+                <div>
+                  <p className="text-xl font-bold text-red-600">{playerData.losses_singles || 0}</p>
+                  <p className="text-xs text-slate-500">L</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-emerald-600">{playerData.wins_doubles || 0}</p>
+                  <p className="text-xs text-slate-500">W</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-red-600">{playerData.losses_doubles || 0}</p>
+                  <p className="text-xs text-slate-500">L</p>
                 </div>
               </div>
-
-              {playerData && (
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                  <div className="grid grid-cols-4 gap-4 text-center">
-                    <div>
-                      <p className="text-xl font-bold text-emerald-600">{playerData.wins_singles || 0}</p>
-                      <p className="text-xs text-slate-500">Singles Wins</p>
-                    </div>
-                    <div>
-                      <p className="text-xl font-bold text-red-600">{playerData.losses_singles || 0}</p>
-                      <p className="text-xs text-slate-500">Singles Losses</p>
-                    </div>
-                    <div>
-                      <p className="text-xl font-bold text-emerald-600">{playerData.wins_doubles || 0}</p>
-                      <p className="text-xs text-slate-500">Doubles Wins</p>
-                    </div>
-                    <div>
-                      <p className="text-xl font-bold text-red-600">{playerData.losses_doubles || 0}</p>
-                      <p className="text-xs text-slate-500">Doubles Losses</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
         </div>
 
