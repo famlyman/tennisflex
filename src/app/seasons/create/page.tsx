@@ -1,7 +1,6 @@
 'use client'
 
 import { getSupabaseClient } from '@/utils/client'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 
@@ -18,7 +17,8 @@ export default function CreateSeasonPage() {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session) {
-        redirect('/login')
+        window.location.href = '/login'
+        return
       }
 
       const { data: coordinatorOrgs } = await supabase
@@ -65,9 +65,16 @@ export default function CreateSeasonPage() {
         return
       }
 
-      // Success - redirect to seasons page
-      redirect('/seasons')
+      if (data.success) {
+        // Use window.location for client-side redirect
+        window.location.href = '/seasons'
+        return
+      }
+
+      setError('Unexpected response')
+      setSubmitting(false)
     } catch (err) {
+      console.error('Submit error:', err)
       setError('An error occurred')
       setSubmitting(false)
     }
