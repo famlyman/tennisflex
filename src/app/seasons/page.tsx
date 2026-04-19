@@ -35,7 +35,9 @@ export default async function SeasonsPage() {
   }
 
   // Get seasons for user's organizations
+  console.log('Calling getSeasonsForUser for:', session.user.id)
   const seasonsData = await getSeasonsForUser(session.user.id)
+  console.log('Seasons data returned:', seasonsData?.length)
 
   // Transform the data to handle nested organization
   const seasons = seasonsData.map((s: any) => ({
