@@ -132,10 +132,7 @@ export default async function FlexPage({ params }: { params: Promise<{ chapter: 
               ))
             ) : (
               <div className="bg-white rounded-2xl p-8 text-center">
-                <p className="text-slate-500 mb-4">No seasons currently available.</p>
-                <p className="text-sm text-slate-400">
-                  Want to coordinate? <Link href="/register?type=coordinator" className="text-indigo-600 hover:underline">Apply to coordinate</Link>
-                </p>
+                <p className="text-slate-500">No seasons currently available. Check back soon!</p>
               </div>
             )}
 

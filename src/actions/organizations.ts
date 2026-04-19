@@ -1,6 +1,7 @@
 // Server action to fetch organizations (Flexes) - Server Component only
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { createAdminClient } from '@/utils/supabase'
 
 export async function getOrganizations() {
   'use server'
@@ -223,29 +224,9 @@ export async function getOrganizationBySlug(slug: string) {
 export async function getSeasonsByOrganization(organizationId: string) {
   'use server'
   
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Record<string, unknown>)
-            )
-          } catch {
-            // Called outside of request context
-          }
-        },
-      },
-    }
-  )
+  const adminClient = createAdminClient()
 
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from('seasons')
     .select('*')
     .eq('organization_id', organizationId)
