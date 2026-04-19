@@ -193,10 +193,32 @@ export default async function Dashboard() {
               </div>
             </>
           ) : (
-            // Player view - show placeholder stats
+            // Player view - show TFR ratings and recent activity
             <>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 col-span-4">
-                <p className="text-slate-500">Sign up for a season to track your ratings!</p>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Your TFR Rating</h3>
+                <p className="text-sm text-slate-500 mb-4">Singles • Doubles</p>
+                <div className="flex gap-8">
+                  <div>
+                    <p className="text-3xl font-bold text-indigo-600">--</p>
+                    <p className="text-xs text-slate-500">Singles</p>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-indigo-600">--</p>
+                    <p className="text-xs text-slate-500">Doubles</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-400 mt-4">Complete matches to establish your rating</p>
+              </div>
+              
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-slate-900">Leaderboard</h3>
+                  <Link href="/leaderboard" className="text-sm text-indigo-600 hover:underline">
+                    View Full →
+                  </Link>
+                </div>
+                <p className="text-slate-500 text-sm">Join a season to appear on the leaderboard!</p>
               </div>
             </>
           )}
@@ -328,15 +350,6 @@ export default async function Dashboard() {
             )}
           </div>
         </div>
-
-        {dashboardData.seasons.length === 0 && !isCoordinator && !isPlatformOwner && (
-          <div className="bg-indigo-50 rounded-2xl p-6 border border-indigo-100">
-            <h3 className="font-semibold text-indigo-900 mb-2">Get Started</h3>
-            <p className="text-sm text-indigo-700">
-              Join a Flex and register for a season to start playing!
-            </p>
-          </div>
-        )}
       </main>
     </div>
   )
