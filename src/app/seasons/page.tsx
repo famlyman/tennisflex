@@ -2,7 +2,6 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Organization } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,15 +15,7 @@ export default async function SeasonsPage() {
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Record<string, unknown>)
-            )
-          } catch {
-            // Ignore
-          }
-        },
+        setAll() {},
       },
     }
   )
@@ -35,23 +26,12 @@ export default async function SeasonsPage() {
     redirect('/login')
   }
 
-  // Get ALL seasons (debug - remove coordinator filter)
-  console.log('Fetching ALL seasons for debug')
-  
-  const { data: seasonsData, error: seasonsError } = await supabase
+  // Fetch all seasons 
+  const { data: seasonsData, error } = await supabase
     .from('seasons')
-    .select(`
-      *,
-      organization:organizations!seasons_organization_id_fkey (
-        id,
-        name,
-        slug,
-        region
-      )
-    `)
+    .select('*')
     .order('registration_start', { ascending: true })
-  
-  console.log('All seasons:', seasonsData?.length, 'Error:', seasonsError)
+
   const seasons = seasonsData || []
 
   return (
@@ -78,18 +58,12 @@ export default async function SeasonsPage() {
             ← Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-slate-900">My Seasons</h1>
-          <p className="text-slate-600 mt-1">Seasons from your organizations.</p>
+          <p className="text-slate-600 mt-1">All seasons.</p>
         </div>
 
         {seasons.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center">
-            <p className="text-slate-500">No seasons in your organizations yet.</p>
-            <p className="text-sm text-slate-400 mt-2">
-Join a Flex to start playing! 
-                <Link href="/#flexes" className="text-indigo-600 hover:underline ml-1">
-                  Browse Flexes
-              </Link>
-            </p>
+            <p className="text-slate-500">No seasons yet.</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -98,7 +72,7 @@ Join a Flex to start playing!
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                   <div>
                     <h3 className="text-xl font-bold text-slate-900">{season.name}</h3>
-                    <p className="text-slate-500">{season.organization?.name}</p>
+                    <p className="text-slate-500">Org ID: {season.organization_id.slice(0,8)}</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     season.status === 'registration_open' 
@@ -116,23 +90,6 @@ Join a Flex to start playing!
                   <div>Registration: {new Date(season.registration_start).toLocaleDateString()} - {new Date(season.registration_end).toLocaleDateString()}</div>
                   <div>Season: {new Date(season.season_start).toLocaleDateString()} - {new Date(season.season_end).toLocaleDateString()}</div>
                 </div>
-
-                {season.status === 'registration_open' && (
-                  <Link 
-                    href={`/seasons/${season.id}/register`}
-                    className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
-                  >
-                    Register Now
-                  </Link>
-                )}
-                {season.status === 'active' && (
-                  <Link 
-                    href={`/seasons/${season.id}`}
-                    className="inline-flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
-                  >
-                    View Season
-                  </Link>
-                )}
               </div>
             ))}
           </div>
