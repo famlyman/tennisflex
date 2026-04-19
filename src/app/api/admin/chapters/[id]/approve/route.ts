@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
+import { createSetPasswordToken } from '@/utils/token'
 
 export async function POST(
   request: Request,
@@ -102,6 +103,7 @@ export async function POST(
 
     let userId: string | null = null
     
+    // Step 1: Create user with confirmed email
     try {
       const { data: newUser, error: userError } = await adminSupabase.auth.admin.createUser({
         email: originalRequest.email,
@@ -121,6 +123,7 @@ export async function POST(
       console.error('Admin user creation threw:', err)
     }
     
+    // Step 2: Create coordinator link
     if (userId) {
       await supabase.from('coordinators').insert({
         profile_id: userId,
@@ -128,28 +131,42 @@ export async function POST(
         role: 'admin'
       })
     }
-
+    
+    // Step 3: Generate signed token and magic link
+    const baseUrl = new URL(request.url).origin
+    const token = await createSetPasswordToken({
+      userId: userId!,
+      email: originalRequest.email,
+      purpose: 'set-password',
+      organizationId: newOrg.id
+    })
+    
     try {
       const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
         type: 'invite',
         email: originalRequest.email,
         options: {
-          redirectTo: `${new URL(request.url).origin}/auth/callback?next=/set-password`
+          redirectTo: `${baseUrl}/set-password?token=${token}`
         }
       })
 
       if (linkError) {
         console.error('Failed to generate magic link:', linkError.message)
       } else if (linkData?.properties?.action_link) {
-        console.log('\n\n--- TENNIS-FLEX MAGIC LINK ---')
-        console.log('Copy and paste this into your browser to set the password:')
-        console.log(linkData.properties.action_link)
-        console.log('---------------------------------------------\n\n')
+        console.log('\n--- SET PASSWORD LINK (DEV) ---')
+        console.log('Use this link to set password:')
+        console.log(`${baseUrl}/set-password?token=${token}`)
+        console.log('-------------------------------\n')
       }
     } catch (err) {
-      console.error('Magic link generation threw:', err)
+      console.error('Generate link threw:', err)
+      console.log('\n--- SET PASSWORD LINK (FALLBACK) ---')
+      console.log('Supabase email may have failed. Use this link:')
+      console.log(`${baseUrl}/set-password?token=${token}`)
+      console.log('---------------------------------------\n')
     }
     
+    // Step 4: Update chapter request status
     await supabase.from('chapter_requests').update({
       status: 'approved',
       reviewed_by: user.id,

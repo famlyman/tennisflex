@@ -1,50 +1,54 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { getSupabaseClient } from '@/utils/client'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { verifySetPasswordToken, SetPasswordTokenPayload } from '@/utils/token'
 
-export default function SetPassword() {
+function SetPasswordInner() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [checkingSession, setCheckingSession] = useState(true)
+  const [validating, setValidating] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [tokenPayload, setTokenPayload] = useState<SetPasswordTokenPayload | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const token = searchParams.get('token')
 
   useEffect(() => {
-    const supabase = getSupabaseClient()
-    
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        setError('No active session found. Please try the link in your email again.')
-      } else {
-        setError(null)
+    const verifyToken = async () => {
+      if (!token) {
+        setError('Invalid link: No token provided')
+        setValidating(false)
+        return
       }
-      setCheckingSession(false)
-    }
-    
-    checkSession()
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+
+      try {
+        const payload = await verifySetPasswordToken(token)
+        if (!payload) {
+          setError('Invalid or expired token. Please request a new invitation.')
+          setValidating(false)
+          return
+        }
+        setTokenPayload(payload)
         setError(null)
-        setCheckingSession(false)
-      } else if (event === 'SIGNED_OUT') {
-        setError('No active session found. Please try the link in your email again.')
-        setCheckingSession(false)
+      } catch {
+        setError('Failed to verify token. Please try the link from your email again.')
       }
-    })
-    
-    return () => {
-      subscription.unsubscribe()
+      setValidating(false)
     }
-  }, [])
+
+    verifyToken()
+  }, [token])
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!token || !tokenPayload) {
+      setError('Invalid request')
+      return
+    }
+
     setSubmitting(true)
     setError(null)
 
@@ -61,28 +65,46 @@ export default function SetPassword() {
     }
 
     try {
-      const supabase = getSupabaseClient()
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password
+      const response = await fetch('/api/set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password })
       })
 
-      if (updateError) {
-        setError(updateError.message)
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to set password')
       } else {
         setMessage('Password set successfully! Redirecting to dashboard...')
         setTimeout(() => {
           router.push('/dashboard')
-          router.refresh()
         }, 2000)
       }
-    } catch (err: any) {
-      setError(err?.message || 'Failed to set password.')
+    } catch (err) {
+      setError('Failed to set password. Please try again.')
     } finally {
       setSubmitting(false)
     }
-  }, [router, password, confirmPassword])
+  }, [router, token, tokenPayload, password, confirmPassword])
 
-  const isLoading = checkingSession || submitting
+  const isLoading = validating || submitting
+  const canSubmit = !isLoading && tokenPayload && !message
+
+  if (validating) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12 lg:px-8">
+        <div className="w-full max-w-md space-y-8 bg-white p-10 rounded-2xl shadow-xl shadow-slate-200">
+          <div className="text-center">
+            <div className="mx-auto w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center mb-6">
+              <span className="text-white font-bold text-2xl leading-none">T</span>
+            </div>
+            <p className="text-slate-600">Verifying link...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12 lg:px-8">
@@ -121,7 +143,7 @@ export default function SetPassword() {
                 name="password"
                 type="password"
                 required
-                disabled={checkingSession}
+                disabled={!canSubmit}
                 className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
                 placeholder="••••••••"
                 value={password}
@@ -137,7 +159,7 @@ export default function SetPassword() {
                 name="confirm-password"
                 type="password"
                 required
-                disabled={checkingSession}
+                disabled={!canSubmit}
                 className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
                 placeholder="••••••••"
                 value={confirmPassword}
@@ -149,7 +171,7 @@ export default function SetPassword() {
           <div>
             <button
               type="submit"
-              disabled={isLoading || !!message}
+              disabled={!canSubmit}
               className="group relative flex w-full justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
             >
               {isLoading ? 'Setting password...' : 'Set Password'}
@@ -158,5 +180,24 @@ export default function SetPassword() {
         </form>
       </div>
     </div>
+  )
+}
+
+// Wrap with Suspense for useSearchParams
+import { Suspense } from 'react'
+
+export default function SetPassword() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12 lg:px-8">
+        <div className="w-full max-w-md space-y-8 bg-white p-10 rounded-2xl shadow-xl shadow-slate-200">
+          <div className="text-center">
+            <p className="text-slate-600">Loading...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <SetPasswordInner />
+    </Suspense>
   )
 }

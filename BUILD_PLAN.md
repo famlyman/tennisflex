@@ -227,7 +227,22 @@ src/
 NEXT_PUBLIC_SUPABASE_URL=         # Supabase project URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=  # Supabase anon key
 SUPABASE_SECRET_KEY=              # Supabase service role key (server only)
+JWT_SECRET=                       # Secret for signing set-password tokens (use openssl rand -base64 32)
 ```
+
+---
+
+## Recent Fixes
+
+- Fixed coordinator invite email: Changed from `recovery` to `invite` link type to properly create session
+- Improved `/set-password` page: Added session check with proper loading states
+- **Unified set-password flow**: Replaced session exchange with signed JWT tokens for reliability
+  - Uses `jose` library for JWT signing
+  - Created `/src/utils/token.ts` for token utilities
+  - Unified `create-flex` and `approve` routes to use same pattern
+  - Added `/api/set-password` endpoint for password setting
+  - Updated `/set-password` page to verify token directly
+  - Added `JWT_SECRET` to environment variables
 
 ---
 
