@@ -34,16 +34,22 @@ export default async function SeasonsPage() {
   }
 
   // Get organizations where user is a coordinator
-  const { data: coordinatorOrgs } = await supabase
+  console.log('User ID from session:', session.user.id)
+  
+  const { data: coordinatorOrgs, error: coordError } = await supabase
     .from('coordinators')
-    .select('organization_id')
+    .select('organization_id, role')
     .eq('profile_id', session.user.id)
+  
+  console.log('Coordinators found:', coordinatorOrgs, 'Error:', coordError)
 
   const orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
+  console.log('Org IDs to fetch:', orgIds)
   
   // Fetch seasons for these organizations
   let seasons: any[] = []
   if (orgIds.length > 0) {
+    console.log('Fetching seasons for orgs:', orgIds)
     const { data: seasonsData } = await supabase
       .from('seasons')
       .select(`
