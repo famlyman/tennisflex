@@ -46,18 +46,20 @@ export default function ProfilePage() {
 
       setEmail(session.user.email || '')
 
-      // Get profile data
+      // Get profile data (includes NTRP ratings)
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, initial_ntrp_singles, initial_ntrp_doubles')
         .eq('id', session.user.id)
         .single()
 
       if (profile) {
         setFullName(profile.full_name || '')
+        setInitialNtrpSingles(profile.initial_ntrp_singles?.toString() || '')
+        setInitialNtrpDoubles(profile.initial_ntrp_doubles?.toString() || '')
       }
 
-      // Get player data
+      // Get player data (for stats)
       try {
         const { data: playerResult } = await supabase
           .from('players')
@@ -68,8 +70,13 @@ export default function ProfilePage() {
         if (playerResult) {
           setPlayerData(playerResult)
           setIsPlayer(true)
-          setInitialNtrpSingles(playerResult.initial_ntrp_singles?.toString() || '')
-          setInitialNtrpDoubles(playerResult.initial_ntrp_doubles?.toString() || '')
+          // Prefer player record ratings if available
+          if (playerResult.initial_ntrp_singles) {
+            setInitialNtrpSingles(playerResult.initial_ntrp_singles.toString())
+          }
+          if (playerResult.initial_ntrp_doubles) {
+            setInitialNtrpDoubles(playerResult.initial_ntrp_doubles.toString())
+          }
         } else {
           // Check if coordinator
           const { data: coords } = await supabase
@@ -110,54 +117,36 @@ export default function ProfilePage() {
         throw new Error(profileError.message)
       }
 
-      // Step 2: Try to create or update player record
+      // Step 2: Save NTRP to profiles table
+      try {
+        const { error: profileNtrpError } = await supabase
+          .from('profiles')
+          .update({
+            initial_ntrp_singles: initialNtrpSingles ? parseFloat(initialNtrpSingles) : null,
+            initial_ntrp_doubles: initialNtrpDoubles ? parseFloat(initialNtrpDoubles) : null,
+          })
+          .eq('id', session.user.id)
+
+        if (profileNtrpError) {
+          console.log('Profile NTRP update error:', profileNtrpError.message)
+        }
+      } catch (profileErr) {
+        console.log('Profile update error:', profileErr)
+      }
+
+      // Step 3: Try to update players table if player record exists
       try {
         if (playerData) {
-          // Update existing
-          const { error: playerError } = await supabase
+          await supabase
             .from('players')
             .update({
               initial_ntrp_singles: initialNtrpSingles ? parseFloat(initialNtrpSingles) : null,
               initial_ntrp_doubles: initialNtrpDoubles ? parseFloat(initialNtrpDoubles) : null,
             })
             .eq('id', playerData.id)
-
-          if (playerError) {
-            console.log('Player update error:', playerError.message)
-          }
-        } else if (initialNtrpSingles || initialNtrpDoubles) {
-          // Check if user is a coordinator - get their organization
-          const { data: coords } = await supabase
-            .from('coordinators')
-            .select('organization_id')
-            .eq('profile_id', session.user.id)
-            .maybeSingle()
-
-          const orgId = coords?.organization_id
-
-          if (orgId) {
-            // Create player with coordinator's org
-            const { error: insertError } = await supabase
-              .from('players')
-              .insert({
-                profile_id: session.user.id,
-                organization_id: orgId,
-                initial_ntrp_singles: initialNtrpSingles ? parseFloat(initialNtrpSingles) : null,
-                initial_ntrp_doubles: initialNtrpDoubles ? parseFloat(initialNtrpDoubles) : null,
-              })
-
-            if (!insertError) {
-              setIsPlayer(true)
-            } else if (insertError.message.includes('row-level security')) {
-              // RLS issue - silently skip, profile still saved
-            } else {
-              console.log('Player insert error:', insertError.message)
-            }
-          }
         }
       } catch (playerErr) {
-        // Silently ignore player errors - profile should still save
-        console.log('Player operation error:', playerErr)
+        // Silently ignore player errors
       }
 
       setSuccess('Profile updated successfully!')

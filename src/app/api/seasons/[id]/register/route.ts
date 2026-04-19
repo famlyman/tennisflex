@@ -1,10 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { createAdminClient } from '@/utils/supabase'
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: seasonId } = await params
   const cookieStore = await cookies()
+  
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
@@ -26,6 +28,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
   )
 
+  // Use admin client to bypass RLS on players table
+  const adminClient = createAdminClient()
+
   const { data: { session } } = await supabase.auth.getSession()
   
   if (!session) {
@@ -39,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const ntrp_doubles = parseFloat(formData.get('ntrp_doubles') as string)
 
   // Get user's profile
-  const { data: profile } = await supabase
+  const { data: profile } = await adminClient
     .from('profiles')
     .select('id')
     .eq('id', session.user.id)
@@ -50,7 +55,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   // Check if already registered
-  const { data: existingPlayer } = await supabase
+  const { data: existingPlayer } = await adminClient
     .from('players')
     .select('id')
     .eq('profile_id', profile.id)
@@ -65,8 +70,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const tfr_singles = ntrp_singles * 10
   const tfr_doubles = ntrp_doubles * 10
 
-  // Create player record with the registration
-  const { error } = await supabase.from('players').insert({
+  // Create player record with the registration (using admin client)
+  const { error } = await adminClient.from('players').insert({
     profile_id: profile.id,
     organization_id,
     initial_ntrp_singles: ntrp_singles,
@@ -83,9 +88,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     console.error('Error registering:', error)
     return Response.json({ error: error.message }, { status: 500 })
   }
-
-  // Note: Division registration would need another table or could be stored in players table
-  // For now, we'll just create the player record
 
   redirect('/dashboard')
 }
