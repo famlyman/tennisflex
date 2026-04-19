@@ -35,39 +35,24 @@ export default async function SeasonsPage() {
     redirect('/login')
   }
 
-  // Get organizations where user is a coordinator
-  console.log('User ID from session:', session.user.id)
+  // Get ALL seasons (debug - remove coordinator filter)
+  console.log('Fetching ALL seasons for debug')
   
-  const { data: coordinatorOrgs, error: coordError } = await supabase
-    .from('coordinators')
-    .select('organization_id, role')
-    .eq('profile_id', session.user.id)
+  const { data: seasonsData, error: seasonsError } = await supabase
+    .from('seasons')
+    .select(`
+      *,
+      organization:organizations!seasons_organization_id_fkey (
+        id,
+        name,
+        slug,
+        region
+      )
+    `)
+    .order('registration_start', { ascending: true })
   
-  console.log('Coordinators found:', coordinatorOrgs, 'Error:', coordError)
-
-  const orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
-  console.log('Org IDs to fetch:', orgIds)
-  
-  // Fetch seasons for these organizations
-  let seasons: any[] = []
-  if (orgIds.length > 0) {
-    console.log('Fetching seasons for orgs:', orgIds)
-    const { data: seasonsData } = await supabase
-      .from('seasons')
-      .select(`
-        *,
-        organization:organizations!seasons_organization_id_fkey (
-          id,
-          name,
-          slug,
-          region
-        )
-      `)
-      .in('organization_id', orgIds)
-      .order('registration_start', { ascending: true })
-    
-    seasons = seasonsData || []
-  }
+  console.log('All seasons:', seasonsData?.length, 'Error:', seasonsError)
+  const seasons = seasonsData || []
 
   return (
     <div className="min-h-screen bg-slate-50">
