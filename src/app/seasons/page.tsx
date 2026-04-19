@@ -2,32 +2,24 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { createAdminClient } from '@/utils/supabase'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SeasonsPage() {
   const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll() {},
-      },
-    }
-  )
+  
+  // Use admin client to bypass RLS
+  const adminClient = createAdminClient()
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { session } } = await adminClient.auth.getSession()
 
   if (!session) {
     redirect('/login')
   }
 
-  // Fetch all seasons 
-  const { data: seasonsData, error } = await supabase
+  // Fetch all seasons with admin client
+  const { data: seasonsData, error } = await adminClient
     .from('seasons')
     .select('*')
     .order('registration_start', { ascending: true })
