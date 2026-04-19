@@ -1,19 +1,36 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabaseClient } from '@/utils/client'
+
+interface PlayerData {
+  id: string
+  initial_ntrp_singles: number | null
+  initial_ntrp_doubles: number | null
+  tfr_singles: number | null
+  tfr_doubles: number | null
+  match_count_singles: number
+  match_count_doubles: number
+  wins_singles: number
+  losses_singles: number
+  wins_doubles: number
+  losses_doubles: number
+}
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [isPlayer, setIsPlayer] = useState(false)
   
   const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
   const [initialNtrpSingles, setInitialNtrpSingles] = useState('')
   const [initialNtrpDoubles, setInitialNtrpDoubles] = useState('')
+  const [playerData, setPlayerData] = useState<PlayerData | null>(null)
   
   const router = useRouter()
   const supabase = getSupabaseClient()
@@ -27,6 +44,8 @@ export default function ProfilePage() {
         return
       }
 
+      setEmail(session.user.email || '')
+
       // Get profile data
       const { data: profile } = await supabase
         .from('profiles')
@@ -38,16 +57,33 @@ export default function ProfilePage() {
         setFullName(profile.full_name || '')
       }
 
-      // Get player ratings if exists
-      const { data: player } = await supabase
-        .from('players')
-        .select('initial_ntrp_singles, initial_ntrp_doubles')
-        .eq('profile_id', session.user.id)
-        .single()
+      // Get player data - try different approaches
+      try {
+        // First try with user ID directly
+        let playerResult = await supabase
+          .from('players')
+          .select('*')
+          .eq('profile_id', session.user.id)
+          .maybeSingle()
 
-      if (player) {
-        setInitialNtrpSingles(player.initial_ntrp_singles?.toString() || '')
-        setInitialNtrpDoubles(player.initial_ntrp_doubles?.toString() || '')
+        if (playerResult.data) {
+          setPlayerData(playerResult.data)
+          setIsPlayer(true)
+          setInitialNtrpSingles(playerResult.data.initial_ntrp_singles?.toString() || '')
+          setInitialNtrpDoubles(playerResult.data.initial_ntrp_doubles?.toString() || '')
+        } else {
+          // Try through coordinators - user might be a coordinator without player record
+          const { data: coords } = await supabase
+            .from('coordinators')
+            .select('organization_id')
+            .eq('profile_id', session.user.id)
+            
+          if (coords && coords.length > 0) {
+            setIsPlayer(false)
+          }
+        }
+      } catch (err) {
+        console.log('Player data fetch error:', err)
       }
 
       setLoading(false)
@@ -65,55 +101,61 @@ export default function ProfilePage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
 
-    // Update profile name
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ full_name: fullName })
-      .eq('id', session.user.id)
+    try {
+      // Update profile name
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName })
+        .eq('id', session.user.id)
 
-    if (profileError) {
-      setError(profileError.message)
-      setSaving(false)
-      return
-    }
-
-    // Check if player record exists, create or update
-    const { data: existingPlayer } = await supabase
-      .from('players')
-      .select('id')
-      .eq('profile_id', session.user.id)
-      .single()
-
-    if (existingPlayer) {
-      await supabase
-        .from('players')
-        .update({
-          initial_ntrp_singles: initialNtrpSingles ? parseFloat(initialNtrpSingles) : null,
-          initial_ntrp_doubles: initialNtrpDoubles ? parseFloat(initialNtrpDoubles) : null,
-        })
-        .eq('profile_id', session.user.id)
-    } else {
-      // Get user's organizations
-      const { data: coordinatorOrgs } = await supabase
-        .from('coordinators')
-        .select('organization_id')
-        .eq('profile_id', session.user.id)
-
-      const orgIds = coordinatorOrgs?.map((c: { organization_id: string }) => c.organization_id) || []
-      
-      if (orgIds.length > 0) {
-        await supabase.from('players').insert({
-          profile_id: session.user.id,
-          organization_id: orgIds[0],
-          initial_ntrp_singles: initialNtrpSingles ? parseFloat(initialNtrpSingles) : null,
-          initial_ntrp_doubles: initialNtrpDoubles ? parseFloat(initialNtrpDoubles) : null,
-        })
+      if (profileError) {
+        throw new Error(profileError.message)
       }
-    }
 
-    setSuccess('Profile updated successfully!')
-    setSaving(false)
-  }, [supabase, fullName, initialNtrpSingles, initialNtrpDoubles])
+      // If player record exists, update ratings
+      if (playerData) {
+        const { error: playerError } = await supabase
+          .from('players')
+          .update({
+            initial_ntrp_singles: initialNtrpSingles ? parseFloat(initialNtrpSingles) : null,
+            initial_ntrp_doubles: initialNtrpDoubles ? parseFloat(initialNtrpDoubles) : null,
+          })
+          .eq('id', playerData.id)
+
+        if (playerError) {
+          throw new Error(playerError.message)
+        }
+      } else {
+        // Check if user is a coordinator - if so, they don't need player record yet
+        const { data: coords } = await supabase
+          .from('coordinators')
+          .select('organization_id')
+          .eq('profile_id', session.user.id)
+
+        if (!coords || coords.length === 0) {
+          // Create player record if they have no player or coordinator role
+          const { error: insertError } = await supabase
+            .from('players')
+            .insert({
+              profile_id: session.user.id,
+              organization_id: '00000000-0000-0000-0000-000000000001', // placeholder
+              initial_ntrp_singles: initialNtrpSingles ? parseFloat(initialNtrpSingles) : null,
+              initial_ntrp_doubles: initialNtrpDoubles ? parseFloat(initialNtrpDoubles) : null,
+            })
+
+          if (insertError && !insertError.message.includes('violates foreign key')) {
+            console.log('Player insert error:', insertError.message)
+          }
+        }
+      }
+
+      setSuccess('Profile updated successfully!')
+    } catch (err: any) {
+      setError(err.message || 'Failed to save profile')
+    } finally {
+      setSaving(false)
+    }
+  }, [supabase, fullName, initialNtrpSingles, initialNtrpDoubles, playerData])
 
   if (loading) {
     return (
@@ -139,56 +181,121 @@ export default function ProfilePage() {
         </div>
       </nav>
 
-      <main className="max-w-2xl mx-auto px-6 py-12">
+      <main className="max-w-3xl mx-auto px-6 py-12">
         <div className="mb-8">
           <Link href="/dashboard" className="text-sm text-slate-600 hover:text-indigo-600 mb-4 inline-flex items-center">
             ← Back to Dashboard
           </Link>
-          <h1 className="text-3xl font-bold text-slate-900">Edit Profile</h1>
-          <p className="text-slate-600 mt-1">Update your information and self-rating</p>
+          <h1 className="text-3xl font-bold text-slate-900">My Profile</h1>
+          <p className="text-slate-600 mt-1">Manage your account and ratings</p>
         </div>
 
-        <form onSubmit={handleSave} className="space-y-6">
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
-            </div>
-          )}
-          {success && (
-            <div className="rounded-md bg-emerald-50 p-4">
-              <div className="text-sm text-emerald-700">{success}</div>
-            </div>
-          )}
+        {error && (
+          <div className="mb-6 rounded-md bg-red-50 p-4">
+            <div className="text-sm text-red-700">{error}</div>
+          </div>
+        )}
+        {success && (
+          <div className="mb-6 rounded-md bg-emerald-50 p-4">
+            <div className="text-sm text-emerald-700">{success}</div>
+          </div>
+        )}
 
+        {/* Profile Stats Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">My Ratings</h2>
+          
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-slate-50 rounded-xl p-4">
+              <p className="text-sm text-slate-500 mb-1">Singles Rating</p>
+              <p className="text-3xl font-bold text-indigo-600">
+                {playerData?.tfr_singles?.toFixed(1) || initialNtrpSingles || '--'}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                {playerData?.match_count_singles || 0} matches played
+              </p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <p className="text-sm text-slate-500 mb-1">Doubles Rating</p>
+              <p className="text-3xl font-bold text-indigo-600">
+                {playerData?.tfr_doubles?.toFixed(1) || initialNtrpDoubles || '--'}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                {playerData?.match_count_doubles || 0} matches played
+              </p>
+            </div>
+          </div>
+
+          {playerData && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <div className="grid grid-cols-4 gap-4 text-center">
+                <div>
+                  <p className="text-xl font-bold text-emerald-600">{playerData.wins_singles || 0}</p>
+                  <p className="text-xs text-slate-500">Singles Wins</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-red-600">{playerData.losses_singles || 0}</p>
+                  <p className="text-xs text-slate-500">Singles Losses</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-emerald-600">{playerData.wins_doubles || 0}</p>
+                  <p className="text-xs text-slate-500">Doubles Wins</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-red-600">{playerData.losses_doubles || 0}</p>
+                  <p className="text-xs text-slate-500">Doubles Losses</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Edit Form */}
+        <form onSubmit={handleSave} className="space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Account Info</h2>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Account Information</h2>
             
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-slate-700 mb-1">
-                Full Name
-              </label>
-              <input
-                id="fullName"
-                type="text"
-                required
-                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                placeholder="John Doe"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="fullName" className="block text-sm font-medium text-slate-700 mb-1">
+                  Full Name
+                </label>
+                <input
+                  id="fullName"
+                  type="text"
+                  required
+                  className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  disabled
+                  className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-500 bg-slate-50"
+                  value={email}
+                />
+                <p className="text-xs text-slate-400 mt-1">Email cannot be changed</p>
+              </div>
             </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Self-Rating (NTRP)</h2>
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">Self-Rating (NTRP)</h2>
             <p className="text-sm text-slate-500 mb-4">
-              Rate yourself honestly based on the NTRP scale (1.0-7.0). This helps place you in the right division.
+              Rate yourself honestly to be placed in the right division. Find your level at <a href="https://www.usta.com/ntrp" target="_blank" rel="noopener" className="text-indigo-600 underline">usta.com/ntrp</a>
             </p>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="ntrpSingles" className="block text-sm font-medium text-slate-700 mb-1">
-                  NTRP Singles (1.0-7.0)
+                  NTRP Singles
                 </label>
                 <select
                   id="ntrpSingles"
@@ -196,7 +303,7 @@ export default function ProfilePage() {
                   value={initialNtrpSingles}
                   onChange={(e) => setInitialNtrpSingles(e.target.value)}
                 >
-                  <option value="">Select rating</option>
+                  <option value="">Not set</option>
                   <option value="1.0">1.0 - Beginner</option>
                   <option value="1.5">1.5</option>
                   <option value="2.0">2.0</option>
@@ -215,7 +322,7 @@ export default function ProfilePage() {
               
               <div>
                 <label htmlFor="ntrpDoubles" className="block text-sm font-medium text-slate-700 mb-1">
-                  NTRP Doubles (1.0-7.0)
+                  NTRP Doubles
                 </label>
                 <select
                   id="ntrpDoubles"
@@ -223,7 +330,7 @@ export default function ProfilePage() {
                   value={initialNtrpDoubles}
                   onChange={(e) => setInitialNtrpDoubles(e.target.value)}
                 >
-                  <option value="">Select rating</option>
+                  <option value="">Not set</option>
                   <option value="1.0">1.0 - Beginner</option>
                   <option value="1.5">1.5</option>
                   <option value="2.0">2.0</option>
