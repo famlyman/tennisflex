@@ -243,30 +243,12 @@ export default async function Dashboard() {
                         {new Date(season.registration_start).toLocaleDateString()} - {new Date(season.season_end).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      {season.status === 'upcoming' && (
-                        <Link
-                          href={`/api/seasons/${season.id}/open-registration`}
-                          className="px-3 py-1.5 text-sm bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors"
-                        >
-                          Open Registration
-                        </Link>
-                      )}
-                      {season.status === 'registration_open' && (
-                        <Link
-                          href={`/api/seasons/${season.id}/close-registration`}
-                          className="px-3 py-1.5 text-sm bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors"
-                        >
-                          Close Registration
-                        </Link>
-                      )}
-                      <Link
-                        href={`/seasons/${season.id}`}
-                        className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
-                      >
-                        View
-                      </Link>
-                    </div>
+                    <Link
+                      href={`/seasons/${season.id}`}
+                      className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+                    >
+                      View
+                    </Link>
                   </div>
                 ))}
               </div>
