@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { createSetPasswordToken } from '@/utils/token'
+import { sendSetPasswordEmail } from '@/utils/email'
 
 export async function POST(
   request: Request,
@@ -146,7 +147,7 @@ export async function POST(
       })
     }
     
-    // Step 3: Generate signed token for password setup
+    // Step 3: Generate signed token and send custom email
     if (userId) {
       token = await createSetPasswordToken({
         userId,
@@ -155,10 +156,15 @@ export async function POST(
         organizationId: newOrg.id
       })
       
-      // Log the custom token link for manual use if email fails
-      console.log('\n--- SET PASSWORD LINK ---')
-      console.log(`${baseUrl}/set-password?token=${token}`)
-      console.log('-------------------------\n')
+      const setPasswordLink = `${baseUrl}/set-password?token=${token}`
+      
+      // Send custom email with our link
+      await sendSetPasswordEmail({
+        email: originalRequest.email,
+        fullName: originalRequest.full_name,
+        flexName,
+        setPasswordLink
+      })
     } else {
       // Fallback - shouldn't happen but handle gracefully
       token = ''

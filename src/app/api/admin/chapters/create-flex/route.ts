@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createSetPasswordToken } from '@/utils/token'
+import { sendSetPasswordEmail } from '@/utils/email'
 
 export async function POST(request: Request) {
   try {
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
       })
     }
     
-    // Step 3: Generate signed token for password setup (for manual fallback)
+    // Step 3: Generate signed token and send custom email
     if (userId) {
       const token = await createSetPasswordToken({
         userId,
@@ -138,10 +139,15 @@ export async function POST(request: Request) {
         organizationId: newOrg.id
       })
       
-      console.log('\n--- SET PASSWORD LINK (FALLBACK) ---')
-      console.log('If email not received, use this link:')
-      console.log(`${baseUrl}/set-password?token=${token}`)
-      console.log('-------------------------------------\n')
+      const setPasswordLink = `${baseUrl}/set-password?token=${token}`
+      
+      // Send custom email with our link
+      await sendSetPasswordEmail({
+        email,
+        fullName,
+        flexName,
+        setPasswordLink
+      })
     }
     
     // Step 4: Update chapter request if applicable

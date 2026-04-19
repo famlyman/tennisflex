@@ -228,6 +228,7 @@ NEXT_PUBLIC_SUPABASE_URL=         # Supabase project URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=  # Supabase anon key
 SUPABASE_SECRET_KEY=              # Supabase service role key (server only)
 JWT_SECRET=                       # Secret for signing set-password tokens (use openssl rand -base64 32)
+RESEND_API_KEY=                  # Resend API key for transactional emails (free at resend.com)
 ```
 
 ---
