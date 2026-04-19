@@ -57,7 +57,10 @@ export default function CreateSeasonPage() {
         body: formData,
       })
 
+      console.log('Response status:', response.status)
+
       const data = await response.json()
+      console.log('Response data:', data)
 
       if (!response.ok) {
         setError(data.error || 'Failed to create season')
@@ -71,7 +74,7 @@ export default function CreateSeasonPage() {
         return
       }
 
-      setError('Unexpected response')
+      setError('Unexpected response: ' + JSON.stringify(data))
       setSubmitting(false)
     } catch (err) {
       console.error('Submit error:', err)
