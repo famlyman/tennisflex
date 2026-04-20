@@ -244,6 +244,11 @@ RESEND_API_KEY=                  # Resend API key for transactional emails (free
   - Added `/api/set-password` endpoint for password setting
   - Updated `/set-password` page to verify token directly
   - Added `JWT_SECRET` to environment variables
+- **Auto-seed divisions**: Season creation now automatically adds 5 divisions (Men's/Women's Singles/Doubles, Mixed) + 6 skill levels each
+- **Fixed RLS issues**: Updated API routes to use admin client for data operations
+- **Dashboard redesign**: Added stats cards, seasons list, removed redundant buttons
+- **Profile page**: New profile page with self-rating (NTRP), ratings display, win/loss stats
+- **Leaderboard page**: New leaderboard showing top 20 players for singles/doubles
 
 ### Quick SQL Reference
 
@@ -270,47 +275,35 @@ FOR SELECT
 USING (true);
 ```
 
+### Quick SQL Reference
+
+```sql
+-- Add NTRP columns to profiles for self-rating
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS initial_ntrp_singles numeric(3,1),
+ADD COLUMN IF NOT EXISTS initial_ntrp_doubles numeric(3,1);
+
+-- Player RLS policies (allow self-insert/update)
+CREATE POLICY "players profile owner can insert" ON players
+FOR INSERT WITH CHECK (auth.uid() = profile_id);
+
+CREATE POLICY "players profile owner can update" ON players
+FOR UPDATE USING (auth.uid() = profile_id);
+
+CREATE POLICY "players profile owner can select" ON players
+FOR SELECT USING (auth.uid() = profile_id);
+
+CREATE POLICY "players are readable" ON players
+FOR SELECT USING (true);
+```
+
 ### Auto-seed Divisions
 When creating a season, 5 divisions + 6 skill levels are automatically created:
 - Men's Singles, Women's Singles, Men's Doubles, Women's Doubles, Mixed Doubles
 - Skill levels: 2.5, 3.0, 3.5, 4.0, 4.5, 5.0+
 
 ### SQL to Seed Existing Seasons
-```sql
--- First, check current enum values
-SELECT enumlabel FROM pg_enum 
-WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = 'division_type');
-
--- Run this for each season that needs divisions (one at a time!)
-INSERT INTO divisions (season_id, name, type) VALUES 
-('YOUR_SEASON_ID', 'Men''s Singles', 'mens_singles'::division_type);
-
-INSERT INTO divisions (season_id, name, type) VALUES 
-('YOUR_SEASON_ID', 'Women''s Singles', 'womens_singles'::division_type);
-
-INSERT INTO divisions (season_id, name, type) VALUES 
-('YOUR_SEASON_ID', 'Men''s Doubles', 'mens_doubles'::division_type);
-
-INSERT INTO divisions (season_id, name, type) VALUES 
-('YOUR_SEASON_ID', 'Women''s Doubles', 'womens_doubles'::division_type);
-
-INSERT INTO divisions (season_id, name, type) VALUES 
-('YOUR_SEASON_ID', 'Mixed Doubles', 'mixed_doubles'::division_type);
-
--- Then add skill levels
-INSERT INTO skill_levels (division_id, name, min_rating, max_rating)
-SELECT d.id, name, min_rating, max_rating FROM divisions d
-CROSS JOIN (
-  VALUES 
-    ('2.5', 2.5::numeric, 2.99::numeric),
-    ('3.0', 3.0::numeric, 3.49::numeric),
-    ('3.5', 3.5::numeric, 3.99::numeric),
-    ('4.0', 4.0::numeric, 4.49::numeric),
-    ('4.5', 4.5::numeric, 4.99::numeric),
-    ('5.0+', 5.0::numeric, NULL)
-) AS v(name, min_rating, max_rating)
-WHERE d.season_id = 'YOUR_SEASON_ID';
-```
+(Automatically done when creating new seasons - see API)
 
 ---
 
