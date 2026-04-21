@@ -156,11 +156,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   // DEBUG: Log match count
   console.log('[DEBUG] Matches found:', matches?.length || 0, 'Error:', matchesError)
+  if (matches && matches.length > 0) {
+    console.log('[DEBUG] First match:', JSON.stringify(matches[0]))
+  }
 
   return NextResponse.json({
     skill_level: skillLevel,
     matches: matches || [],
     leaderboard,
-    _debug: { skillLevelId, matchesError: matchesError?.message }
+    _debug: { 
+      skillLevelId, 
+      matchesError: matchesError?.message,
+      matchCount: matches?.length || 0,
+      firstMatch: matches?.[0] ? { id: matches[0].id, skill_level_id: matches[0].skill_level_id, hasHome: !!matches[0].home_player } : null
+    }
   })
 }
