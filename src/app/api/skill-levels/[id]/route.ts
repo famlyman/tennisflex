@@ -48,11 +48,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .single()
 
   if (!skillLevel) {
-    return NextResponse.json({ error: 'Skill level not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Skill level not found', skillLevelId }, { status: 404 })
   }
 
+  // DEBUG: Log what we're querying
+  console.log('[DEBUG] Skill Level ID:', skillLevelId)
+  console.log('[DEBUG] Skill Level:', skillLevel.name, 'Division:', skillLevel.division?.name)
+
   // Get all matches for this skill level with player info
-  const { data: matches } = await supabase
+  const { data: matches, error: matchesError } = await supabase
     .from('matches')
     .select(`
       *,
@@ -150,9 +154,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     entry.rank = index + 1
   })
 
+  // DEBUG: Log match count
+  console.log('[DEBUG] Matches found:', matches?.length || 0, 'Error:', matchesError)
+
   return NextResponse.json({
     skill_level: skillLevel,
     matches: matches || [],
     leaderboard,
+    _debug: { skillLevelId, matchesError: matchesError?.message }
   })
 }

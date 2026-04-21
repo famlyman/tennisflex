@@ -74,6 +74,7 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
         throw new Error(err.error || 'Failed to load')
       }
       const result = await response.json()
+      console.log('[DEBUG] API Response:', result)
       setData(result)
     } catch (err: any) {
       setError(err.message)
@@ -98,6 +99,9 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
     )
   }
 
+  // DEBUG: Show debug info if available
+  const debugInfo = (data as any)._debug
+
   const { skill_level, matches, leaderboard } = data
   const seasonId = skill_level.division?.season?.id
 
@@ -120,6 +124,11 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
       </nav>
 
       <main className="max-w-5xl mx-auto px-6 py-12">
+        {debugInfo && (
+          <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs font-mono">
+            DEBUG: skillLevelId={debugInfo.skillLevelId?.slice(0,8)}... | Matches Error: {debugInfo.matchesError || 'none'}
+          </div>
+        )}
         <Link 
           href={`/seasons/${seasonId}`} 
           className="text-sm text-slate-600 hover:text-indigo-600 mb-4 inline-flex items-center"
