@@ -40,21 +40,25 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
 
   const orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
 
-  // Get seasons for user's orgs (same working pattern)
-  const { data: seasons } = await supabase
-    .from('seasons')
-    .select(`
-      *,
-      organization:organizations!seasons_organization_id_fkey (id, name, slug),
-      divisions (
-        *,
-        skill_levels (*)
-      )
-    `)
-    .in('organization_id', orgIds)
+  // Query each org separately
+  let allSeasons: any[] = []
+  for (const orgId of orgIds) {
+    const { data: orgSeasons, error: orgErr } = await supabase
+      .from('seasons')
+      .select('*')
+      .eq('organization_id', orgId)
+    
+    console.log(`Org ${orgId}: ${orgSeasons?.length || 0} seasons, error: ${orgErr?.message}`)
+    
+    if (orgSeasons) {
+      allSeasons = [...allSeasons, ...orgSeasons]
+    }
+  }
+
+  console.log('Total seasons found:', allSeasons.length)
 
   // Find the season with matching ID
-  const season = seasons?.find(s => s.id === seasonId)
+  const season = allSeasons.find(s => s.id === seasonId)
 
   if (!season) {
     return (
@@ -62,7 +66,8 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
         <div className="text-center">
           <div className="text-slate-500 mb-4">Season not found or access denied</div>
           <div className="text-sm text-slate-400">Your orgs: {orgIds.join(', ')}</div>
-          <div className="text-sm text-slate-400">Available seasons: {seasons?.length || 0}</div>
+          <div className="text-sm text-slate-400">Available seasons: {allSeasons.length}</div>
+          <div className="text-sm text-slate-400">Querying orgs individually...</div>
         </div>
       </div>
     )
