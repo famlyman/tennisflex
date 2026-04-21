@@ -27,84 +27,21 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     }
   )
 
-  const adminSupabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.SUPABASE_SECRET_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Record<string, unknown>)
-            )
-          } catch {
-            // Ignore
-          }
-        },
-      },
-    }
-  )
-
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
     redirect('/login')
   }
 
-  // Check if user is a coordinator for any organization
+  // Get user's orgs (same pattern as getSeasonsForUser)
   const { data: coordinatorOrgs } = await supabase
     .from('coordinators')
     .select('organization_id')
     .eq('profile_id', session.user.id)
 
   const orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
-  
-  // Get all seasons to debug
-  const { data: allSeasons } = await adminSupabase.from('seasons').select('id, name, organization_id')
-  console.log('All seasons:', JSON.stringify(allSeasons))
 
-  const seasonQuery = await adminSupabase
-    .from('seasons')
-    .select('id, organization_id')
-    .eq('id', seasonId)
-    .maybeSingle()
-
-  const seasonRaw = seasonQuery.data as any
-  const rawError = seasonQuery.error
-
-  console.log('Direct query result:', JSON.stringify(seasonQuery))
-
-  // Check if user has access to this season's org
-  if (!seasonRaw) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-slate-500 mb-4">Season not found or access denied</div>
-          <div className="text-sm text-slate-400">seasonId: {seasonId}</div>
-          <div className="text-sm text-slate-400">Season org: {seasonRaw?.organization_id || 'null'}</div>
-          <div className="text-sm text-slate-400">Raw error: {rawError?.message || 'none'}</div>
-          <div className="text-sm text-slate-400">Your orgs: {JSON.stringify(orgIds)}</div>
-          <div className="text-sm text-slate-400">secret prefix: {process.env.SUPABASE_SECRET_KEY?.substring(0, 8)}</div>
-        </div>
-      </div>
-    )
-  }
-
-  if (seasonRaw && !orgIds.includes(seasonRaw.organization_id)) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-slate-500 mb-4">Not coordinator for this season</div>
-          <div className="text-sm text-slate-400">Season org: {seasonRaw.organization_id}</div>
-        </div>
-      </div>
-    )
-  }
-
-  // Get full season data
-  const { data: season } = await adminSupabase
+  // Get seasons for user's orgs (same working pattern)
+  const { data: seasons } = await supabase
     .from('seasons')
     .select(`
       *,
@@ -114,16 +51,18 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
         skill_levels (*)
       )
     `)
-    .eq('id', seasonId)
-    .single()
+    .in('organization_id', orgIds)
+
+  // Find the season with matching ID
+  const season = seasons?.find(s => s.id === seasonId)
 
   if (!season) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-slate-500 mb-4">Season not found or access denied</div>
-          <div className="text-sm text-slate-400">Season ID: {seasonId}</div>
           <div className="text-sm text-slate-400">Your orgs: {orgIds.join(', ')}</div>
+          <div className="text-sm text-slate-400">Available seasons: {seasons?.length || 0}</div>
         </div>
       </div>
     )
