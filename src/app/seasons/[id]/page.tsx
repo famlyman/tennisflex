@@ -27,6 +27,27 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     }
   )
 
+  const adminSupabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.SUPABASE_SECRET_KEY || '',
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options as Record<string, unknown>)
+            )
+          } catch {
+            // Ignore
+          }
+        },
+      },
+    }
+  )
+
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
     redirect('/login')
@@ -40,14 +61,12 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
 
   const orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
   
-  // Get season by ID first
-  const { data: seasonRaw, error: rawError } = await supabase
+  // Get season by ID first (using admin to bypass RLS)
+  const { data: seasonRaw, error: rawError } = await adminSupabase
     .from('seasons')
     .select('organization_id')
     .eq('id', seasonId)
     .maybeSingle()
-
-  console.log('rawError:', rawError, 'seasonRaw:', seasonRaw)
 
   // Check if user has access to this season's org
   if (!seasonRaw || !orgIds.includes(seasonRaw.organization_id)) {
@@ -56,14 +75,14 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
         <div className="text-center">
           <div className="text-slate-500 mb-4">Season not found or access denied</div>
           <div className="text-sm text-slate-400">Season org: {seasonRaw?.organization_id || 'null'}</div>
-          <div className="text-sm text-slate-400">Error: {rawError?.message || 'none'}</div>
+          <div className="text-sm text-slate-400">Raw error: {rawError?.message || 'none'}</div>
         </div>
       </div>
     )
   }
 
   // Get full season data
-  const { data: season } = await supabase
+  const { data: season } = await adminSupabase
     .from('seasons')
     .select(`
       *,
