@@ -41,7 +41,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   const orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
   
   // Get season and verify user has access
-  const { data: season } = await supabase
+  const { data: season, error: seasonError } = await supabase
     .from('seasons')
     .select(`
       *,
@@ -53,7 +53,12 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     `)
     .eq('id', seasonId)
     .in('organization_id', orgIds)
-    .single()
+    .maybeSingle()
+
+  if (seasonError) {
+    console.error('Season query error:', seasonError)
+  }
+  console.log('Season query result:', season, 'error:', seasonError)
 
   if (!season) {
     return (
@@ -62,6 +67,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
           <div className="text-slate-500 mb-4">Season not found or access denied</div>
           <div className="text-sm text-slate-400">Season ID: {seasonId}</div>
           <div className="text-sm text-slate-400">Your orgs: {orgIds.join(', ')}</div>
+          {seasonError && <div className="text-sm text-red-400">Error: {seasonError.message}</div>}
         </div>
       </div>
     )
