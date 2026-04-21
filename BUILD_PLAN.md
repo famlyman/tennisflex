@@ -227,7 +227,83 @@ src/
 NEXT_PUBLIC_SUPABASE_URL=         # Supabase project URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=  # Supabase anon key
 SUPABASE_SECRET_KEY=              # Supabase service role key (server only)
+JWT_SECRET=                       # Secret for signing set-password tokens (use openssl rand -base64 32)
+RESEND_API_KEY=                  # Resend API key for transactional emails (free at resend.com)
 ```
+
+---
+
+## Recent Fixes
+
+- Fixed coordinator invite email: Changed from `recovery` to `invite` link type to properly create session
+- Improved `/set-password` page: Added session check with proper loading states
+- **Unified set-password flow**: Replaced session exchange with signed JWT tokens for reliability
+  - Uses `jose` library for JWT signing
+  - Created `/src/utils/token.ts` for token utilities
+  - Unified `create-flex` and `approve` routes to use same pattern
+  - Added `/api/set-password` endpoint for password setting
+  - Updated `/set-password` page to verify token directly
+  - Added `JWT_SECRET` to environment variables
+- **Auto-seed divisions**: Season creation now automatically adds 5 divisions (Men's/Women's Singles/Doubles, Mixed) + 6 skill levels each
+- **Fixed RLS issues**: Updated API routes to use admin client for data operations
+- **Dashboard redesign**: Added stats cards, seasons list, removed redundant buttons
+- **Profile page**: New profile page with self-rating (NTRP), ratings display, win/loss stats
+- **Leaderboard page**: New leaderboard showing top 20 players for singles/doubles
+
+### Quick SQL Reference
+
+```sql
+-- Add player RLS policies
+-- Allow users to insert their own record
+CREATE POLICY "players profile owner can insert" ON players
+FOR INSERT
+WITH CHECK (auth.uid() = profile_id);
+
+-- Allow users to update their own record
+CREATE POLICY "players profile owner can update" ON players
+FOR UPDATE
+USING (auth.uid() = profile_id);
+
+-- Allow users to read their own record
+CREATE POLICY "players profile owner can select" ON players
+FOR SELECT
+USING (auth.uid() = profile_id);
+
+-- Allow anyone to read players (for leaderboards)
+CREATE POLICY "players are readable" ON players
+FOR SELECT
+USING (true);
+```
+
+### Quick SQL Reference
+
+```sql
+-- Add NTRP columns to profiles for self-rating
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS initial_ntrp_singles numeric(3,1),
+ADD COLUMN IF NOT EXISTS initial_ntrp_doubles numeric(3,1);
+
+-- Player RLS policies (allow self-insert/update)
+CREATE POLICY "players profile owner can insert" ON players
+FOR INSERT WITH CHECK (auth.uid() = profile_id);
+
+CREATE POLICY "players profile owner can update" ON players
+FOR UPDATE USING (auth.uid() = profile_id);
+
+CREATE POLICY "players profile owner can select" ON players
+FOR SELECT USING (auth.uid() = profile_id);
+
+CREATE POLICY "players are readable" ON players
+FOR SELECT USING (true);
+```
+
+### Auto-seed Divisions
+When creating a season, 5 divisions + 6 skill levels are automatically created:
+- Men's Singles, Women's Singles, Men's Doubles, Women's Doubles, Mixed Doubles
+- Skill levels: 2.5, 3.0, 3.5, 4.0, 4.5, 5.0+
+
+### SQL to Seed Existing Seasons
+(Automatically done when creating new seasons - see API)
 
 ---
 

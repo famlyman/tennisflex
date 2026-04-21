@@ -1,27 +1,18 @@
 'use client'
 
-import { useState, useCallback, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabaseClient } from '@/utils/client'
 
-function RegisterForm() {
-  const searchParams = useSearchParams()
-  const initialType = searchParams.get('type') || 'player'
-  
+export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
-  const [userType, setUserType] = useState(initialType === 'request' ? 'coordinator' : initialType)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
-
-  // Organization request fields
-  const [orgName, setOrgName] = useState('')
-  const [region, setRegion] = useState('')
-  const [reason, setReason] = useState('')
   
   const router = useRouter()
 
@@ -32,38 +23,16 @@ function RegisterForm() {
 
     const supabase = getSupabaseClient()
 
-    // If "Request an Organization" mode - just submit request, no account yet
-    if (initialType === 'request') {
-      // Just submit organization request (account created after approval)
-      const { error: requestError } = await supabase.from('chapter_requests').insert({
-        email,
-        full_name: fullName,
-        chapter_name: orgName,
-        region,
-        reason,
-      })
-
-      if (requestError) {
-        console.error('Request error:', requestError)
-        setError(requestError.message)
-      } else {
-        setMessage('Organization request submitted! Once approved, you will receive an email to set up your account and manage your organization.')
-        setShowSuccessModal(true)
-      }
-      setLoading(false)
-      return
-    }
-
-    // Normal registration (player or coordinator without org request)
+    // Normal registration as player
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName,
-          user_type: userType,
+          user_type: 'player',
         },
-        emailRedirectTo: `${location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
 
@@ -71,16 +40,15 @@ function RegisterForm() {
       setError(signUpError.message)
     } else {
       setMessage('Registration successful! Please check your email for a confirmation link.')
+      setShowSuccessModal(true)
     }
     setLoading(false)
-  }, [fullName, userType, initialType, orgName, region, reason])
+  }, [fullName, email, password])
 
   const handleCloseModal = useCallback(() => {
     setShowSuccessModal(false)
     router.push('/')
   }, [router])
-
-  const isOrganizationRequest = initialType === 'request'
 
   return (
     <>
@@ -91,25 +59,13 @@ function RegisterForm() {
               <span className="text-white font-bold text-2xl leading-none">T</span>
             </div>
             <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight text-slate-900">
-              {isOrganizationRequest ? 'Request Your Flex' : 'Create your account'}
+              Create your account
             </h2>
             <p className="mt-2 text-center text-sm text-slate-600">
-              {!isOrganizationRequest && (
-                <>
-                  Already have an account?{' '}
-                  <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors underline decoration-indigo-200 underline-offset-4">
-                    Sign in
-                  </Link>
-                </>
-              )}
-              {isOrganizationRequest && (
-                <>
-                  Already have an account?{' '}
-                  <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
-                    Sign in
-                  </Link>
-                </>
-              )}
+              Already have an account?{' '}
+              <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors underline decoration-indigo-200 underline-offset-4">
+                Sign in
+              </Link>
             </p>
           </div>
           
@@ -122,48 +78,6 @@ function RegisterForm() {
             {message && !showSuccessModal && (
               <div className="rounded-md bg-emerald-50 p-4">
                 <div className="text-sm text-emerald-700">{message}</div>
-              </div>
-            )}
-            
-            {!isOrganizationRequest && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    I am registering as:
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setUserType('player')}
-                      className={`px-4 py-2 text-sm font-semibold rounded-lg border transition-all ${
-                        userType === 'player'
-                          ? 'bg-indigo-50 border-indigo-600 text-indigo-600'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                      }`}
-                    >
-                      Player
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setUserType('coordinator')}
-                      className={`px-4 py-2 text-sm font-semibold rounded-lg border transition-all ${
-                        userType === 'coordinator'
-                          ? 'bg-indigo-50 border-indigo-600 text-indigo-600'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                      }`}
-                    >
-                      Coordinator
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {isOrganizationRequest && (
-              <div className="space-y-4 rounded-lg bg-amber-50 p-4 -mt-4 border border-amber-200">
-                <p className="text-sm text-amber-800">
-                  Submit your Flex request. You'll receive an email to create your account once it's approved.
-                </p>
               </div>
             )}
 
@@ -201,80 +115,22 @@ function RegisterForm() {
                 />
               </div>
 
-              {!isOrganizationRequest && (
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-              )}
-
-              {isOrganizationRequest && (
-                <>
-                  <div className="pt-4 border-t border-slate-200">
-                    <p className="text-sm font-medium text-slate-700 mb-3">Organization Details</p>
-                  </div>
-
-                  <div>
-                    <label htmlFor="org-name" className="block text-sm font-medium text-slate-700 mb-1">
-                      Proposed Flex Name
-                    </label>
-                    <input
-                      id="org-name"
-                      name="orgName"
-                      type="text"
-                      required
-                      className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                      placeholder="Tennis-Flex Seattle"
-                      value={orgName}
-                      onChange={(e) => setOrgName(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="region" className="block text-sm font-medium text-slate-700 mb-1">
-                      Region / Area
-                    </label>
-                    <input
-                      id="region"
-                      name="region"
-                      type="text"
-                      required
-                      className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                      placeholder="Seattle metro area"
-                      value={region}
-                      onChange={(e) => setRegion(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="reason" className="block text-sm font-medium text-slate-700 mb-1">
-                      Why do you want to start a Flex?
-                    </label>
-                    <textarea
-                      id="reason"
-                      name="reason"
-                      required
-                      rows={3}
-                      className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                      placeholder="Tell us about your tennis community..."
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
             </div>
 
             <div>
@@ -283,7 +139,7 @@ function RegisterForm() {
                 disabled={loading}
                 className="group relative flex w-full justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 shadow-lg shadow-indigo-100"
               >
-                {loading ? 'Submitting...' : (isOrganizationRequest ? 'Submit Request' : 'Create Account')}
+                {loading ? 'Creating Account...' : 'Create Account'}
               </button>
             </div>
           </form>
@@ -302,12 +158,10 @@ function RegisterForm() {
                 </svg>
               </div>
               <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                {isOrganizationRequest ? 'Request Submitted!' : 'Check Your Email'}
+                Check Your Email
               </h3>
               <p className="text-slate-600 mb-6">
-                {isOrganizationRequest 
-                  ? 'Your organization request has been submitted. You will receive an email to create your account once it is approved.'
-                  : 'Registration successful! Please check your email for a confirmation link.'}
+                Registration successful! Please check your email for a confirmation link.
               </p>
               <button
                 onClick={handleCloseModal}
@@ -320,17 +174,5 @@ function RegisterForm() {
         </div>
       )}
     </>
-  )
-}
-
-export default function Register() {
-  return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="animate-pulse text-slate-400">Loading...</div>
-      </div>
-    }>
-      <RegisterForm />
-    </Suspense>
   )
 }

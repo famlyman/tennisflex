@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
+import { createSetPasswordToken } from '@/utils/token'
+import { sendSetPasswordEmail } from '@/utils/email'
 
 export async function POST(
   request: Request,
@@ -102,25 +104,41 @@ export async function POST(
 
     let userId: string | null = null
     
+    // Generate signed token first (needed for redirect)
+    const baseUrl = new URL(request.url).origin
+    let token: string
+    
     try {
-      const { data: newUser, error: userError } = await adminSupabase.auth.admin.createUser({
-        email: originalRequest.email,
-        email_confirm: true,
-        user_metadata: {
-          full_name: originalRequest.full_name,
-          user_type: 'coordinator'
+      // First, try to invite the user (this ALWAYS sends an email)
+      const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(
+        originalRequest.email,
+        {
+          data: {
+            full_name: originalRequest.full_name,
+            user_type: 'coordinator'
+          },
+          // We'll use generateLink separately to get the token URL
         }
-      })
+      )
       
-      if (userError) {
-        console.error('Failed to create user (may already exist):', userError.message)
+      if (inviteError) {
+        console.error('Failed to invite user:', inviteError.message)
+        // User might already exist - try to get their ID
+        const { data: existingUser } = await adminSupabase.auth.admin.listUsers()
+        const existing = existingUser?.users.find(u => u.email === originalRequest.email)
+        if (existing) {
+          userId = existing.id
+          console.log('User already exists, using existing ID:', userId)
+        }
       } else {
-        userId = newUser?.user?.id
+        userId = inviteData.user?.id
+        console.log(`\n--- Invite sent to ${originalRequest.email} ---\n`)
       }
     } catch (err) {
-      console.error('Admin user creation threw:', err)
+      console.error('Invite threw:', err)
     }
     
+    // Step 2: Create coordinator link
     if (userId) {
       await supabase.from('coordinators').insert({
         profile_id: userId,
@@ -128,28 +146,31 @@ export async function POST(
         role: 'admin'
       })
     }
-
-    try {
-      const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
-        type: 'recovery',
+    
+    // Step 3: Generate signed token and send custom email
+    if (userId) {
+      token = await createSetPasswordToken({
+        userId,
         email: originalRequest.email,
-        options: {
-          redirectTo: `${new URL(request.url).origin}/auth/callback?next=/set-password`
-        }
+        purpose: 'set-password',
+        organizationId: newOrg.id
       })
-
-      if (linkError) {
-        console.error('Failed to generate magic link:', linkError.message)
-      } else if (linkData?.properties?.action_link) {
-        console.log('\n\n--- TENNIS-FLEX MAGIC LINK ---')
-        console.log('Copy and paste this into your browser to set the password:')
-        console.log(linkData.properties.action_link)
-        console.log('---------------------------------------------\n\n')
-      }
-    } catch (err) {
-      console.error('Magic link generation threw:', err)
+      
+      const setPasswordLink = `${baseUrl}/set-password?token=${token}`
+      
+      // Send custom email with our link
+      await sendSetPasswordEmail({
+        email: originalRequest.email,
+        fullName: originalRequest.full_name,
+        flexName,
+        setPasswordLink
+      })
+    } else {
+      // Fallback - shouldn't happen but handle gracefully
+      token = ''
     }
     
+    // Step 4: Update chapter request status
     await supabase.from('chapter_requests').update({
       status: 'approved',
       reviewed_by: user.id,

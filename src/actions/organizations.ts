@@ -1,6 +1,7 @@
 // Server action to fetch organizations (Flexes) - Server Component only
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { createAdminClient } from '@/utils/supabase'
 
 export async function getOrganizations() {
   'use server'
@@ -128,27 +129,33 @@ export async function getSeasonsForUser(userId: string) {
     }
   )
 
-  // Get organizations user is part of (as player or coordinator)
-  const { data: playerOrgs } = await supabase
-    .from('players')
-    .select('organization_id')
-    .eq('profile_id', userId)
-
+  // Get all organizations where user is coordinator (most likely case)
   const { data: coordinatorOrgs } = await supabase
     .from('coordinators')
     .select('organization_id')
     .eq('profile_id', userId)
 
-  const orgIds = [
-    ...(playerOrgs?.map(p => p.organization_id) || []),
-    ...(coordinatorOrgs?.map(c => c.organization_id) || [])
-  ]
+  // Also check if they're a player
+  const { data: playerOrgs } = await supabase
+    .from('players')
+    .select('organization_id')
+    .eq('profile_id', userId)
+
+  // Combine unique org IDs
+  const orgIdSet = new Set([
+    ...(coordinatorOrgs?.map(c => c.organization_id) || []),
+    ...(playerOrgs?.map(p => p.organization_id) || [])
+  ])
+  const orgIds = Array.from(orgIdSet)
 
   if (orgIds.length === 0) {
+    console.log('No org IDs found for user:', userId)
     return []
   }
 
-  // Get seasons for these organizations
+  console.log('Fetching seasons for orgs:', orgIds)
+
+  // Get seasons for these organizations - no status filter to see everything
   const { data, error } = await supabase
     .from('seasons')
     .select(`
@@ -161,7 +168,7 @@ export async function getSeasonsForUser(userId: string) {
       )
     `)
     .in('organization_id', orgIds)
-    .in('status', ['registration_open', 'upcoming', 'active'])
+    // .in('status', ['registration_open', 'upcoming', 'active'])  // Removing filter to debug
     .order('registration_start', { ascending: true })
 
   if (error) {
@@ -169,6 +176,7 @@ export async function getSeasonsForUser(userId: string) {
     return []
   }
 
+  console.log('Seasons data returned:', data?.length)
   return data || []
 }
 
@@ -216,29 +224,9 @@ export async function getOrganizationBySlug(slug: string) {
 export async function getSeasonsByOrganization(organizationId: string) {
   'use server'
   
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Record<string, unknown>)
-            )
-          } catch {
-            // Called outside of request context
-          }
-        },
-      },
-    }
-  )
+  const adminClient = createAdminClient()
 
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from('seasons')
     .select('*')
     .eq('organization_id', organizationId)

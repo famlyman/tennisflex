@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { createSetPasswordToken } from '@/utils/token'
+import { sendSetPasswordEmail } from '@/utils/email'
 
 export async function POST(request: Request) {
   try {
@@ -92,9 +94,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Failed to create organization: ${orgError.message}` }, { status: 500 })
     }
 
-    let emailSent = false
     let userId: string | null = null
+    const baseUrl = new URL(request.url).origin
     
+    // Step 1: Invite user (this ALWAYS sends an email)
     try {
       const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(
         email,
@@ -102,24 +105,23 @@ export async function POST(request: Request) {
           data: {
             full_name: fullName,
             user_type: 'coordinator'
-          },
-          redirectTo: `${new URL(request.url).origin}/auth/callback?next=/set-password`
+          }
         }
       )
-
+      
       if (inviteError) {
-        console.error('Failed to send invite:', inviteError.message)
-        return NextResponse.json({ error: `Failed to send invite: ${inviteError.message}` }, { status: 500 })
+        console.error('Failed to invite user:', inviteError.message)
+        return NextResponse.json({ error: `Failed to invite user: ${inviteError.message}` }, { status: 500 })
       }
       
-      emailSent = true
       userId = inviteData.user?.id
       console.log(`\n--- Invite sent to ${email} ---\n`)
     } catch (err) {
       console.error('Invite threw:', err)
-      return NextResponse.json({ error: 'Failed to send invite' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to invite user' }, { status: 500 })
     }
     
+    // Step 2: Create coordinator link
     if (userId) {
       await adminSupabase.from('coordinators').insert({
         profile_id: userId,
@@ -128,6 +130,27 @@ export async function POST(request: Request) {
       })
     }
     
+    // Step 3: Generate signed token and send custom email
+    if (userId) {
+      const token = await createSetPasswordToken({
+        userId,
+        email,
+        purpose: 'set-password',
+        organizationId: newOrg.id
+      })
+      
+      const setPasswordLink = `${baseUrl}/set-password?token=${token}`
+      
+      // Send custom email with our link
+      await sendSetPasswordEmail({
+        email,
+        fullName,
+        flexName,
+        setPasswordLink
+      })
+    }
+    
+    // Step 4: Update chapter request if applicable
     if (requestId) {
       await adminSupabase.from('chapter_requests').update({
         status: 'approved',
@@ -139,10 +162,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       organization: newOrg,
-      emailSent,
-      message: emailSent 
-        ? 'Flex created and invitation email sent!' 
-        : 'Flex created but invitation email failed. Check server logs.'
+      message: 'Flex created! Invitation email sent.'
     })
     
   } catch (error) {

@@ -1,9 +1,15 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { createAdminClient } from '@/utils/supabase'
 
 export async function GET() {
   const cookieStore = await cookies()
+  
+  // Use admin client to bypass RLS
+  const adminClient = createAdminClient()
+
+  // First get user from regular client for auth check
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
@@ -12,14 +18,7 @@ export async function GET() {
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Record<string, unknown>)
-            )
-          } catch {
-          }
-        },
+        setAll() {},
       },
     }
   )
@@ -30,7 +29,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { data: coordinatorOrgs } = await supabase
+  // Get coordinator orgs using admin client
+  const { data: coordinatorOrgs } = await adminClient
     .from('coordinators')
     .select('organization_id')
     .eq('profile_id', user.id)
@@ -41,7 +41,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Not a coordinator' }, { status: 403 })
   }
 
-  const { data: seasons } = await supabase
+  // Fetch seasons using admin client
+  const { data: seasons } = await adminClient
     .from('seasons')
     .select(`
       *,
@@ -84,25 +85,7 @@ export async function POST(request: Request) {
     }
   )
 
-  const adminSupabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.SUPABASE_SECRET_KEY,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Record<string, unknown>)
-            )
-          } catch {
-          }
-        },
-      },
-    }
-  )
+const adminSupabase = createAdminClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   
