@@ -62,20 +62,36 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   const orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
   
   // Get season by ID first (using admin to bypass RLS)
-  const { data: seasonRaw, error: rawError } = await adminSupabase
+  const seasonQuery = await adminSupabase
     .from('seasons')
-    .select('organization_id')
+    .select('id, organization_id')
     .eq('id', seasonId)
     .maybeSingle()
 
+  const seasonRaw = seasonQuery.data as any
+  const rawError = seasonQuery.error
+
   // Check if user has access to this season's org
-  if (!seasonRaw || !orgIds.includes(seasonRaw.organization_id)) {
+  if (!seasonRaw) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-slate-500 mb-4">Season not found or access denied</div>
+          <div className="text-sm text-slate-400">seasonId: {seasonId}</div>
           <div className="text-sm text-slate-400">Season org: {seasonRaw?.organization_id || 'null'}</div>
           <div className="text-sm text-slate-400">Raw error: {rawError?.message || 'none'}</div>
+          <div className="text-sm text-slate-400">Your orgs: {JSON.stringify(orgIds)}</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (seasonRaw && !orgIds.includes(seasonRaw.organization_id)) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-slate-500 mb-4">Not coordinator for this season</div>
+          <div className="text-sm text-slate-400">Season org: {seasonRaw.organization_id}</div>
         </div>
       </div>
     )
