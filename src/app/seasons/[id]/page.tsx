@@ -62,6 +62,10 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   const orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
   
   // Get season by ID first (using admin to bypass RLS)
+  console.log('adminSupabase url:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+  console.log('has secret key:', !!process.env.SUPABASE_SECRET_KEY)
+  console.log('secret key prefix:', process.env.SUPABASE_SECRET_KEY?.substring(0, 8))
+
   const seasonQuery = await adminSupabase
     .from('seasons')
     .select('id, organization_id')
@@ -70,6 +74,8 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
 
   const seasonRaw = seasonQuery.data as any
   const rawError = seasonQuery.error
+
+  console.log('query result:', JSON.stringify(seasonQuery))
 
   // Check if user has access to this season's org
   if (!seasonRaw) {
@@ -81,6 +87,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
           <div className="text-sm text-slate-400">Season org: {seasonRaw?.organization_id || 'null'}</div>
           <div className="text-sm text-slate-400">Raw error: {rawError?.message || 'none'}</div>
           <div className="text-sm text-slate-400">Your orgs: {JSON.stringify(orgIds)}</div>
+          <div className="text-sm text-slate-400">secret prefix: {process.env.SUPABASE_SECRET_KEY?.substring(0, 8)}</div>
         </div>
       </div>
     )
