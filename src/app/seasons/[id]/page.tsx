@@ -48,17 +48,45 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
       .select('*')
       .eq('organization_id', orgId)
     
-    console.log(`Org ${orgId}: ${orgSeasons?.length || 0} seasons, error: ${orgErr?.message}`)
-    
     if (orgSeasons) {
       allSeasons = [...allSeasons, ...orgSeasons]
     }
   }
 
-  console.log('Total seasons found:', allSeasons.length)
-
   // Find the season with matching ID
   const season = allSeasons.find(s => s.id === seasonId)
+  
+  if (!season) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-slate-500 mb-4">Season not found or access denied</div>
+          <div className="text-sm text-slate-400">Your orgs: {orgIds.join(', ')}</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Get divisions separately
+  const { data: divisions } = await supabase
+    .from('divisions')
+    .select('*')
+    .eq('season_id', seasonId)
+
+  // Get skill levels for all divisions
+  const divisionIds = divisions?.map(d => d.id) || []
+  const { data: skillLevels } = await supabase
+    .from('skill_levels')
+    .select('*')
+    .in('division_id', divisionIds)
+
+  // Attach skill levels to divisions
+  const divisionsWithLevels = divisions?.map(div => ({
+    ...div,
+    skill_levels: skillLevels?.filter(sl => sl.division_id === div.id) || []
+  })) || []
+
+  const seasonWithDivisions = { ...season, divisions: divisionsWithLevels }
 
   if (!season) {
     return (
@@ -137,7 +165,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
 
         <h2 className="text-xl font-bold text-slate-900 mb-6">Divisions</h2>
 
-        {season.divisions?.length === 0 ? (
+        {divisionsWithLevels.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
             <p className="text-slate-500">No divisions in this season yet.</p>
             <Link href="/divisions" className="text-indigo-600 hover:underline mt-2 inline-block">
@@ -146,7 +174,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
           </div>
         ) : (
           <div className="space-y-4">
-            {season.divisions?.map((division: any) => (
+            {divisionsWithLevels.map((division: any) => (
               <div key={division.id} className="bg-white rounded-2xl border border-slate-200 p-6">
                 <h3 className="font-semibold text-slate-900 text-lg mb-4">{division.name}</h3>
                 
