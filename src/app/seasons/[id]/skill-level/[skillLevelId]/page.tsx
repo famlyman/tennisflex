@@ -126,7 +126,7 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
       <main className="max-w-5xl mx-auto px-6 py-12">
         {debugInfo && (
           <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs font-mono">
-            DEBUG: skillLevelId={debugInfo.skillLevelId?.slice(0,8)}... | Matches Error: {debugInfo.matchesError || 'none'} | Match Count: {debugInfo.matchCount} | Raw Match Count: {debugInfo.rawMatchCount} | SkillLevelDB Id: {debugInfo.skillLevelDbId?.slice(0,8)} | Raw Match IDs: {JSON.stringify(debugInfo.rawMatchIds)}
+            DEBUG: skillLevelId={debugInfo.skillLevelId} | SkillLevelDB Id: {debugInfo.skillLevelDbId} | All Match IDs in DB: {JSON.stringify(debugInfo.allMatchSkillLevelIds)}
           </div>
         )}
         <Link 
