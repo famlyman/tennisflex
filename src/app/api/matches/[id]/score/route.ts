@@ -93,8 +93,7 @@ export async function PUT(request: Request, { params }: { params: Promise<RouteP
     .update({
       score,
       winner_id,
-      status: 'completed',
-      completed_at: new Date().toISOString()
+      status: 'completed'
     })
     .eq('id', matchId)
 
