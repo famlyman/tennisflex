@@ -52,10 +52,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   // DEBUG: Log what we're querying
-  console.log('[DEBUG] Skill Level ID:', skillLevelId)
-  console.log('[DEBUG] Skill Level:', skillLevel.name, 'Division:', skillLevel.division?.name)
+  console.log('[DEBUG] Skill Level ID:', skillLevelId, 'type:', typeof skillLevelId)
+  console.log('[DEBUG] Skill Level:', skillLevel.name, 'Division:', skillLevel.division?.name, 'DB ID:', skillLevel.id)
 
-  // Get all matches for this skill level with player info
+  // Get all matches for this skill level with player info - try direct query first
+  const { data: rawMatches, error: rawError } = await supabase
+    .from('matches')
+    .select('id, skill_level_id')
+    .eq('skill_level_id', skillLevelId)
+  
+  console.log('[DEBUG] Raw matches query:', rawMatches, 'Error:', rawError)
+
   const { data: matches, error: matchesError } = await supabase
     .from('matches')
     .select(`
