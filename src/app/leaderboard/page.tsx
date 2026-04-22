@@ -139,7 +139,7 @@ export default function LeaderboardPage() {
             <select
               value={selectedSeason}
               onChange={(e) => setSelectedSeason(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-900"
             >
               <option value="">Select season...</option>
               {seasons.map((s) => (
@@ -154,7 +154,7 @@ export default function LeaderboardPage() {
               value={selectedDivision}
               onChange={(e) => setSelectedDivision(e.target.value)}
               disabled={!selectedSeason}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white disabled:opacity-50"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 disabled:opacity-50"
             >
               <option value="">Select division...</option>
               {divisions.map((d) => (
@@ -169,7 +169,7 @@ export default function LeaderboardPage() {
               value={selectedSkillLevel}
               onChange={(e) => setSelectedSkillLevel(e.target.value)}
               disabled={!selectedDivision}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white disabled:opacity-50"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 disabled:opacity-50"
             >
               <option value="">Select level...</option>
               {skillLevels.map((sl) => (

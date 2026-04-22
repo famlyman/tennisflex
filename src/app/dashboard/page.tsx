@@ -76,7 +76,7 @@ async function getDashboardData(userId: string) {
     // Get pending matches (scheduled or in_progress)
     let pendingMatches = 0
     if (skillLevelIds.length > 0) {
-      const pendingRes = await adminClient.from('matches').select('*', { count: 'exact', head: true }).in('skill_level_id', skillLevelIds).in('status', ['scheduled', 'in_progress'])
+      const pendingRes = await adminClient.from('matches').select('*', { count: 'exact', head: true }).in('skill_level_id', skillLevelIds).neq('status', 'completed')
       pendingMatches = pendingRes.count || 0
     }
 
