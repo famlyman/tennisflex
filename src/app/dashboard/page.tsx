@@ -50,17 +50,35 @@ async function getDashboardData(userId: string) {
       .select('*', { count: 'exact', head: true })
       .in('organization_id', orgIds)
 
-    // Get match counts
-    const { count: totalMatches } = await adminClient
-      .from('matches')
-      .select('*', { count: 'exact', head: true })
-      .in('organization_id', orgIds)
+    // Get season IDs for these organizations
+    const seasonRes = await adminClient.from('seasons').select('id').in('organization_id', orgIds)
+    const seasonIds = (seasonRes.data || []).map(s => s.id)
 
-    const { count: pendingMatches } = await adminClient
-      .from('matches')
-      .select('*', { count: 'exact', head: true })
-      .in('organization_id', orgIds)
-      .eq('status', 'scheduled')
+    // Get division IDs for these seasons
+    const divisionRes = seasonIds.length > 0 
+      ? await adminClient.from('divisions').select('id').in('season_id', seasonIds)
+      : { data: [] }
+    const divisionIds = (divisionRes.data || []).map(d => d.id)
+
+    // Get skill level IDs for these divisions
+    const skillLevelRes = divisionIds.length > 0
+      ? await adminClient.from('skill_levels').select('id').in('division_id', divisionIds)
+      : { data: [] }
+    const skillLevelIds = (skillLevelRes.data || []).map(s => s.id)
+
+    // Get total matches
+    let totalMatches = 0
+    if (skillLevelIds.length > 0) {
+      const matchRes = await adminClient.from('matches').select('*', { count: 'exact', head: true }).in('skill_level_id', skillLevelIds)
+      totalMatches = matchRes.count || 0
+    }
+
+    // Get pending matches (scheduled or in_progress)
+    let pendingMatches = 0
+    if (skillLevelIds.length > 0) {
+      const pendingRes = await adminClient.from('matches').select('*', { count: 'exact', head: true }).in('skill_level_id', skillLevelIds).in('status', ['scheduled', 'in_progress'])
+      pendingMatches = pendingRes.count || 0
+    }
 
     const activeSeasonCount = (seasonsData || []).filter(
       s => s.status === 'active' || s.status === 'registration_open'
@@ -315,6 +333,24 @@ export default async function Dashboard() {
                   </div>
                   <p className="font-semibold text-slate-900">Create Season</p>
                   <p className="text-sm text-slate-500">Start a new season</p>
+                </Link>
+                <Link href="/leaderboard" className="p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
+                  <div className="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <p className="font-semibold text-slate-900">Leaderboards</p>
+                  <p className="text-sm text-slate-500">View division rankings</p>
+                </Link>
+                <Link href="/divisions" className="p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
+                  <div className="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                  </div>
+                  <p className="font-semibold text-slate-900">Manage Divisions</p>
+                  <p className="text-sm text-slate-500">Setup divisions</p>
                 </Link>
               </>
             ) : (
