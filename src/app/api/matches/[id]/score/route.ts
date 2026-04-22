@@ -70,7 +70,15 @@ export async function PUT(request: Request, { params }: { params: Promise<RouteP
     .single()
 
   const isCoordinator = !!coordinator
-  const isPlayer = match.home_player_id === user.id || match.away_player_id === user.id
+
+  const { data: userPlayer } = await adminSupabase
+    .from('players')
+    .select('id')
+    .eq('profile_id', user.id)
+    .eq('organization_id', orgId)
+    .maybeSingle()
+
+  const isPlayer = userPlayer && (userPlayer.id === match.home_player_id || userPlayer.id === match.away_player_id)
 
   if (!isCoordinator && !isPlayer) {
     return NextResponse.json({ error: 'Not authorized to update this match' }, { status: 403 })
@@ -91,7 +99,8 @@ export async function PUT(request: Request, { params }: { params: Promise<RouteP
     .eq('id', matchId)
 
   if (updateError) {
-    return NextResponse.json({ error: 'Failed to update match' }, { status: 500 })
+    console.error('Match update error:', updateError)
+    return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
   return NextResponse.json({ success: true, match_id: matchId })

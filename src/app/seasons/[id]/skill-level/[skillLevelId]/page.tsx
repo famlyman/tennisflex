@@ -402,22 +402,22 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                       <select
                         value={setScores[setIndex]?.home || ''}
                         onChange={(e) => updateSetScore(setIndex, 'home', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
                       >
                         <option value="">-</option>
                         {[...Array(13)].map((_, i) => (
-                          <option key={i} value={i}>{i}</option>
+                          <option key={i} value={String(i)}>{i}</option>
                         ))}
                       </select>
                       <span className="text-slate-400">-</span>
                       <select
                         value={setScores[setIndex]?.away || ''}
                         onChange={(e) => updateSetScore(setIndex, 'away', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
                       >
                         <option value="">-</option>
                         {[...Array(13)].map((_, i) => (
-                          <option key={i} value={i}>{i}</option>
+                          <option key={i} value={String(i)}>{i}</option>
                         ))}
                       </select>
                       <span className="text-sm text-slate-500 w-24 text-right">
