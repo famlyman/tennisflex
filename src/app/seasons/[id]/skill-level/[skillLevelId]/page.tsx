@@ -64,7 +64,11 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
   const [activeTab, setActiveTab] = useState<'matches' | 'leaderboard'>('matches')
   const [showScoreModal, setShowScoreModal] = useState(false)
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
-  const [scoreInput, setScoreInput] = useState('')
+  const [setScores, setSetScores] = useState<{ home: string; away: string }[]>([
+    { home: '', away: '' },
+    { home: '', away: '' },
+    { home: '', away: '' },
+  ])
   const [winnerId, setWinnerId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -93,19 +97,48 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
 
   function openScoreModal(match: Match) {
     setSelectedMatch(match)
-    setScoreInput(match.score || '')
     setWinnerId(match.winner_id)
+    
+    if (match.score) {
+      const sets = match.score.split(' ').map(set => {
+        const parts = set.includes('(') ? set.split('(')[0] : set
+        const [home, away] = parts.split('-')
+        return { home: home.trim(), away: away.trim() }
+      })
+      while (sets.length < 3) sets.push({ home: '', away: '' })
+      setSetScores(sets.slice(0, 3))
+    } else {
+      setSetScores([
+        { home: '', away: '' },
+        { home: '', away: '' },
+        { home: '', away: '' },
+      ])
+    }
     setShowScoreModal(true)
   }
 
+  function updateSetScore(index: number, side: 'home' | 'away', value: string) {
+    const newScores = [...setScores]
+    newScores[index] = { ...newScores[index], [side]: value }
+    setSetScores(newScores)
+  }
+
   async function handleScoreSubmit() {
-    if (!selectedMatch || !scoreInput || !winnerId) return
+    if (!selectedMatch || !winnerId) return
+    
+    const scoreString = setScores
+      .filter(s => s.home && s.away)
+      .map(s => `${s.home}-${s.away}`)
+      .join(' ')
+    
+    if (!scoreString) return
+    
     setSubmitting(true)
     try {
       const response = await fetch(`/api/matches/${selectedMatch.id}/score`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ score: scoreInput, winner_id: winnerId }),
+        body: JSON.stringify({ score: scoreString, winner_id: winnerId }),
       })
       if (!response.ok) {
         const err = await response.json()
@@ -361,15 +394,38 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 mb-2">Score</label>
-                <input
-                  type="text"
-                  value={scoreInput}
-                  onChange={(e) => setScoreInput(e.target.value)}
-                  placeholder="e.g., 6-3 6-4 6-3"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-                />
-                <p className="text-xs text-slate-500 mt-1">Format: 6-3 6-4 6-3 (each set, with optional tiebreak scores)</p>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Set Scores</label>
+                <div className="space-y-2">
+                  {[0, 1, 2].map((setIndex) => (
+                    <div key={setIndex} className="flex items-center gap-2">
+                      <span className="text-sm text-slate-500 w-12">Set {setIndex + 1}</span>
+                      <select
+                        value={setScores[setIndex]?.home || ''}
+                        onChange={(e) => updateSetScore(setIndex, 'home', e.target.value)}
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
+                      >
+                        <option value="">-</option>
+                        {[...Array(13)].map((_, i) => (
+                          <option key={i} value={i}>{i}</option>
+                        ))}
+                      </select>
+                      <span className="text-slate-400">-</span>
+                      <select
+                        value={setScores[setIndex]?.away || ''}
+                        onChange={(e) => updateSetScore(setIndex, 'away', e.target.value)}
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
+                      >
+                        <option value="">-</option>
+                        {[...Array(13)].map((_, i) => (
+                          <option key={i} value={i}>{i}</option>
+                        ))}
+                      </select>
+                      <span className="text-sm text-slate-500 w-24 text-right">
+                        {selectedMatch.home_player?.profile?.full_name?.split(' ')[0]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="mb-6">
@@ -407,7 +463,7 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                 </button>
                 <button
                   onClick={handleScoreSubmit}
-                  disabled={!scoreInput || !winnerId || submitting}
+                  disabled={!winnerId || submitting}
                   className="flex-1 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? 'Saving...' : 'Save Score'}
