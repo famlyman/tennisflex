@@ -6,9 +6,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const adminClient = createAdminClient()
 
   try {
+    // First get the skill level and its division
     const { data: skillLevel, error: slError } = await adminClient
       .from('skill_levels')
-      .select('*, division:divisions (season_id, organization_id)')
+      .select('*')
       .eq('id', skillLevelId)
       .single()
 
@@ -17,17 +18,25 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Skill level not found', detail: slError?.message }, { status: 404 })
     }
 
+    // Get the division to find organization_id
+    const { data: division, error: divError } = await adminClient
+      .from('divisions')
+      .select('season_id, organization_id')
+      .eq('id', skillLevel.division_id)
+      .single()
+
+    if (divError || !division) {
+      console.error('Division error:', divError)
+      return NextResponse.json({ error: 'Division not found' }, { status: 404 })
+    }
+
+    const orgId = division.organization_id
+
     const { data: matches } = await adminClient
       .from('matches')
       .select('id, home_player_id, away_player_id, winner_id, status')
       .eq('skill_level_id', skillLevelId)
       .eq('status', 'completed')
-
-    // Get organization_id from division
-    const orgId = skillLevel.division?.organization_id
-    if (!orgId) {
-      return NextResponse.json({ error: 'Organization not found for skill level' }, { status: 404 })
-    }
 
     const { data: players } = await adminClient
       .from('players')

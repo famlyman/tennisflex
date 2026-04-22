@@ -13,6 +13,7 @@ interface Division {
   id: string
   name: string
   type: string
+  display_name: string
 }
 
 interface SkillLevel {
@@ -158,7 +159,7 @@ export default function LeaderboardPage() {
             >
               <option value="">Select division...</option>
               {divisions.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
+                <option key={d.id} value={d.id}>{d.display_name}</option>
               ))}
             </select>
           </div>
