@@ -394,7 +394,15 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 mb-2">Set Scores</label>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex-1 text-right text-sm font-medium text-slate-700">
+                    {selectedMatch.home_player?.profile?.full_name}
+                  </div>
+                  <div className="w-16 text-center text-sm text-slate-400">-</div>
+                  <div className="flex-1 text-left text-sm font-medium text-slate-700">
+                    {selectedMatch.away_player?.profile?.full_name}
+                  </div>
+                </div>
                 <div className="space-y-2">
                   {[0, 1, 2].map((setIndex) => (
                     <div key={setIndex} className="flex items-center gap-2">
@@ -420,9 +428,6 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                           <option key={i} value={String(i)}>{i}</option>
                         ))}
                       </select>
-                      <span className="text-sm text-slate-500 w-24 text-right">
-                        {selectedMatch.home_player?.profile?.full_name?.split(' ')[0]}
-                      </span>
                     </div>
                   ))}
                 </div>
