@@ -100,6 +100,12 @@ export default function LeaderboardPage() {
     setLoading(true)
     try {
       const res = await fetch(`/api/leaderboard/${skillLevelId}`)
+      if (!res.ok) {
+        const data = await res.json()
+        console.error('Leaderboard error:', data)
+        setLeaderboard([])
+        return
+      }
       const data = await res.json()
       setLeaderboard(data.leaderboard || [])
     } catch (err) {

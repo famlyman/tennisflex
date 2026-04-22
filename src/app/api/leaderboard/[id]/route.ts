@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/utils/supabase'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: skillLevelId } = await params
   const adminClient = createAdminClient()
+
+  console.log('Leaderboard API called with skillLevelId:', skillLevelId)
 
   try {
     // First get the skill level and its division
@@ -15,8 +19,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     if (slError || !skillLevel) {
       console.error('Skill level error:', slError)
-      return NextResponse.json({ error: 'Skill level not found', detail: slError?.message }, { status: 404 })
+      return NextResponse.json({ error: 'Skill level not found', skillLevelId, detail: slError?.message }, { status: 404 })
     }
+
+    console.log('Found skill level:', skillLevel.name)
 
     // Get the division to find organization_id
     const { data: division, error: divError } = await adminClient
@@ -31,12 +37,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     const orgId = division.organization_id
+    console.log('Found orgId:', orgId)
 
     const { data: matches } = await adminClient
       .from('matches')
       .select('id, home_player_id, away_player_id, winner_id, status')
       .eq('skill_level_id', skillLevelId)
       .eq('status', 'completed')
+
+    console.log('Found matches:', matches?.length)
 
     const { data: players } = await adminClient
       .from('players')
