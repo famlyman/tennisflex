@@ -413,7 +413,7 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                         className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
                       >
                         <option value="">-</option>
-                        {[...Array(13)].map((_, i) => (
+                        {[...Array(8)].map((_, i) => (
                           <option key={i} value={String(i)}>{i}</option>
                         ))}
                       </select>
@@ -424,7 +424,7 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                         className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
                       >
                         <option value="">-</option>
-                        {[...Array(13)].map((_, i) => (
+                        {[...Array(8)].map((_, i) => (
                           <option key={i} value={String(i)}>{i}</option>
                         ))}
                       </select>
