@@ -175,7 +175,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       skillLevelId, 
       matchesError: matchesError?.message,
       matchCount: matches?.length || 0,
-      firstMatch: matches?.[0] ? { id: matches[0].id, skill_level_id: matches[0].skill_level_id, hasHome: !!matches[0].home_player } : null
+      rawMatchCount: rawMatches?.length || 0,
+      rawMatchIds: rawMatches?.map((m: any) => m.skill_level_id) || [],
+      skillLevelDbId: skillLevel.id
     }
   })
 }
