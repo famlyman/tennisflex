@@ -47,6 +47,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Skill level not found' }, { status: 404 })
   }
 
+  // Check if user is coordinator of this organization
+  const orgId = skillLevel.division?.season?.organization_id
+  const { data: coordinator } = orgId ? await adminSupabase
+    .from('coordinators')
+    .select('*')
+    .eq('profile_id', user.id)
+    .eq('organization_id', orgId)
+    .single()
+  : { data: null }
+
+  const isCoordinator = !!coordinator
+
   // Get all matches for this skill level with player info
   const { data: matches, error: matchesError } = await adminSupabase
     .from('matches')
@@ -67,7 +79,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .order('created_at', { ascending: false })
 
   // Get all players in this skill level (based on their rating and division type)
-  const orgId = skillLevel.division?.season?.organization_id
   const minRating = skillLevel.min_rating
   const maxRating = skillLevel.max_rating
 
@@ -146,9 +157,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     entry.rank = index + 1
   })
 
+  const matchesWithIds = (matches || []).map((m: any) => ({
+    ...m,
+    home_player_id: m.home_player_id,
+    away_player_id: m.away_player_id,
+  }))
+
   return NextResponse.json({
     skill_level: skillLevel,
-    matches: matches || [],
+    matches: matchesWithIds,
     leaderboard,
+    isCoordinator,
+    userId: user.id,
   })
 }

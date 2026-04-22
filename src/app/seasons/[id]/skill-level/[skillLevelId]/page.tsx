@@ -8,6 +8,8 @@ interface Match {
   status: string
   score: string | null
   scheduled_at: string | null
+  home_player_id: string
+  away_player_id: string
   home_player: {
     id: string
     tfr_singles: number
@@ -54,10 +56,17 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
     skill_level: SkillLevelData
     matches: Match[]
     leaderboard: LeaderboardEntry[]
+    isCoordinator: boolean
+    userId: string
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'matches' | 'leaderboard'>('matches')
+  const [showScoreModal, setShowScoreModal] = useState(false)
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
+  const [scoreInput, setScoreInput] = useState('')
+  const [winnerId, setWinnerId] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     params.then(({ id, skillLevelId: slId }) => {
@@ -79,6 +88,35 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  function openScoreModal(match: Match) {
+    setSelectedMatch(match)
+    setScoreInput(match.score || '')
+    setWinnerId(match.winner_id)
+    setShowScoreModal(true)
+  }
+
+  async function handleScoreSubmit() {
+    if (!selectedMatch || !scoreInput || !winnerId) return
+    setSubmitting(true)
+    try {
+      const response = await fetch(`/api/matches/${selectedMatch.id}/score`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score: scoreInput, winner_id: winnerId }),
+      })
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Failed to submit score')
+      }
+      setShowScoreModal(false)
+      loadData(skillLevelId!)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -182,17 +220,38 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                       {match.status === 'completed' ? 'Completed' : 
                        match.status === 'scheduled' ? 'Scheduled' : 'In Progress'}
                     </span>
-                    {match.scheduled_at && (
-                      <span className="text-sm text-slate-500">
-                        {new Date(match.scheduled_at).toLocaleDateString()}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {match.scheduled_at && (
+                        <span className="text-sm text-slate-500">
+                          {new Date(match.scheduled_at).toLocaleDateString()}
+                        </span>
+                      )}
+                      {(data?.isCoordinator || match.home_player_id === data?.userId || match.away_player_id === data?.userId) && match.status !== 'completed' && (
+                        <button
+                          onClick={() => openScoreModal(match)}
+                          className="text-sm bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700"
+                        >
+                          Add Score
+                        </button>
+                      )}
+                      {(data?.isCoordinator || match.home_player_id === data?.userId || match.away_player_id === data?.userId) && match.status === 'completed' && (
+                        <button
+                          onClick={() => openScoreModal(match)}
+                          className="text-sm bg-slate-200 text-slate-700 px-3 py-1 rounded-lg hover:bg-slate-300"
+                        >
+                          Edit Score
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-4">
                     <div className="flex-1 text-right">
-                      <div className="font-medium text-slate-900">
+                      <div className={`font-medium ${match.winner_id === match.home_player?.id ? 'text-emerald-600 font-bold' : 'text-slate-900'}`}>
                         {match.home_player?.profile?.full_name}
+                        {match.winner_id === match.home_player?.id && (
+                          <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Winner</span>
+                        )}
                       </div>
                       <div className="text-sm text-slate-500">
                         TFR: {(match.home_player?.tfr_singles / 10).toFixed(1)}
@@ -208,8 +267,11 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                     </div>
 
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-slate-900">
+                      <div className={`font-medium ${match.winner_id === match.away_player?.id ? 'text-emerald-600 font-bold' : 'text-slate-900'}`}>
                         {match.away_player?.profile?.full_name}
+                        {match.winner_id === match.away_player?.id && (
+                          <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Winner</span>
+                        )}
                       </div>
                       <div className="text-sm text-slate-500">
                         TFR: {(match.away_player?.tfr_singles / 10).toFixed(1)}
@@ -276,6 +338,82 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {showScoreModal && selectedMatch && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-xl font-bold text-slate-900 mb-4">
+                {selectedMatch.status === 'completed' ? 'Edit Score' : 'Submit Score'}
+              </h3>
+              
+              <div className="flex items-center justify-between mb-6 p-4 bg-slate-50 rounded-xl">
+                <div className="text-center">
+                  <div className="font-medium text-slate-900">{selectedMatch.home_player?.profile?.full_name}</div>
+                  <div className="text-sm text-slate-500">TFR: {(selectedMatch.home_player?.tfr_singles / 10).toFixed(1)}</div>
+                </div>
+                <div className="text-slate-400">vs</div>
+                <div className="text-center">
+                  <div className="font-medium text-slate-900">{selectedMatch.away_player?.profile?.full_name}</div>
+                  <div className="text-sm text-slate-500">TFR: {(selectedMatch.away_player?.tfr_singles / 10).toFixed(1)}</div>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Score</label>
+                <input
+                  type="text"
+                  value={scoreInput}
+                  onChange={(e) => setScoreInput(e.target.value)}
+                  placeholder="e.g., 6-3 6-4 6-3"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+                />
+                <p className="text-xs text-slate-500 mt-1">Format: 6-3 6-4 6-3 (each set, with optional tiebreak scores)</p>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Winner</label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setWinnerId(selectedMatch.home_player_id)}
+                    className={`flex-1 py-3 rounded-lg border-2 font-medium ${
+                      winnerId === selectedMatch.home_player_id
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    {selectedMatch.home_player?.profile?.full_name}
+                  </button>
+                  <button
+                    onClick={() => setWinnerId(selectedMatch.away_player_id)}
+                    className={`flex-1 py-3 rounded-lg border-2 font-medium ${
+                      winnerId === selectedMatch.away_player_id
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    {selectedMatch.away_player?.profile?.full_name}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowScoreModal(false)}
+                  className="flex-1 py-3 border border-slate-300 rounded-lg font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleScoreSubmit}
+                  disabled={!scoreInput || !winnerId || submitting}
+                  className="flex-1 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Saving...' : 'Save Score'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>
