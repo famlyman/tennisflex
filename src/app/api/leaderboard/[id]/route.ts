@@ -24,10 +24,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     console.log('Found skill level:', skillLevel.name)
 
-    // Get the division to find organization_id
+    // Get the division to find organization_id through season
     const { data: division, error: divError } = await adminClient
       .from('divisions')
-      .select('season_id, organization_id')
+      .select('season_id')
       .eq('id', skillLevel.division_id)
       .single()
 
@@ -36,7 +36,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Division not found' }, { status: 404 })
     }
 
-    const orgId = division.organization_id
+    // Get organization_id from the season
+    const { data: season, error: seasonError } = await adminClient
+      .from('seasons')
+      .select('organization_id')
+      .eq('id', division.season_id)
+      .single()
+
+    if (seasonError || !season) {
+      console.error('Season error:', seasonError)
+      return NextResponse.json({ error: 'Season not found' }, { status: 404 })
+    }
+
+    const orgId = season.organization_id
     console.log('Found orgId:', orgId)
 
     const { data: matches } = await adminClient
