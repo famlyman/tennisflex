@@ -57,37 +57,60 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // Check if already registered
   const { data: existingPlayer } = await adminClient
     .from('players')
-    .select('id')
+    .select('id, initial_ntrp_singles, initial_ntrp_doubles')
     .eq('profile_id', profile.id)
     .eq('organization_id', organization_id)
     .single()
 
+  let playerId: string
+
   if (existingPlayer) {
-    return Response.json({ error: 'Already registered for this organization' }, { status: 400 })
+    // Existing player - update ratings if different and use existing record
+    playerId = existingPlayer.id
+    
+    // Update ratings if the user submitted new ones
+    if (ntrp_singles !== existingPlayer.initial_ntrp_singles || ntrp_doubles !== existingPlayer.initial_ntrp_doubles) {
+      const tfr_singles = ntrp_singles * 10
+      const tfr_doubles = ntrp_doubles * 10
+      
+      await adminClient
+        .from('players')
+        .update({
+          initial_ntrp_singles: ntrp_singles,
+          initial_ntrp_doubles: ntrp_doubles,
+          tfr_singles,
+          tfr_doubles
+        })
+        .eq('id', playerId)
+    }
+  } else {
+    // New player - create record
+    const tfr_singles = ntrp_singles * 10
+    const tfr_doubles = ntrp_doubles * 10
+
+    const { data: newPlayer, error } = await adminClient.from('players').insert({
+      profile_id: profile.id,
+      organization_id,
+      initial_ntrp_singles: ntrp_singles,
+      initial_ntrp_doubles: ntrp_doubles,
+      tfr_singles,
+      tfr_doubles,
+      rating_deviation: 4.0,
+      match_count_singles: 0,
+      match_count_doubles: 0,
+      flag_count: 0
+    }).select('id').single()
+
+    if (error) {
+      console.error('Error registering:', error)
+      return Response.json({ error: error.message }, { status: 500 })
+    }
+
+    playerId = newPlayer.id
   }
 
-  // Calculate initial TFR from NTRP (NTRP * 10 for TFR scale)
-  const tfr_singles = ntrp_singles * 10
-  const tfr_doubles = ntrp_doubles * 10
-
-  // Create player record with the registration (using admin client)
-  const { error } = await adminClient.from('players').insert({
-    profile_id: profile.id,
-    organization_id,
-    initial_ntrp_singles: ntrp_singles,
-    initial_ntrp_doubles: ntrp_doubles,
-    tfr_singles,
-    tfr_doubles,
-    rating_deviation: 4.0, // Default deviation
-    match_count_singles: 0,
-    match_count_doubles: 0,
-    flag_count: 0
-  })
-
-  if (error) {
-    console.error('Error registering:', error)
-    return Response.json({ error: error.message }, { status: 500 })
-  }
+  // TODO: Add to season_registrations or division_registrations if that table exists
+  // For now, just redirect to dashboard
 
   redirect('/dashboard')
 }
