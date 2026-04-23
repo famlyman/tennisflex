@@ -255,7 +255,7 @@ export default async function Dashboard() {
                 <div className="flex gap-8">
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
-                      {dashboardData.player ? (dashboardData.player.tfr_singles / 10).toFixed(1) : '--'}
+                      {dashboardData.player?.tfr_singles ? (parseFloat(dashboardData.player.tfr_singles) / 10).toFixed(1) : '--'}
                     </p>
                     <p className="text-xs text-slate-500">Singles</p>
                     <p className="text-xs text-slate-400">
@@ -264,7 +264,7 @@ export default async function Dashboard() {
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
-                      {dashboardData.player ? (dashboardData.player.tfr_doubles / 10).toFixed(1) : '--'}
+                      {dashboardData.player?.tfr_doubles ? (parseFloat(dashboardData.player.tfr_doubles) / 10).toFixed(1) : '--'}
                     </p>
                     <p className="text-xs text-slate-500">Doubles</p>
                     <p className="text-xs text-slate-400">

@@ -148,16 +148,20 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
   const defaultSingles = existingPlayerRating?.initial_ntrp_singles || ''
   const defaultDoubles = existingPlayerRating?.initial_ntrp_doubles || ''
 
-  // Filter divisions based on player's rating (if they have one)
-  const eligibleDivisions = seasonData.divisions?.filter((division: any) => {
-    if (!existingPlayerRating) return true // Show all if new player
-    const rating = existingPlayerRating.initial_ntrp_singles * 10 // Convert to TFR scale
-    return division.skill_levels?.some((sl: any) => {
-      const minOk = sl.min_rating === null || rating >= sl.min_rating
-      const maxOk = sl.max_rating === null || rating <= sl.max_rating
-      return minOk && maxOk
-    })
-  }) || []
+  // Filter divisions based on player's rating - only if player doesn't already exist
+  // If player exists, show all divisions (they can be manually placed)
+  const eligibleDivisions = !existingPlayerRating 
+    ? seasonData.divisions?.filter((division: any) => {
+        // New players: filter by rating only if skill levels exist
+        if (!division.skill_levels || division.skill_levels.length === 0) return true
+        const rating = parseFloat(defaultSingles || '3.5') * 10
+        return division.skill_levels?.some((sl: any) => {
+          const minOk = sl.min_rating === null || rating >= sl.min_rating
+          const maxOk = sl.max_rating === null || rating <= sl.max_rating
+          return minOk && maxOk
+        })
+      }) || []
+    : seasonData.divisions || []
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -203,51 +207,47 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
               Select Division
             </label>
             <div className="space-y-3">
-              {eligibleDivisions.length === 0 ? (
-                <p className="text-slate-500 p-4">No divisions match your rating. Contact coordinator for placement.</p>
-              ) : (
-                seasonData.divisions?.map((division: any) => {
-                  const isEligible = eligibleDivisions.some((d: any) => d.id === division.id)
-                  return (
-                    <label key={division.id} className={`block ${!isEligible ? 'opacity-50' : ''}`}>
-                      <input
-                        type="radio"
-                        name="division_id"
-                        value={division.id}
-                        required
-                        disabled={!isEligible}
-                        className="peer sr-only"
-                      />
-                      <div className={`p-4 rounded-xl border-2 hover:border-indigo-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all cursor-pointer ${!isEligible ? 'cursor-not-allowed bg-slate-50' : ''}`}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-semibold text-slate-900">{division.name}</p>
-                            <p className="text-sm text-slate-500">
-                              {division.type === 'mens_singles' && "Men's Singles"}
-                              {division.type === 'womens_singles' && "Women's Singles"}
-                              {division.type === 'mens_doubles' && "Men's Doubles"}
-                              {division.type === 'womens_doubles' && "Women's Doubles"}
-                              {division.type === 'mixed_doubles' && "Mixed Doubles"}
-                            </p>
-                          </div>
-                          <div>
-                            {division.skill_levels?.length > 0 ? (
-                              <div className="text-sm text-slate-500">
-                                {division.skill_levels.map((sl: any) => sl.name).join(', ')}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-slate-400">No skill levels</span>
-                            )}
-                            {!isEligible && (
-                              <span className="text-xs text-amber-600 ml-2">(rating mismatch)</span>
-                            )}
-                          </div>
+              {seasonData.divisions?.map((division: any) => {
+                const isEligible = eligibleDivisions.some((d: any) => d.id === division.id)
+                return (
+                  <label key={division.id} className={`block ${!isEligible ? 'opacity-50' : ''}`}>
+                    <input
+                      type="radio"
+                      name="division_id"
+                      value={division.id}
+                      required
+                      disabled={!isEligible}
+                      className="peer sr-only"
+                    />
+                    <div className={`p-4 rounded-xl border-2 hover:border-indigo-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all ${!isEligible ? 'cursor-not-allowed bg-slate-50' : 'cursor-pointer border-slate-200'}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-slate-900">{division.name}</p>
+                          <p className="text-sm text-slate-500">
+                            {division.type === 'mens_singles' && "Men's Singles"}
+                            {division.type === 'womens_singles' && "Women's Singles"}
+                            {division.type === 'mens_doubles' && "Men's Doubles"}
+                            {division.type === 'womens_doubles' && "Women's Doubles"}
+                            {division.type === 'mixed_doubles' && "Mixed Doubles"}
+                          </p>
+                        </div>
+                        <div>
+                          {division.skill_levels?.length > 0 ? (
+                            <div className="text-sm text-slate-500">
+                              {division.skill_levels.map((sl: any) => sl.name).join(', ')}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400">No skill levels</span>
+                          )}
+                          {!isEligible && (
+                            <span className="text-xs text-amber-600 ml-2">(rating mismatch)</span>
+                          )}
                         </div>
                       </div>
-                    </label>
-                  )
-                })
-              )}
+                    </div>
+                  </label>
+                )
+              })}
             </div>
           </div>
 
