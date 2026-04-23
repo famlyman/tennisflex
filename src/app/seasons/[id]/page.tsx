@@ -32,24 +32,42 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     redirect('/login')
   }
 
-  // Get user's orgs (same pattern as getSeasonsForUser)
+  // Get user's orgs (for coordinators)
   const { data: coordinatorOrgs } = await supabase
     .from('coordinators')
     .select('organization_id')
     .eq('profile_id', session.user.id)
 
-  const orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
+  let orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
+
+  // Also check if user is a player in any organization
+  const { data: player } = await supabase
+    .from('players')
+    .select('organization_id')
+    .eq('profile_id', session.user.id)
+    .single()
+
+  if (player) {
+    orgIds = [...orgIds, player.organization_id]
+  }
 
   // Query each org separately
   let allSeasons: any[] = []
+  const seenSeasonIds = new Set()
+  
   for (const orgId of orgIds) {
-    const { data: orgSeasons, error: orgErr } = await supabase
+    const { data: orgSeasons } = await supabase
       .from('seasons')
       .select('*')
       .eq('organization_id', orgId)
     
     if (orgSeasons) {
-      allSeasons = [...allSeasons, ...orgSeasons]
+      for (const s of orgSeasons) {
+        if (!seenSeasonIds.has(s.id)) {
+          seenSeasonIds.add(s.id)
+          allSeasons.push(s)
+        }
+      }
     }
   }
 
