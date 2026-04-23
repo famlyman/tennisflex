@@ -45,7 +45,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
   )
 
-  // Use admin client to bypass RLS on players table
   const adminClient = createAdminClient()
 
   const { data: { session } } = await supabase.auth.getSession()
@@ -55,11 +54,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const formData = await request.formData()
-  const division_id = formData.get('division_id') as string
-  const skill_level_id = formData.get('skill_level_id') as string
+  
+  // Handle multiple division_ids (from the smart registration)
+  const division_ids = formData.getAll('division_ids')
   const organization_id = formData.get('organization_id') as string
-  const ntrp_singles = parseFloat(formData.get('ntrp_singles') as string)
-  const ntrp_doubles = parseFloat(formData.get('ntrp_doubles') as string)
+  
+  // Optional rating overrides
+  const ntrp_singles = formData.get('ntrp_singles') 
+    ? parseFloat(formData.get('ntrp_singles') as string)
+    : null
+  const ntrp_doubles = formData.get('ntrp_doubles')
+    ? parseFloat(formData.get('ntrp_doubles') as string)
+    : null
 
   // Get user's profile
   const { data: profile } = await adminClient
@@ -72,7 +78,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return Response.json({ error: 'Profile not found' }, { status: 404 })
   }
 
-  // Check if already registered
+  // Check for existing player record
   const { data: existingPlayer } = await adminClient
     .from('players')
     .select('id, initial_ntrp_singles, initial_ntrp_doubles')
@@ -81,36 +87,55 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .single()
 
   let playerId: string
+  let finalNtrpSingles: number
+  let finalNtrpDoubles: number
 
   if (existingPlayer) {
-    // Existing player - update ratings if different and use existing record
     playerId = existingPlayer.id
+    // Use provided ratings or keep existing
+    finalNtrpSingles = ntrp_singles || existingPlayer.initial_ntrp_singles
+    finalNtrpDoubles = ntrp_doubles || existingPlayer.initial_ntrp_doubles
     
-    // Update ratings if the user submitted new ones
-    if (ntrp_singles !== existingPlayer.initial_ntrp_singles || ntrp_doubles !== existingPlayer.initial_ntrp_doubles) {
-      const tfr_singles = ntrp_singles * 10
-      const tfr_doubles = ntrp_doubles * 10
+    // Update ratings if changed
+    if (ntrp_singles || ntrp_doubles) {
+      const tfr_singles = finalNtrpSingles * 10
+      const tfr_doubles = finalNtrpDoubles * 10
       
       await adminClient
         .from('players')
         .update({
-          initial_ntrp_singles: ntrp_singles,
-          initial_ntrp_doubles: ntrp_doubles,
+          initial_ntrp_singles: finalNtrpSingles,
+          initial_ntrp_doubles: finalNtrpDoubles,
           tfr_singles,
           tfr_doubles
         })
         .eq('id', playerId)
+      
+      // Also update profile with new ratings
+      await adminClient
+        .from('profiles')
+        .update({
+          initial_ntrp_singles: finalNtrpSingles,
+          initial_ntrp_doubles: finalNtrpDoubles
+        })
+        .eq('id', profile.id)
+    } else {
+      finalNtrpSingles = existingPlayer.initial_ntrp_singles
+      finalNtrpDoubles = existingPlayer.initial_ntrp_doubles
     }
   } else {
-    // New player - create record
-    const tfr_singles = ntrp_singles * 10
-    const tfr_doubles = ntrp_doubles * 10
+    // New player - need at least one rating
+    finalNtrpSingles = ntrp_singles || 3.5
+    finalNtrpDoubles = ntrp_doubles || ntrp_singles || 3.5
+    
+    const tfr_singles = finalNtrpSingles * 10
+    const tfr_doubles = finalNtrpDoubles * 10
 
     const { data: newPlayer, error } = await adminClient.from('players').insert({
       profile_id: profile.id,
       organization_id,
-      initial_ntrp_singles: ntrp_singles,
-      initial_ntrp_doubles: ntrp_doubles,
+      initial_ntrp_singles: finalNtrpSingles,
+      initial_ntrp_doubles: finalNtrpDoubles,
       tfr_singles,
       tfr_doubles,
       rating_deviation: 4.0,
@@ -120,44 +145,82 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }).select('id').single()
 
     if (error) {
-      console.error('Error registering:', error)
+      console.error('Error creating player:', error)
       return Response.json({ error: error.message }, { status: 500 })
     }
 
     playerId = newPlayer.id
+    
+    // Also save to profile
+    await adminClient
+      .from('profiles')
+      .update({
+        initial_ntrp_singles: finalNtrpSingles,
+        initial_ntrp_doubles: finalNtrpDoubles
+      })
+      .eq('id', profile.id)
   }
 
-  // Get season and division info for notifications
+  // Get season info
   const { data: season } = await adminClient
     .from('seasons')
-    .select('name, organization_id')
+    .select('name')
     .eq('id', seasonId)
     .single()
 
-  // Create season registration record
-  const { error: regError } = await adminClient.from('season_registrations').upsert({
-    player_id: playerId,
-    season_id: seasonId,
-    division_id,
-    skill_level_id,
-    status: 'active'
-  }, { onConflict: 'player_id,season_id' })
+  // Get divisions info to find skill_level_id for each
+  const { data: divisions } = await adminClient
+    .from('divisions')
+    .select('id, type, skill_levels(id, min_rating, max_rating)')
+    .in('id', division_ids)
+    .single()
 
-  if (regError) {
-    console.error('Error creating season registration:', regError)
+  // Create registration for each division
+  const registrations = []
+  
+  for (const divisionId of division_ids) {
+    // Find the division and its matching skill level for this player's rating
+    const division = divisions?.find(d => d.id === divisionId)
+    if (!division) continue
+    
+    const isSingles = division.type.includes('singles')
+    const playerRating = isSingles ? finalNtrpSingles : finalNtrpDoubles
+    
+    // Find matching skill level
+    const skillLevel = division.skill_levels?.find((sl: any) => 
+      playerRating >= sl.min_rating && playerRating <= sl.max_rating
+    )
+    
+    if (skillLevel) {
+      const { error: regError } = await adminClient
+        .from('season_registrations')
+        .upsert({
+          player_id: playerId,
+          season_id: seasonId,
+          division_id: divisionId,
+          skill_level_id: skillLevel.id,
+          status: 'active'
+        }, { onConflict: 'player_id,season_id,division_id' })
+
+      if (regError) {
+        console.error('Registration error:', regError)
+      } else {
+        registrations.push(division.type)
+      }
+    }
   }
 
-  // Create notification for player
+  // Create notification
   await createNotification(
     adminClient,
     session.user.id,
     'season_registration',
     `Registered for ${season?.name || 'Season'}`,
-    `You have registered for ${season?.name || 'the season'}. Check back for match scheduling!`,
+    `You are registered in ${registrations.length} division(s): ${registrations.join(', ')}`,
     `/seasons/${seasonId}`
   )
 
-  // Notify coordinators of new registration
+  // Notify coordinators
   const { data: coordinators } = await adminClient
     .from('coordinators')
     .select('profile_id')
@@ -169,7 +232,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       coord.profile_id,
       'new_registration',
       'New Player Registration',
-      `${profile.full_name} has registered for ${season?.name || 'the season'}`,
+      `${profile.full_name} has registered for ${season?.name || 'the season'} (${registrations.length} divisions)`,
       `/seasons/${seasonId}`
     )
   }
