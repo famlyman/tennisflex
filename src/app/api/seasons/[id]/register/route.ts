@@ -58,14 +58,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // Handle multiple division_ids (from the smart registration)
   const division_ids = formData.getAll('division_ids')
   const organization_id = formData.get('organization_id') as string
-  
-  // Optional rating overrides
-  const ntrp_singles = formData.get('ntrp_singles') 
-    ? parseFloat(formData.get('ntrp_singles') as string)
-    : null
-  const ntrp_doubles = formData.get('ntrp_doubles')
-    ? parseFloat(formData.get('ntrp_doubles') as string)
-    : null
 
   // Get user's profile
   const { data: profile } = await adminClient
@@ -92,42 +84,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (existingPlayer) {
     playerId = existingPlayer.id
-    // Use provided ratings or keep existing
-    finalNtrpSingles = ntrp_singles || existingPlayer.initial_ntrp_singles
-    finalNtrpDoubles = ntrp_doubles || existingPlayer.initial_ntrp_doubles
-    
-    // Update ratings if changed
-    if (ntrp_singles || ntrp_doubles) {
-      const tfr_singles = finalNtrpSingles * 10
-      const tfr_doubles = finalNtrpDoubles * 10
-      
-      await adminClient
-        .from('players')
-        .update({
-          initial_ntrp_singles: finalNtrpSingles,
-          initial_ntrp_doubles: finalNtrpDoubles,
-          tfr_singles,
-          tfr_doubles
-        })
-        .eq('id', playerId)
-      
-      // Also update profile with new ratings
-      await adminClient
-        .from('profiles')
-        .update({
-          initial_ntrp_singles: finalNtrpSingles,
-          initial_ntrp_doubles: finalNtrpDoubles
-        })
-        .eq('id', profile.id)
-    } else {
-      finalNtrpSingles = existingPlayer.initial_ntrp_singles
-      finalNtrpDoubles = existingPlayer.initial_ntrp_doubles
-    }
+    // Use existing player record ratings
+    finalNtrpSingles = existingPlayer.initial_ntrp_singles || 3.5
+    finalNtrpDoubles = existingPlayer.initial_ntrp_doubles || existingPlayer.initial_ntrp_singles || 3.5
   } else {
-    // New player - need at least one rating
-    finalNtrpSingles = ntrp_singles || 3.5
-    finalNtrpDoubles = ntrp_doubles || ntrp_singles || 3.5
+    // New player - need at least one rating, use profile ratings
+    const { data: profileData } = await adminClient
+      .from('profiles')
+      .select('initial_ntrp_singles, initial_ntrp_doubles')
+      .eq('id', profile.id)
+      .single()
     
+    finalNtrpSingles = profileData?.initial_ntrp_singles || 3.5
+    finalNtrpDoubles = profileData?.initial_ntrp_doubles || profileData?.initial_ntrp_singles || 3.5
+    
+    // Create player record
     const tfr_singles = finalNtrpSingles * 10
     const tfr_doubles = finalNtrpDoubles * 10
 
@@ -150,16 +121,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     playerId = newPlayer.id
-    
-    // Also save to profile
-    await adminClient
-      .from('profiles')
-      .update({
-        initial_ntrp_singles: finalNtrpSingles,
-        initial_ntrp_doubles: finalNtrpDoubles
-      })
-      .eq('id', profile.id)
-  }
 
   // Get season info
   const { data: season } = await adminClient
@@ -190,23 +151,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       playerRating >= sl.min_rating && playerRating <= sl.max_rating
     )
     
-    if (skillLevel) {
-      const { error: regError } = await adminClient
-        .from('season_registrations')
-        .upsert({
-          player_id: playerId,
-          profile_id: profile.id,
-          season_id: seasonId,
-          division_id: divisionId,
-          skill_level_id: skillLevel.id,
-          status: 'active'
-        }, { onConflict: 'player_id,season_id,division_id' })
+    // Always create registration (even without skill level match, let coordinator fix it)
+    const { error: regError } = await adminClient
+      .from('season_registrations')
+      .upsert({
+        player_id: playerId,
+        profile_id: profile.id,
+        season_id: seasonId,
+        division_id: divisionId,
+        skill_level_id: skillLevel?.id || null,
+        status: 'active'
+      }, { onConflict: 'player_id,season_id,division_id' })
 
-      if (regError) {
-        console.error('Registration error:', regError)
-      } else {
-        registrations.push(division.type)
-      }
+    if (regError) {
+      console.error('Registration error:', regError)
+    } else {
+      registrations.push(division.type)
     }
   }
 
