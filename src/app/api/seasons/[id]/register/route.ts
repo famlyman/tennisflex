@@ -195,6 +195,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         .from('season_registrations')
         .upsert({
           player_id: playerId,
+          profile_id: profile.id,
           season_id: seasonId,
           division_id: divisionId,
           skill_level_id: skillLevel.id,

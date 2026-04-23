@@ -247,45 +247,6 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
               )}
             </div>
 
-            {/* Rating override (optional) */}
-            <details className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <summary className="cursor-pointer text-sm text-slate-600 hover:text-indigo-600">
-                Want to adjust your ratings?
-              </summary>
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="ntrp_singles" className="block text-sm font-medium text-slate-700 mb-1">
-                    Singles Rating
-                  </label>
-                  <select
-                    id="ntrp_singles"
-                    name="ntrp_singles"
-                    defaultValue={singlesRating}
-                    className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900"
-                  >
-                    {[2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0].map(r => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="ntrp_doubles" className="block text-sm font-medium text-slate-700 mb-1">
-                    Doubles Rating
-                  </label>
-                  <select
-                    id="ntrp_doubles"
-                    name="ntrp_doubles"
-                    defaultValue={doublesRating}
-                    className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900"
-                  >
-                    {[2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0].map(r => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </details>
-
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
               <p className="text-sm text-amber-800">
                 <strong>Commitment:</strong> Registering commits you to play all season matches in the divisions you select.

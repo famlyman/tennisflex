@@ -99,7 +99,7 @@ async function getDashboardData(userId: string) {
     }
   }
 
-  // Player - get their full record including ratings
+  // Player - get their full record including ratings and registered divisions
   const { data: playerData } = await adminClient
     .from('players')
     .select('*, organization:organizations!players_organization_id_fkey (name)')
@@ -119,10 +119,29 @@ async function getDashboardData(userId: string) {
       .eq('organization_id', playerOrgId)
       .order('created_at', { ascending: false })
 
+    // Get player's registered divisions (from season_registrations)
+    const { data: registrations } = await adminClient
+      .from('season_registrations')
+      .select(`
+        id,
+        status,
+        profile_id,
+        division:divisions!season_registrations_division_id_fkey (
+          id,
+          name,
+          type,
+          skill_levels!divisions_skill_levels_fkey (id, name)
+        ),
+        season:seasons!season_registrations_season_id_fkey (id, name, status)
+      `)
+      .eq('profile_id', userId)
+      .eq('status', 'active')
+
     return {
       profile,
       isCoordinator,
       player: playerData,
+      registrations: registrations || [],
       activeMatchCount: 0,
       organizations: [],
       seasons: playerSeasons || [],
@@ -139,6 +158,7 @@ async function getDashboardData(userId: string) {
     profile,
     isCoordinator,
     player: null,
+    registrations: [],
     activeMatchCount: 0,
     organizations: [],
     seasons: [],
@@ -370,14 +390,40 @@ export default async function Dashboard() {
                           {new Date(season.season_start).toLocaleDateString()} - {new Date(season.season_end).toLocaleDateString()}
                         </p>
                       </div>
-                      <Link
-                        href={`/seasons/${season.id}`}
-                        className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                      >
-                        View Season
-                      </Link>
                     </div>
                   ))}
+
+                {/* Your Registered Divisions */}
+                {dashboardData.registrations && dashboardData.registrations.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3">Your Divisions</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {dashboardData.registrations.map((reg: any) => {
+                        const division = reg.division
+                        const skillLevel = division?.skill_levels?.[0]
+                        return (
+                          <div key={reg.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-slate-900">
+                                  {division?.type === 'mens_singles' ? "Men's Singles" :
+                                   division?.type === 'womens_singles' ? "Women's Singles" :
+                                   division?.type === 'mens_doubles' ? "Men's Doubles" :
+                                   division?.type === 'womens_doubles' ? "Women's Doubles" :
+                                   division?.type === 'mixed_doubles' ? "Mixed Doubles" : division?.name}
+                                </p>
+                                <p className="text-sm text-slate-500">{reg.season?.name}</p>
+                              </div>
+                              <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                                {skillLevel?.name || 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
