@@ -391,41 +391,45 @@ export default async function Dashboard() {
                 <p className="text-slate-500">No seasons available in your organization.</p>
               ) : (
                 <div className="space-y-3">
-                  {dashboardData.seasons.map((season: any) => (
-                    <div key={season.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <p className="font-medium text-slate-900">{season.name}</p>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            season.status === 'active' ? 'bg-blue-100 text-blue-700' :
-                            season.status === 'registration_open' ? 'bg-emerald-100 text-emerald-700' :
-                            season.status === 'completed' ? 'bg-slate-200 text-slate-600' :
-                            'bg-slate-100 text-slate-500'
-                          }`}>
-                            {season.status === 'registration_open' ? 'Registration Open' : season.status}
-                          </span>
+                  {dashboardData.seasons.map((season: any) => {
+                    const isOpen = season.status === 'registration_open'
+                    return (
+                      <div key={season.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <p className="font-medium text-slate-900">{season.name}</p>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              season.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                              season.status === 'registration_open' ? 'bg-emerald-100 text-emerald-700' :
+                              season.status === 'completed' ? 'bg-slate-200 text-slate-600' :
+                              'bg-slate-100 text-slate-500'
+                            }`}>
+                              {season.status === 'registration_open' ? 'Registration Open' : season.status}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-400">
+                            {new Date(season.registration_start).toLocaleDateString()} - {new Date(season.registration_end).toLocaleDateString()}
+                            {isOpen && ' • Select your division when registering'}
+                          </p>
                         </div>
-                        <p className="text-sm text-slate-400">
-                          {new Date(season.season_start).toLocaleDateString()} - {new Date(season.season_end).toLocaleDateString()}
-                        </p>
+                        {isOpen ? (
+                          <Link
+                            href={`/seasons/${season.id}/register`}
+                            className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                          >
+                            Register
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/seasons/${season.id}`}
+                            className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+                          >
+                            View
+                          </Link>
+                        )}
                       </div>
-                      {season.status === 'registration_open' ? (
-                        <Link
-                          href={`/seasons/${season.id}/register`}
-                          className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                        >
-                          Register
-                        </Link>
-                      ) : (
-                        <Link
-                          href={`/seasons/${season.id}`}
-                          className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
-                        >
-                          View
-                        </Link>
-                      )}
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
