@@ -114,7 +114,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       // Parse score
       if (match.score) {
         const sets = match.score.split(' ')
-        sets.forEach(set => {
+        sets.forEach((set: string) => {
           const parts = set.includes('(') ? set.split('(')[0] : set
           const [h, a] = parts.split('-').map(Number)
           if (match.home_player_id && playerStats[match.home_player_id]) {
@@ -166,10 +166,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .eq('season_id', seasonId)
     .eq('status', 'completed')
 
+  const registrationPlayerIds = registrations?.map((r: any) => r.player_id) || []
+  
   const { data: players } = await adminClient
     .from('players')
     .select('id, profile_id')
-    .in('id', registrations?.map(r => r.player_id) || [])
+    .in('id', registrationPlayerIds)
 
   for (const player of players || []) {
     await adminClient.from('notifications').insert({
