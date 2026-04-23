@@ -173,7 +173,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .from('divisions')
     .select('id, type, skill_levels(id, min_rating, max_rating)')
     .in('id', division_ids)
-    .single()
 
   // Create registration for each division
   const registrations = []
