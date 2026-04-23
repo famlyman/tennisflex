@@ -173,7 +173,7 @@ export default function ProfilePage() {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xl leading-none">T</span>
             </div>
-            <span className="font-bold text-xl tracking-tight">Tennis-Flex</span>
+            <span className="font-bold text-xl text-graphite-900 tracking-tight">Tennis-Flex</span>
           </Link>
           <Link href="/dashboard" className="text-sm text-slate-600 hover:text-indigo-600">
             Dashboard

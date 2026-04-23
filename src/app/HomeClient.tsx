@@ -141,12 +141,12 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                   className="object-cover"
                 />
               </div>
-              <span className="font-bold text-xl tracking-tight text-slate-900">Tennis-Flex</span>
+              <span className="font-bold text-xl tracking-tight text-graphite-900">Tennis-Flex</span>
             </Link>
             <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-              <Link href="#flexes" className="text-slate-600 hover:text-white-600 transition-colors">Find Your Flex</Link>
-              <Link href="#features" className="text-slate-600 hover:text-white-600 transition-colors">How It Works</Link>
-              <Link href="#ratings" className="text-slate-600 hover:text-white-600 transition-colors">TFR System</Link>
+              <Link href="#flexes" className="text-graphite-600 hover:text-indigo-600 transition-colors">Find Your Flex</Link>
+              <Link href="#features" className="text-graphite-600 hover:text-indigo-600 transition-colors">How It Works</Link>
+              <Link href="#ratings" className="text-graphite-600 hover:text-indigo-600 transition-colors">TFR System</Link>
               <Link 
                 href="/login" 
                 className="px-5 py-2.5 bg-slate-900 text-white rounded-full hover:bg-indigo-600 transition-colors"

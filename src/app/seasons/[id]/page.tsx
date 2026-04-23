@@ -183,14 +183,24 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                 </form>
               )}
               {isCoordinator && season.status === 'active' && (
-                <form action={`/api/seasons/${seasonId}/complete`} method="POST">
-                  <button
-                    type="submit"
-                    className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
-                  >
-                    Complete Season
-                  </button>
-                </form>
+                <div className="flex gap-2">
+                  <form action={`/api/seasons/${seasonId}/generate-matches`} method="POST">
+                    <button
+                      type="submit"
+                      className="px-3 py-1 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                    >
+                      Generate Matches
+                    </button>
+                  </form>
+                  <form action={`/api/seasons/${seasonId}/complete`} method="POST">
+                    <button
+                      type="submit"
+                      className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    >
+                      Complete Season
+                    </button>
+                  </form>
+                </div>
               )}
             </div>
           </div>
