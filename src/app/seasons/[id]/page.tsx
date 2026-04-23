@@ -80,15 +80,10 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     .select('*')
     .in('division_id', divisionIds)
 
-  // Attach skill levels to divisions with deduplication
-  const seenLevelIds = new Set()
+  // Attach skill levels to divisions
   const divisionsWithLevels = divisions?.map(div => ({
     ...div,
-    skill_levels: (skillLevels?.filter(sl => {
-      if (seenLevelIds.has(sl.id)) return false
-      seenLevelIds.add(sl.id)
-      return sl.division_id === div.id
-    }) || [])
+    skill_levels: skillLevels?.filter(sl => sl.division_id === div.id) || []
   })) || []
 
   const seasonWithDivisions = { ...season, divisions: divisionsWithLevels }
