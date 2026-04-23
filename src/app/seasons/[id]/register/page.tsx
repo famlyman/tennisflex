@@ -123,45 +123,41 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
     )
   }
 
-  // Check if user is already registered
+  // Check if user is already a player for this organization (can still register for season)
   const profile = await supabase
     .from('profiles')
     .select('id')
     .eq('id', session.user.id)
     .single()
 
+  let existingPlayerRating = null
   if (profile.data) {
-    const { data: existingReg } = await supabase
+    const { data: existingPlayer } = await supabase
       .from('players')
-      .select('id')
+      .select('initial_ntrp_singles, initial_ntrp_doubles')
       .eq('profile_id', profile.data.id)
       .eq('organization_id', seasonData.organization_id)
       .single()
-
-    if (existingReg) {
-      return (
-        <div className="min-h-screen bg-slate-50">
-          <nav className="bg-white border-b border-slate-200 px-6 py-4">
-            <div className="max-w-7xl mx-auto flex justify-between items-center">
-              <Link href="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-xl leading-none">T</span>
-                </div>
-                <span className="font-bold text-xl tracking-tight">Tennis-Flex</span>
-              </Link>
-            </div>
-          </nav>
-          <main className="max-w-2xl mx-auto px-6 py-12 text-center">
-            <h1 className="text-2xl font-bold text-slate-900 mb-4">Already Registered</h1>
-            <p className="text-slate-600">You are already registered for this season.</p>
-            <Link href="/dashboard" className="mt-4 inline-block text-indigo-600 hover:underline">
-              Back to Dashboard
-            </Link>
-          </main>
-        </div>
-      )
+    
+    if (existingPlayer) {
+      existingPlayerRating = existingPlayer
     }
   }
+
+  // Pre-select ratings if player already has them
+  const defaultSingles = existingPlayerRating?.initial_ntrp_singles || ''
+  const defaultDoubles = existingPlayerRating?.initial_ntrp_doubles || ''
+
+  // Filter divisions based on player's rating (if they have one)
+  const eligibleDivisions = seasonData.divisions?.filter((division: any) => {
+    if (!existingPlayerRating) return true // Show all if new player
+    const rating = existingPlayerRating.initial_ntrp_singles * 10 // Convert to TFR scale
+    return division.skill_levels?.some((sl: any) => {
+      const minOk = sl.min_rating === null || rating >= sl.min_rating
+      const maxOk = sl.max_rating === null || rating <= sl.max_rating
+      return minOk && maxOk
+    })
+  }) || []
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -207,36 +203,51 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
               Select Division
             </label>
             <div className="space-y-3">
-              {seasonData.divisions?.map((division: any) => (
-                <label key={division.id} className="block">
-                  <input
-                    type="radio"
-                    name="division_id"
-                    value={division.id}
-                    required
-                    className="peer sr-only"
-                  />
-                  <div className="p-4 rounded-xl border-2 border-slate-200 hover:border-indigo-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all cursor-pointer">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-slate-900">{division.name}</p>
-                        <p className="text-sm text-slate-500">
-                          {division.type === 'mens_singles' && "Men's Singles"}
-                          {division.type === 'womens_singles' && "Women's Singles"}
-                          {division.type === 'mens_doubles' && "Men's Doubles"}
-                          {division.type === 'womens_doubles' && "Women's Doubles"}
-                          {division.type === 'mixed_doubles' && "Mixed Doubles"}
-                        </p>
-                      </div>
-                      {division.skill_levels?.length > 0 && (
-                        <div className="text-sm text-slate-500">
-                          {division.skill_levels.map((sl: any) => sl.name).join(', ')}
+              {eligibleDivisions.length === 0 ? (
+                <p className="text-slate-500 p-4">No divisions match your rating. Contact coordinator for placement.</p>
+              ) : (
+                seasonData.divisions?.map((division: any) => {
+                  const isEligible = eligibleDivisions.some((d: any) => d.id === division.id)
+                  return (
+                    <label key={division.id} className={`block ${!isEligible ? 'opacity-50' : ''}`}>
+                      <input
+                        type="radio"
+                        name="division_id"
+                        value={division.id}
+                        required
+                        disabled={!isEligible}
+                        className="peer sr-only"
+                      />
+                      <div className={`p-4 rounded-xl border-2 hover:border-indigo-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all cursor-pointer ${!isEligible ? 'cursor-not-allowed bg-slate-50' : ''}`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold text-slate-900">{division.name}</p>
+                            <p className="text-sm text-slate-500">
+                              {division.type === 'mens_singles' && "Men's Singles"}
+                              {division.type === 'womens_singles' && "Women's Singles"}
+                              {division.type === 'mens_doubles' && "Men's Doubles"}
+                              {division.type === 'womens_doubles' && "Women's Doubles"}
+                              {division.type === 'mixed_doubles' && "Mixed Doubles"}
+                            </p>
+                          </div>
+                          <div>
+                            {division.skill_levels?.length > 0 ? (
+                              <div className="text-sm text-slate-500">
+                                {division.skill_levels.map((sl: any) => sl.name).join(', ')}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400">No skill levels</span>
+                            )}
+                            {!isEligible && (
+                              <span className="text-xs text-amber-600 ml-2">(rating mismatch)</span>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                </label>
-              ))}
+                      </div>
+                    </label>
+                  )
+                })
+              )}
             </div>
           </div>
 
@@ -248,6 +259,7 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
               id="ntrp_singles"
               name="ntrp_singles"
               required
+              defaultValue={defaultSingles}
               className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Select your rating</option>
@@ -275,6 +287,7 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
               id="ntrp_doubles"
               name="ntrp_doubles"
               required
+              defaultValue={defaultDoubles}
               className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Select your rating</option>

@@ -98,10 +98,10 @@ async function getDashboardData(userId: string) {
     }
   }
 
-  // Player - get their organization and show only seasons for that org
+  // Player - get their full record including ratings
   const { data: playerData } = await adminClient
     .from('players')
-    .select('organization_id')
+    .select('*, organization:organizations!players_organization_id_fkey (name)')
     .eq('profile_id', userId)
     .single()
 
@@ -254,15 +254,27 @@ export default async function Dashboard() {
                 <p className="text-sm text-slate-500 mb-4">Singles • Doubles</p>
                 <div className="flex gap-8">
                   <div>
-                    <p className="text-3xl font-bold text-indigo-600">--</p>
+                    <p className="text-3xl font-bold text-indigo-600">
+                      {dashboardData.player ? (dashboardData.player.tfr_singles / 10).toFixed(1) : '--'}
+                    </p>
                     <p className="text-xs text-slate-500">Singles</p>
+                    <p className="text-xs text-slate-400">
+                      {dashboardData.player?.initial_ntrp_singles ? `NTRP: ${dashboardData.player.initial_ntrp_singles}` : ''}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-indigo-600">--</p>
+                    <p className="text-3xl font-bold text-indigo-600">
+                      {dashboardData.player ? (dashboardData.player.tfr_doubles / 10).toFixed(1) : '--'}
+                    </p>
                     <p className="text-xs text-slate-500">Doubles</p>
+                    <p className="text-xs text-slate-400">
+                      {dashboardData.player?.initial_ntrp_doubles ? `NTRP: ${dashboardData.player.initial_ntrp_doubles}` : ''}
+                    </p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-400 mt-4">Complete matches to establish your rating</p>
+                <p className="text-sm text-slate-400 mt-4">
+                  {dashboardData.player?.match_count_singles || 0} matches played
+                </p>
               </div>
               
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
