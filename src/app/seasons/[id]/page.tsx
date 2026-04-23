@@ -117,6 +117,8 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     cancelled: 'Cancelled',
   }
 
+  const isCoordinator = orgIds.includes(season.organization_id)
+
   return (
     <div className="min-h-screen bg-slate-50">
       <nav className="bg-white border-b border-slate-200 px-6 py-4">
@@ -141,14 +143,46 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
         </Link>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
             <div>
               <h1 className="text-3xl font-bold text-slate-900">{season.name}</h1>
               <p className="text-slate-500 mt-1">{season.organization?.name}</p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[season.status] || statusColors.upcoming}`}>
-              {statusLabels[season.status] || season.status}
-            </span>
+            <div className="flex flex-col items-end gap-2">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[season.status] || statusColors.upcoming}`}>
+                {statusLabels[season.status] || season.status}
+              </span>
+              {isCoordinator && season.status === 'upcoming' && (
+                <div className="flex gap-2">
+                  <form action={`/api/seasons/${seasonId}/open-registration`} method="POST">
+                    <button
+                      type="submit"
+                      className="px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                    >
+                      Open Registration
+                    </button>
+                  </form>
+                  <form action={`/api/seasons/${seasonId}/start`} method="POST">
+                    <button
+                      type="submit"
+                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Start Season Now
+                    </button>
+                  </form>
+                </div>
+              )}
+              {isCoordinator && season.status === 'registration_open' && (
+                <form action={`/api/seasons/${seasonId}/close-registration`} method="POST">
+                  <button
+                    type="submit"
+                    className="px-3 py-1 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+                  >
+                    Close Registration & Start
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
           
           <div className="flex flex-wrap gap-4 text-sm text-slate-500">
