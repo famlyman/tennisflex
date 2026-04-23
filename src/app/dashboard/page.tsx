@@ -326,6 +326,55 @@ export default async function Dashboard() {
           </div>
         )}
 
+        {/* Seasons List for Players (show seasons available for registration) */}
+        {!isCoordinator && dashboardData.player && dashboardData.seasons.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Available Seasons</h2>
+            </div>
+            
+            <div className="space-y-3">
+              {dashboardData.seasons.map((season: any) => (
+                <div key={season.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <p className="font-medium text-slate-900">{season.name}</p>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        season.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                        season.status === 'registration_open' ? 'bg-emerald-100 text-emerald-700' :
+                        'bg-slate-100 text-slate-500'
+                      }`}>
+                        {season.status === 'registration_open' ? 'Registration Open' : season.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      {season.organization?.name || 'Unknown'} • {season.divisions?.length || 0} divisions
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      {new Date(season.registration_start).toLocaleDateString()} - {new Date(season.season_end).toLocaleDateString()}
+                    </p>
+                  </div>
+                  {season.status === 'registration_open' ? (
+                    <Link
+                      href={`/seasons/${season.id}/register`}
+                      className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                    >
+                      Register
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/seasons/${season.id}`}
+                      className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+                    >
+                      View
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-8">
           <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
