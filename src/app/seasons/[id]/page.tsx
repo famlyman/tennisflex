@@ -80,10 +80,15 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     .select('*')
     .in('division_id', divisionIds)
 
-  // Attach skill levels to divisions
+  // Attach skill levels to divisions with deduplication
+  const seenLevelIds = new Set()
   const divisionsWithLevels = divisions?.map(div => ({
     ...div,
-    skill_levels: skillLevels?.filter(sl => sl.division_id === div.id) || []
+    skill_levels: (skillLevels?.filter(sl => {
+      if (seenLevelIds.has(sl.id)) return false
+      seenLevelIds.add(sl.id)
+      return sl.division_id === div.id
+    }) || [])
   })) || []
 
   const seasonWithDivisions = { ...season, divisions: divisionsWithLevels }
@@ -210,7 +215,14 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
           <div className="space-y-4">
             {divisionsWithLevels.map((division: any) => (
               <div key={division.id} className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h3 className="font-semibold text-slate-900 text-lg mb-4">{division.name}</h3>
+                <div className="flex items-center gap-2 mb-4">
+                  <h3 className="font-semibold text-slate-900 text-lg">{division.name}</h3>
+                  {division.type && (
+                    <span className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded">
+                      {division.type.replace('_', ' ')}
+                    </span>
+                  )}
+                </div>
                 
                 {division.skill_levels?.length === 0 ? (
                   <p className="text-sm text-slate-400">No skill levels defined</p>

@@ -60,7 +60,8 @@ export async function POST(
       .eq('id', id)
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+      console.error('Update error:', updateError)
+      return NextResponse.json({ error: `Update failed: ${updateError.message}` }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
