@@ -3,6 +3,23 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/utils/supabase'
 
+async function createNotification(
+  adminClient: any,
+  userId: string,
+  type: string,
+  title: string,
+  message: string,
+  link?: string
+) {
+  await adminClient.from('notifications').insert({
+    user_id: userId,
+    type,
+    title,
+    message,
+    link
+  })
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: seasonId } = await params
   const cookieStore = await cookies()
@@ -39,6 +56,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const formData = await request.formData()
   const division_id = formData.get('division_id') as string
+  const skill_level_id = formData.get('skill_level_id') as string
   const organization_id = formData.get('organization_id') as string
   const ntrp_singles = parseFloat(formData.get('ntrp_singles') as string)
   const ntrp_doubles = parseFloat(formData.get('ntrp_doubles') as string)
@@ -46,7 +64,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // Get user's profile
   const { data: profile } = await adminClient
     .from('profiles')
-    .select('id')
+    .select('id, full_name')
     .eq('id', session.user.id)
     .single()
 
@@ -109,8 +127,52 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     playerId = newPlayer.id
   }
 
-  // TODO: Add to season_registrations or division_registrations if that table exists
-  // For now, just redirect to dashboard
+  // Get season and division info for notifications
+  const { data: season } = await adminClient
+    .from('seasons')
+    .select('name, organization_id')
+    .eq('id', seasonId)
+    .single()
+
+  // Create season registration record
+  const { error: regError } = await adminClient.from('season_registrations').upsert({
+    player_id: playerId,
+    season_id: seasonId,
+    division_id,
+    skill_level_id,
+    status: 'active'
+  }, { onConflict: 'player_id,season_id' })
+
+  if (regError) {
+    console.error('Error creating season registration:', regError)
+  }
+
+  // Create notification for player
+  await createNotification(
+    adminClient,
+    session.user.id,
+    'season_registration',
+    `Registered for ${season?.name || 'Season'}`,
+    `You have registered for ${season?.name || 'the season'}. Check back for match scheduling!`,
+    `/seasons/${seasonId}`
+  )
+
+  // Notify coordinators of new registration
+  const { data: coordinators } = await adminClient
+    .from('coordinators')
+    .select('profile_id')
+    .eq('organization_id', organization_id)
+
+  for (const coord of coordinators || []) {
+    await createNotification(
+      adminClient,
+      coord.profile_id,
+      'new_registration',
+      'New Player Registration',
+      `${profile.full_name} has registered for ${season?.name || 'the season'}`,
+      `/seasons/${seasonId}`
+    )
+  }
 
   redirect('/dashboard')
 }

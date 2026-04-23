@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase'
+import NotificationBell from '@/components/NotificationBell'
 
 export const dynamic = 'force-dynamic'
 
@@ -193,6 +194,7 @@ export default async function Dashboard() {
             <span className="font-bold text-xl tracking-tight">Tennis-Flex</span>
           </Link>
           <div className="flex items-center gap-4">
+            <NotificationBell />
             <span className="text-sm text-slate-600">{fullName}</span>
             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
               isPlatformOwner 

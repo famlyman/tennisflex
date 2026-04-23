@@ -150,6 +150,34 @@ export interface Extension {
   requested_by_profile?: Profile
 }
 
+export interface SeasonRegistration {
+  id: string
+  player_id: string
+  season_id: string
+  division_id: string | null
+  skill_level_id: string | null
+  status: 'active' | 'withdrawn' | 'completed'
+  registered_at: string
+  updated_at: string
+  // Joined fields
+  player?: Player
+  season?: Season
+  division?: Division
+  skill_level?: SkillLevel
+}
+
+export interface Notification {
+  id: string
+  user_id: string
+  type: string
+  title: string
+  message: string | null
+  link: string | null
+  data: Record<string, any>
+  read: boolean
+  created_at: string
+}
+
 // ==================== API RESPONSE TYPES ====================
 
 export interface SeasonWithDetails extends Season {

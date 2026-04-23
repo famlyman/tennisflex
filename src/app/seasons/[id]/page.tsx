@@ -182,6 +182,16 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                   </button>
                 </form>
               )}
+              {isCoordinator && season.status === 'active' && (
+                <form action={`/api/seasons/${seasonId}/complete`} method="POST">
+                  <button
+                    type="submit"
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Complete Season
+                  </button>
+                </form>
+              )}
             </div>
           </div>
           

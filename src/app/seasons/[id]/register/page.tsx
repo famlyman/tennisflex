@@ -186,6 +186,7 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
 
         <form action={`/api/seasons/${seasonId}/register`} method="POST" className="space-y-6">
           <input type="hidden" name="organization_id" value={seasonData.organization_id} />
+          <input type="hidden" name="skill_level_id" value="" />
           
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-3">
