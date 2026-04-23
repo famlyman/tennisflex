@@ -38,14 +38,43 @@ export default async function SeasonsPage() {
   console.log('Has publishable key:', !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
   console.log('Has secret key:', !!process.env.SUPABASE_SECRET_KEY)
 
-  // Then fetch all seasons - no order to simplify
-  const { data: seasonsData, error } = await adminClient
-    .from('seasons')
-    .select('*')
+  // Check if user is a coordinator
+  const { data: coordinatorOrgs } = await adminClient
+    .from('coordinators')
+    .select('organization_id')
+    .eq('profile_id', session.user.id)
 
-  console.log('Seasons query result:', seasonsData, 'Error:', error)
+  let seasonsData: any[] = []
 
-  const seasons = seasonsData || []
+  if (coordinatorOrgs && coordinatorOrgs.length > 0) {
+    const orgIds = coordinatorOrgs.map(c => c.organization_id)
+    const { data, error } = await adminClient
+      .from('seasons')
+      .select('*')
+      .in('organization_id', orgIds)
+
+    console.log('Coordinator seasons query result:', data, 'Error:', error)
+    seasonsData = data || []
+  } else {
+    // Player - get their organization and show only seasons for that org
+    const { data: playerData } = await adminClient
+      .from('players')
+      .select('organization_id')
+      .eq('profile_id', session.user.id)
+      .single()
+
+    if (playerData) {
+      const { data, error } = await adminClient
+        .from('seasons')
+        .select('*')
+        .eq('organization_id', playerData.organization_id)
+
+      console.log('Player seasons query result:', data, 'Error:', error)
+      seasonsData = data || []
+    }
+  }
+
+  const seasons = seasonsData
 
   return (
     <div className="min-h-screen bg-slate-50">

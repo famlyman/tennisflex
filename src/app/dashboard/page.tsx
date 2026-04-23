@@ -98,6 +98,42 @@ async function getDashboardData(userId: string) {
     }
   }
 
+  // Player - get their organization and show only seasons for that org
+  const { data: playerData } = await adminClient
+    .from('players')
+    .select('organization_id')
+    .eq('profile_id', userId)
+    .single()
+
+  if (playerData) {
+    const playerOrgId = playerData.organization_id
+
+    const { data: playerSeasons } = await adminClient
+      .from('seasons')
+      .select(`
+        *,
+        divisions (id),
+        organization:organizations!seasons_organization_id_fkey (name)
+      `)
+      .eq('organization_id', playerOrgId)
+      .order('created_at', { ascending: false })
+
+    return {
+      profile,
+      isCoordinator,
+      player: playerData,
+      activeMatchCount: 0,
+      organizations: [],
+      seasons: playerSeasons || [],
+      playerCount: 0,
+      activeSeasonCount: (playerSeasons || []).filter(
+        s => s.status === 'active' || s.status === 'registration_open'
+      ).length,
+      totalMatches: 0,
+      pendingMatches: 0,
+    }
+  }
+
   return {
     profile,
     isCoordinator,
