@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import RegistrationForm from '@/components/RegistrationForm'
 
 // Find skill level that matches a specific rating
 function findMatchingSkillLevel(skillLevels: any[], rating: number) {
@@ -150,7 +151,7 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
     .select('id, division_id, status')
     .eq('profile_id', session.user.id)
     .eq('season_id', seasonId)
-    .in('status', ['pending', 'confirmed'])
+    .eq('status', 'active')
 
   const isRegistered = existingRegistrations && existingRegistrations.length > 0
   const registeredDivisionIds = existingRegistrations?.map(r => r.division_id) || []
@@ -204,61 +205,11 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
             <p className="text-sm text-emerald-600 mt-4">Check your dashboard for match schedule.</p>
           </div>
         ) : (
-          <form action={`/api/seasons/${seasonId}/register`} method="POST" className="space-y-6">
-            <input type="hidden" name="organization_id" value={seasonData.organization_id} />
-
-            {/* Your Divisions (select which to play) */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                Select the divisions you want to play:
-              </h2>
-              <p className="text-sm text-slate-500 mb-4">
-                Check the boxes for each division you'd like to register for.
-              </p>
-              
-              {userDivisions.length > 0 ? (
-                <div className="space-y-3">
-                  {userDivisions.map((division: any) => (
-                    <label key={division.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          name="division_ids"
-                          value={division.id}
-                          className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <div>
-                          <p className="font-medium text-slate-900">{getDivisionLabel(division.type)}</p>
-                          <p className="text-sm text-slate-500">
-                            Using your {division.category} rating: {division.rating}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
-                        {division.skillLevelName}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-slate-500">
-                  No matching divisions found for your ratings. Set up your ratings in your profile first.
-                </p>
-              )}
-            </div>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm text-amber-800">
-                <strong>Commitment:</strong> Registering commits you to play all season matches in the divisions you select.
-              </p>
-            </div>
-
-            {userDivisions.length > 0 && (
-              <button type="submit" className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700">
-                Register for Selected Divisions
-              </button>
-            )}
-          </form>
+          <RegistrationForm 
+            divisions={userDivisions}
+            organizationId={seasonData.organization_id}
+            seasonId={seasonId}
+          />
         )}
       </main>
     </div>

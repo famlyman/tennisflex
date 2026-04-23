@@ -55,8 +55,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const formData = await request.formData()
   
-  // Handle multiple division_ids (from the smart registration)
-  const division_ids = formData.getAll('division_ids')
+  // Handle division_ids - can be comma-separated or multiple
+  const divisionIdsRaw = formData.get('division_ids') as string
+  const division_ids = divisionIdsRaw 
+    ? divisionIdsRaw.split(',').filter(Boolean)
+    : formData.getAll('division_ids')
+  
   const organization_id = formData.get('organization_id') as string
 
   // Get user's profile
