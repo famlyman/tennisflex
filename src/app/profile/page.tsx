@@ -28,6 +28,7 @@ export default function ProfilePage() {
   
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
+  const [gender, setGender] = useState('')
   const [initialNtrpSingles, setInitialNtrpSingles] = useState('')
   const [initialNtrpDoubles, setInitialNtrpDoubles] = useState('')
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
@@ -46,15 +47,16 @@ export default function ProfilePage() {
 
       setEmail(session.user.email || '')
 
-      // Get profile data (includes NTRP ratings)
+      // Get profile data (includes NTRP ratings and gender)
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, initial_ntrp_singles, initial_ntrp_doubles')
+        .select('full_name, gender, initial_ntrp_singles, initial_ntrp_doubles')
         .eq('id', session.user.id)
         .single()
 
       if (profile) {
         setFullName(profile.full_name || '')
+        setGender(profile.gender || '')
         setInitialNtrpSingles(profile.initial_ntrp_singles?.toString() || '')
         setInitialNtrpDoubles(profile.initial_ntrp_doubles?.toString() || '')
       }
@@ -107,10 +109,13 @@ export default function ProfilePage() {
     if (!session) return
 
     try {
-      // Step 1: Always update profile name
+      // Step 1: Always update profile name and gender
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ full_name: fullName })
+        .update({ 
+          full_name: fullName,
+          gender: gender || null
+        })
         .eq('id', session.user.id)
 
       if (profileError) {
@@ -268,6 +273,23 @@ export default function ProfilePage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                 />
+              </div>
+
+              <div>
+                <label htmlFor="gender" className="block text-sm font-medium text-slate-700 mb-1">
+                  Gender
+                </label>
+                <select
+                  id="gender"
+                  className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                >
+                  <option value="">Prefer not to say</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
               </div>
 
               <div>

@@ -10,18 +10,8 @@ async function getSeasonWithSkillLevels(seasonId: string) {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Record<string, unknown>)
-            )
-          } catch {
-            // Ignore
-          }
-        },
+        getAll() { return cookieStore.getAll() },
+        setAll() {},
       },
     }
   )
@@ -34,7 +24,6 @@ async function getSeasonWithSkillLevels(seasonId: string) {
 
   if (!season) return null
 
-  // Get divisions with skill levels - include division type
   const { data: divisions } = await supabase
     .from('divisions')
     .select('id, name, type, season_id, skill_levels (id, name, min_rating, max_rating)')
@@ -77,31 +66,43 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
         </nav>
         <main className="max-w-2xl mx-auto px-6 py-12 text-center">
           <h1 className="text-2xl font-bold text-slate-900 mb-4">Registration Closed</h1>
-          <p className="text-slate-600">Registration for this season is not open.</p>
         </main>
       </div>
     )
   }
 
-  // Check existing player
+  // Get user profile data (gender + existing ratings)
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id')
+    .select('gender, initial_ntrp_singles, initial_ntrp_doubles')
     .eq('id', session.user.id)
     .single()
 
-  let existingPlayer: any = null
-  if (profile?.id) {
-    const { data: p } = await supabase
-      .from('players')
-      .select('initial_ntrp_singles, initial_ntrp_doubles')
-      .eq('profile_id', profile.id)
-      .eq('organization_id', seasonData.organization_id)
-      .single()
-    existingPlayer = p
+  // Check if already a player
+  const { data: existingPlayer } = await supabase
+    .from('players')
+    .select('initial_ntrp_singles, initial_ntrp_doubles')
+    .eq('profile_id', session.user.id)
+    .eq('organization_id', seasonData.organization_id)
+    .single()
+
+  // Use profile data first, then player data, then defaults
+  const userGender = profile?.gender || null
+  const defaultNtrp = profile?.initial_ntrp_singles || existingPlayer?.initial_ntrp_singles || 3.5
+
+  // Filter divisions by gender
+  const genderMap: Record<string, string[]> = {
+    male: ['mens_singles', 'mens_doubles'],
+    female: ['womens_singles', 'womens_doubles'],
+    other: ['mens_singles', 'womens_singles', 'mens_doubles', 'womens_doubles', 'mixed_doubles'],
+    null: ['mens_singles', 'womens_singles', 'mens_doubles', 'womens_doubles', 'mixed_doubles'],
   }
 
-  const defaultNtrp = existingPlayer?.initial_ntrp_singles || 3.5
+  const allowedTypes = genderMap[userGender as string] || genderMap['null']
+  
+  // Separate divisions into recommended (matching gender) and other
+  const recommendedDivisions = seasonData.divisions?.filter((d: any) => allowedTypes.includes(d.type)) || []
+  const otherDivisions = seasonData.divisions?.filter((d: any) => !allowedTypes.includes(d.type)) || []
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -127,14 +128,10 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
 
           {/* Step 1: NTRP Rating */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Step 1: Tell us your rating</h2>
-            <p className="text-sm text-slate-500 mb-4">
-              Find your NTRP level at <a href="https://www.usta.com/ntrp" target="_blank" className="text-indigo-600 underline">usta.com/ntrp</a>
-            </p>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Step 1: Your Rating</h2>
+            <p className="text-sm text-slate-500 mb-4">Find your level at <a href="https://www.usta.com/ntrp" target="_blank" className="text-indigo-600 underline">usta.com/ntrp</a></p>
             
-            <label htmlFor="ntrp_singles" className="block text-sm font-medium text-slate-700 mb-2">
-              Your NTRP Rating (Singles)
-            </label>
+            <label htmlFor="ntrp_singles" className="block text-sm font-medium text-slate-700 mb-2">NTRP Rating (Singles)</label>
             <select
               id="ntrp_singles"
               name="ntrp_singles"
@@ -148,65 +145,74 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
             </select>
           </div>
 
-          {/* Step 2: Choose Division/Skill Level */}
+          {/* Step 2: Division Selection */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Step 2: Choose your division</h2>
-            <p className="text-sm text-slate-500 mb-4">
-              Select one option based on your rating and play type.
-            </p>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Step 2: Choose Division</h2>
             
-            <div className="space-y-3">
-              {seasonData.divisions?.map((division: any) => (
-                <div key={division.id} className="space-y-2">
-                  <p className="font-medium text-slate-700 text-sm uppercase tracking-wide">
-                    {division.type === 'mens_singles' ? "Men's Singles" :
-                     division.type === 'womens_singles' ? "Women's Singles" :
-                     division.type === 'mens_doubles' ? "Men's Doubles" :
-                     division.type === 'womens_doubles' ? "Women's Doubles" :
-                     "Mixed Doubles"}
-                  </p>
-                  
-                  {division.skill_levels?.length === 0 ? (
-                    <p className="text-sm text-slate-400 pl-4">No skill levels configured</p>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-2 pl-4">
-                      {division.skill_levels.map((sl: any) => (
-                        <label key={sl.id} className="block cursor-pointer">
-                          <input
-                            type="radio"
-                            name="division_id"
-                            value={division.id}
-                            data-skill-level={sl.id}
-                            required
-                            className="peer sr-only"
-                          />
-                          <div className="p-3 rounded-lg border-2 border-slate-200 text-center peer-checked:border-indigo-600 peer-checked:bg-indigo-50 hover:border-indigo-300 transition-all">
-                            <p className="font-semibold text-slate-900">{sl.name}</p>
-                            {sl.min_rating && sl.max_rating && (
-                              <p className="text-xs text-slate-500">
-                                {(sl.min_rating/10).toFixed(1)} - {(sl.max_rating/10).toFixed(1)}
-                              </p>
-                            )}
-                          </div>
-                        </label>
-                      ))}
+            {recommendedDivisions.length > 0 && (
+              <>
+                <p className="text-sm text-slate-500 mb-3">
+                  Recommended for {userGender === 'male' ? 'you (Men)' : userGender === 'female' ? 'you (Women)' : 'you'}
+                </p>
+                <div className="space-y-3 mb-6">
+                  {recommendedDivisions.map((division: any) => (
+                    <div key={division.id}>
+                      <p className="text-sm font-medium text-slate-700 mb-2">
+                        {division.type === 'mens_singles' ? "Men's Singles" :
+                         division.type === 'womens_singles' ? "Women's Singles" :
+                         division.type === 'mens_doubles' ? "Men's Doubles" :
+                         division.type === 'womens_doubles' ? "Women's Doubles" : "Mixed Doubles"}
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {division.skill_levels?.map((sl: any) => (
+                          <label key={sl.id} className="cursor-pointer">
+                            <input type="radio" name="division_id" value={division.id} required className="peer sr-only" />
+                            <div className="p-2 rounded-lg border-2 border-slate-200 text-center peer-checked:border-indigo-600 peer-checked:bg-indigo-50 hover:border-indigo-300">
+                              <p className="font-semibold text-sm">{sl.name}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
+
+            {otherDivisions.length > 0 && (
+              <>
+                <p className="text-sm text-slate-500 mb-3 mt-6">Other divisions</p>
+                <div className="space-y-3 opacity-60">
+                  {otherDivisions.map((division: any) => (
+                    <div key={division.id}>
+                      <p className="text-sm font-medium text-slate-600 mb-2">
+                        {division.type === 'mens_singles' ? "Men's Singles" :
+                         division.type === 'womens_singles' ? "Women's Singles" :
+                         division.type === 'mens_doubles' ? "Men's Doubles" :
+                         division.type === 'womens_doubles' ? "Women's Doubles" : "Mixed Doubles"}
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {division.skill_levels?.map((sl: any) => (
+                          <label key={sl.id} className="cursor-pointer">
+                            <input type="radio" name="division_id" value={division.id} className="peer sr-only" />
+                            <div className="p-2 rounded-lg border-2 border-slate-200 text-center peer-checked:border-indigo-600 peer-checked:bg-indigo-50 hover:border-indigo-300">
+                              <p className="font-semibold text-sm">{sl.name}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <p className="text-sm text-amber-800">
-              <strong>Commitment:</strong> By registering, you commit to playing matches throughout the season.
-            </p>
+            <p className="text-sm text-amber-800"><strong>Commitment:</strong> Registering commits you to play all season matches.</p>
           </div>
 
-          <button
-            type="submit"
-            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700"
-          >
+          <button type="submit" className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700">
             Complete Registration
           </button>
         </form>

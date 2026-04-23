@@ -22,6 +22,7 @@ export interface Profile {
   id: string
   full_name: string
   avatar_url: string | null
+  gender: 'male' | 'female' | 'other' | null
   created_at: string
 }
 
