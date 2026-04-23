@@ -19,7 +19,6 @@ export default function RegistrationForm({
   organizationId: string
   seasonId: string
 }) {
-  const formRef = useRef<HTMLFormElement>(null)
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
@@ -35,6 +34,14 @@ export default function RegistrationForm({
     if (selectedDivisions.length === 0) {
       e.preventDefault()
       setError('Please select at least one division to register for.')
+    } else {
+      // Log what we're submitting
+      console.log('Submitting registration:', {
+        organization_id: organizationId,
+        division_ids: selectedDivisions.join(','),
+        seasonId
+      })
+      setError(null)
     }
   }
 
@@ -51,7 +58,6 @@ export default function RegistrationForm({
 
   return (
     <form 
-      ref={formRef}
       action={`/api/seasons/${seasonId}/register`} 
       method="POST" 
       onSubmit={handleSubmit}
@@ -59,8 +65,10 @@ export default function RegistrationForm({
     >
       <input type="hidden" name="organization_id" value={organizationId} />
       
-      {/* Hidden inputs for selected divisions - updated by checkboxes */}
-      <input type="hidden" name="division_ids" value={selectedDivisions.join(',')} />
+      {/* Dynamic hidden fields for each selected division */}
+      {selectedDivisions.map(id => (
+        <input key={id} type="hidden" name="division_ids" value={id} />
+      ))}
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -73,7 +81,7 @@ export default function RegistrationForm({
           Select the divisions you want to play:
         </h2>
         <p className="text-sm text-slate-500 mb-4">
-          Check the boxes for each division you'd like to register for.
+          Check the boxes for each division you'd like to register for. ({selectedDivisions.length} selected)
         </p>
         
         {divisions.length > 0 ? (
@@ -87,6 +95,7 @@ export default function RegistrationForm({
                   <input
                     type="checkbox"
                     value={division.id}
+                    checked={selectedDivisions.includes(division.id)}
                     onChange={(e) => handleCheckboxChange(division.id, e.target.checked)}
                     className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />

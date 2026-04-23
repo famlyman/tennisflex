@@ -57,11 +57,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   
   // Handle division_ids - can be comma-separated or multiple
   const divisionIdsRaw = formData.get('division_ids') as string
+  console.log('Raw division_ids:', divisionIdsRaw)
+  console.log('All form keys:', Array.from(formData.keys()))
+  
   const division_ids = divisionIdsRaw 
     ? divisionIdsRaw.split(',').filter(Boolean)
     : formData.getAll('division_ids')
   
+  console.log('Parsed division_ids:', division_ids)
+  
   const organization_id = formData.get('organization_id') as string
+  console.log('organization_id:', organization_id)
+
+  // Early validation
+  if (!division_ids || division_ids.length === 0) {
+    console.log('No divisions selected, skipping registration')
+    return Response.json({ error: 'No divisions selected' }, { status: 400 })
+  }
+
+  if (!organization_id) {
+    return Response.json({ error: 'Organization not found' }, { status: 400 })
+  }
 
   // Get user's profile
   const { data: profile } = await adminClient
