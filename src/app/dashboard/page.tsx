@@ -339,50 +339,93 @@ export default async function Dashboard() {
         )}
 
         {/* Seasons List for Players (show seasons available for registration) */}
-        {!isCoordinator && dashboardData.player && dashboardData.seasons.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Available Seasons</h2>
-            </div>
-            
-            <div className="space-y-3">
-              {dashboardData.seasons.map((season: any) => (
-                <div key={season.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <p className="font-medium text-slate-900">{season.name}</p>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        season.status === 'active' ? 'bg-blue-100 text-blue-700' :
-                        season.status === 'registration_open' ? 'bg-emerald-100 text-emerald-700' :
-                        'bg-slate-100 text-slate-500'
-                      }`}>
-                        {season.status === 'registration_open' ? 'Registration Open' : season.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-500">
-                      {season.organization?.name || 'Unknown'} • {season.divisions?.length || 0} divisions
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      {new Date(season.registration_start).toLocaleDateString()} - {new Date(season.season_end).toLocaleDateString()}
-                    </p>
-                  </div>
-                  {season.status === 'registration_open' ? (
-                    <Link
-                      href={`/seasons/${season.id}/register`}
-                      className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                    >
-                      Register
-                    </Link>
-                  ) : (
-                    <Link
-                      href={`/seasons/${season.id}`}
-                      className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
-                    >
-                      View
-                    </Link>
-                  )}
+        {!isCoordinator && dashboardData.player && (
+          <div className="space-y-6">
+            {/* Active/Registered Season */}
+            {dashboardData.seasons.find(s => s.status === 'active' || s.status === 'registration_open') && (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">Your Season</h2>
                 </div>
-              ))}
+                
+                {dashboardData.seasons
+                  .filter(s => s.status === 'active' || s.status === 'registration_open')
+                  .map((season: any) => (
+                    <div key={season.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-slate-50 rounded-xl border border-indigo-100">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <p className="font-medium text-slate-900 text-lg">{season.name}</p>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            season.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+                          }`}>
+                            {season.status === 'registration_open' ? 'Registration Open' : 'Active'}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-500">
+                          {season.organization?.name || 'Unknown'}
+                        </p>
+                        <p className="text-sm text-slate-400">
+                          {new Date(season.season_start).toLocaleDateString()} - {new Date(season.season_end).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Link
+                        href={`/seasons/${season.id}`}
+                        className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                      >
+                        View Season
+                      </Link>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* All Organization Seasons */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">All {dashboardData.player.organization?.name} Seasons</h2>
+              </div>
+              
+              {dashboardData.seasons.length === 0 ? (
+                <p className="text-slate-500">No seasons available in your organization.</p>
+              ) : (
+                <div className="space-y-3">
+                  {dashboardData.seasons.map((season: any) => (
+                    <div key={season.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <p className="font-medium text-slate-900">{season.name}</p>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            season.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                            season.status === 'registration_open' ? 'bg-emerald-100 text-emerald-700' :
+                            season.status === 'completed' ? 'bg-slate-200 text-slate-600' :
+                            'bg-slate-100 text-slate-500'
+                          }`}>
+                            {season.status === 'registration_open' ? 'Registration Open' : season.status}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-400">
+                          {new Date(season.season_start).toLocaleDateString()} - {new Date(season.season_end).toLocaleDateString()}
+                        </p>
+                      </div>
+                      {season.status === 'registration_open' ? (
+                        <Link
+                          href={`/seasons/${season.id}/register`}
+                          className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                        >
+                          Register
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/seasons/${season.id}`}
+                          className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+                        >
+                          View
+                        </Link>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
