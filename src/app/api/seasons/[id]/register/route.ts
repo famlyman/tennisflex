@@ -121,6 +121,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     playerId = newPlayer.id
+  }
 
   // Get season info
   const { data: season } = await adminClient
