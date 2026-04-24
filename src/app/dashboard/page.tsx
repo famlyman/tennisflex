@@ -129,62 +129,54 @@ async function getDashboardData(userId: string) {
     allOrgSeasons = orgSeasons || []
     
     // Get player's season registrations with joined data
-    // Try different queries - maybe status is not 'active'
-    console.log('DEBUG: Querying for player_id:', player.id)
+    // Use profile_id since FK relationship is broken
+    console.log('DEBUG: Querying by profile_id:', player.profile_id)
     
-    const { data: registrations, error: regError, count } = await adminClient
+    const { data: registrationsRaw } = await adminClient
       .from('season_registrations')
-      .select(`
-        *,
-        season:seasons!season_registrations_season_id_fkey (
-          id,
-          name,
-          status,
-          season_start,
-          season_end,
-          organization_id,
-          organization:organizations!seasons_organization_id_fkey (name)
-        ),
-        division:divisions!season_registrations_division_id_fkey (
-          id,
-          name,
-          type
-        )
-      `, { count: 'exact' })
-      .eq('player_id', player.id)
+      .select(`*`)
+      .eq('profile_id', player.profile_id)
 
-    console.log('DEBUG: Query error:', regError)
-    console.log('DEBUG: Count:', count)
-    console.log('DEBUG: registrations raw:', registrations ? JSON.stringify(registrations) : 'null')
+    console.log('DEBUG: Raw registrations:', registrationsRaw?.length)
     
-    // Also check by profile_id if player_id returns nothing
-    if (!registrations || registrations.length === 0) {
-      console.log('DEBUG: Trying profile_id query instead')
-      const { data: registrationsByProfile } = await adminClient
-        .from('season_registrations')
+    if (registrationsRaw && registrationsRaw.length > 0) {
+      // Get unique season IDs
+      const seasonIds = [...new Set(registrationsRaw.map(r => r.season_id))]
+      const divisionIds = [...new Set(registrationsRaw.map(r => r.division_id).filter(Boolean))]
+      
+      // Fetch season details
+      const { data: seasonsData } = await adminClient
+        .from('seasons')
+        .select(`*, organization:organizations!seasons_organization_id_fkey (name)`)
+        .in('id', seasonIds)
+      
+      // Fetch division details
+      const { data: divisionsData } = await adminClient
+        .from('divisions')
         .select(`*`)
-        .eq('profile_id', player.profile_id)
-      console.log('DEBUG: By profile_id:', registrationsByProfile?.length)
-    }
-
-    console.log('DEBUG: registrations found:', registrations?.length)
-    console.log('DEBUG: player.id used:', player.id)
-    console.log('DEBUG: status used:', 'active')
-    
-    playerRegistrations = registrations || []
-    const seasonMap = new Map<string, any>()
-    console.log('Processing', playerRegistrations.length, 'registrations')
-    for (const reg of playerRegistrations) {
-      if (reg.season && !seasonMap.has(reg.season.id)) {
-        console.log('Adding season:', reg.season.name, 'org:', reg.season.organization?.name)
-        seasonMap.set(reg.season.id, {
-          ...reg.season,
-          organization: reg.season.organization
-        })
+        .in('id', divisionIds)
+      
+      // Map data to registrations
+      playerRegistrations = registrationsRaw.map(reg => ({
+        ...reg,
+        season: seasonsData?.find(s => s.id === reg.season_id),
+        division: divisionsData?.find(d => d.id === reg.division_id)
+      }))
+      
+      // Extract unique seasons
+      const seasonMap = new Map<string, any>()
+      for (const reg of playerRegistrations) {
+        if (reg.season && !seasonMap.has(reg.season.id)) {
+          seasonMap.set(reg.season.id, {
+            ...reg.season,
+            organization: reg.season.organization
+          })
+        }
       }
+      playerSeasons = Array.from(seasonMap.values())
     }
-    playerSeasons = Array.from(seasonMap.values())
-    console.log('Final playerSeasons:', playerSeasons)
+    
+    console.log('DEBUG: Final playerSeasons:', playerSeasons)
   }
 
   return {
@@ -194,7 +186,7 @@ async function getDashboardData(userId: string) {
     playerRegistrations,
     activeMatchCount: 0,
     organizations: [],
-    seasons: playerSeasons.length > 0 ? playerSeasons : allOrgSeasons,
+    seasons: playerSeasons.length > 0 ? playerSeasons : allOrgSeasons,  // Show all if none registered
     playerCount: 0,
     activeSeasonCount: 0,
     totalMatches: 0,
