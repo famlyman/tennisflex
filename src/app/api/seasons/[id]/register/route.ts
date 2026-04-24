@@ -179,11 +179,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   // Create registration for each division
   const registrations = []
+  console.log('Processing divisions:', division_ids)
   
   for (const divisionId of division_ids) {
+    console.log('Processing division:', divisionId)
+    
     // Find the division and its matching skill level for this player's rating
     const division = divisions?.find(d => d.id === divisionId)
-    if (!division) continue
+    if (!division) {
+      console.log('Division not found:', divisionId)
+      continue
+    }
     
     const isSingles = division.type.includes('singles')
     const playerRating = isSingles ? finalNtrpSingles : finalNtrpDoubles
@@ -194,7 +200,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     )
     
     // Check if already exists first
-    const { data: existingReg } = await adminClient
+    const { data: existingReg, error: checkError } = await adminClient
       .from('season_registrations')
       .select('id')
       .eq('player_id', playerId)
@@ -202,11 +208,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .eq('division_id', divisionId)
       .maybeSingle()
 
-    if (existingReg) {
-      console.log('Already registered, skipping:', divisionId)
+    if (checkError) {
+      console.error('Error checking registration:', checkError)
       continue
     }
 
+    if (existingReg) {
+      console.log('Already registered for division:', divisionId)
+      continue
+    }
+
+    // Insert new registration
     const { data: regRecord, error: regError } = await adminClient
       .from('season_registrations')
       .insert({
@@ -221,17 +233,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .single()
 
     if (regError) {
-      // Handle duplicate gracefully - continue with other divisions
-      if (regError.code === '23505' && regError.message.includes('season_registrations_player_id_season_id_key')) {
-        console.log('Already registered for this season, trying other divisions')
-        continue
-      }
       console.error('Registration error:', regError)
-      return Response.json({ error: regError.message }, { status: 500 })
-    } else {
-      console.log('Registration created:', regRecord)
-      registrations.push(division.type)
+      continue
     }
+
+    console.log('Registration created:', regRecord)
+    registrations.push(division.type)
   }
 
   // Create notification
