@@ -59,26 +59,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const formData = await request.formData()
   
   // Handle division_ids - can be multiple form fields OR comma-separated
-  // .getAll() returns File objects when from form submission, so we need to cast properly
   const divisionIdsAllRaw = formData.getAll('division_ids')
-  const divisionIdsAll = divisionIdsAllRaw.map(v => String(v))
   const divisionIdsRaw = formData.get('division_ids') as string
+  const divisionIdsAll = divisionIdsAllRaw.map((v: any) => String(v))
   
   console.log('Raw input - division_ids:', divisionIdsRaw)
-  console.log('All input - division_ids:', divisionIdsAll)
+  console.log('ALL input - division_ids:', divisionIdsAll)
   
   let division_ids: string[]
+  // ALWAYS process - log every branch
   if (divisionIdsRaw && divisionIdsRaw.includes(',')) {
-    console.log('Using comma-split logic')
     division_ids = divisionIdsRaw.split(',').filter(Boolean)
+    console.log('Path A - comma split')
   } else if (divisionIdsAll.length > 0) {
-    console.log('Using getAll logic')
-    division_ids = divisionIdsAll.filter(Boolean)
+    division_ids = divisionIdsAll
+    console.log('Path B - getAll found:', division_ids)
   } else if (divisionIdsRaw) {
-    console.log('Using single raw value')
     division_ids = [divisionIdsRaw]
+    console.log('Path C - single value:', division_ids)
   } else {
     division_ids = []
+    console.log('Path D - empty!')
   }
   
   console.log('Parsed division_ids:', division_ids)
