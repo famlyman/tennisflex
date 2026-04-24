@@ -6,6 +6,7 @@ import { createAdminClient } from '@/utils/supabase'
 import NotificationBell from '@/components/NotificationBell'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 async function getDashboardData(userId: string) {
   const adminClient = createAdminClient()
@@ -113,6 +114,7 @@ async function getDashboardData(userId: string) {
 
   if (playerData) {
     player = playerData
+    console.log('DEBUG: Found player:', player.id, 'org:', player.organization_id)
     
     // Fetch all seasons from player's organization
     const { data: orgSeasons } = await adminClient
@@ -127,6 +129,7 @@ async function getDashboardData(userId: string) {
     allOrgSeasons = orgSeasons || []
     
     // Get player's season registrations with joined data
+    // Try different queries - maybe status is not 'active'
     const { data: registrations } = await adminClient
       .from('season_registrations')
       .select(`
@@ -147,9 +150,16 @@ async function getDashboardData(userId: string) {
         )
       `)
       .eq('player_id', player.id)
-      .eq('status', 'active')
+      // Don't filter by status - get all
+      // .eq('status', 'active')
 
-    // Get unique seasons from registrations
+    console.log('DEBUG: All registrations for player:', registrations?.length)
+
+    console.log('DEBUG: registrations found:', registrations?.length)
+    console.log('DEBUG: player.id used:', player.id)
+    console.log('DEBUG: status used:', 'active')
+    
+    playerRegistrations = registrations || []
     const seasonMap = new Map<string, any>()
     console.log('Processing', playerRegistrations.length, 'registrations')
     for (const reg of playerRegistrations) {
