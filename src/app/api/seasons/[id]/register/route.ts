@@ -200,7 +200,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .eq('player_id', playerId)
       .eq('season_id', seasonId)
       .eq('division_id', divisionId)
-      .single()
+      .maybeSingle()
 
     if (existingReg) {
       console.log('Already registered, skipping:', divisionId)
