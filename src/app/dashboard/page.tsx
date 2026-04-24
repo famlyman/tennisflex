@@ -130,7 +130,9 @@ async function getDashboardData(userId: string) {
     
     // Get player's season registrations with joined data
     // Try different queries - maybe status is not 'active'
-    const { data: registrations } = await adminClient
+    console.log('DEBUG: Querying for player_id:', player.id)
+    
+    const { data: registrations, error: regError, count } = await adminClient
       .from('season_registrations')
       .select(`
         *,
@@ -148,12 +150,22 @@ async function getDashboardData(userId: string) {
           name,
           type
         )
-      `)
+      `, { count: 'exact' })
       .eq('player_id', player.id)
-      // Don't filter by status - get all
-      // .eq('status', 'active')
 
-    console.log('DEBUG: All registrations for player:', registrations?.length)
+    console.log('DEBUG: Query error:', regError)
+    console.log('DEBUG: Count:', count)
+    console.log('DEBUG: registrations raw:', registrations ? JSON.stringify(registrations) : 'null')
+    
+    // Also check by profile_id if player_id returns nothing
+    if (!registrations || registrations.length === 0) {
+      console.log('DEBUG: Trying profile_id query instead')
+      const { data: registrationsByProfile } = await adminClient
+        .from('season_registrations')
+        .select(`*`)
+        .eq('profile_id', player.profile_id)
+      console.log('DEBUG: By profile_id:', registrationsByProfile?.length)
+    }
 
     console.log('DEBUG: registrations found:', registrations?.length)
     console.log('DEBUG: player.id used:', player.id)
