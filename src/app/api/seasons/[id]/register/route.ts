@@ -71,7 +71,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const tfr_doubles = ntrp_doubles * 10
 
   // Create player record with the registration (using admin client)
-  const { error } = await adminClient.from('players').insert({
+  const { data: newPlayer, error } = await adminClient.from('players').insert({
     profile_id: profile.id,
     organization_id,
     initial_ntrp_singles: ntrp_singles,
@@ -82,11 +82,34 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     match_count_singles: 0,
     match_count_doubles: 0,
     flag_count: 0
+  }).select().single()
+
+  if (error || !newPlayer) {
+    console.error('Error registering:', error)
+    return Response.json({ error: error?.message || 'Failed to register' }, { status: 500 })
+  }
+
+  // Get skill_level_id based on the player's NTRP rating
+  const { data: skillLevel } = await adminClient
+    .from('skill_levels')
+    .select('id, min_rating, max_rating')
+    .eq('division_id', division_id)
+    .lte('min_rating', ntrp_singles)
+    .gte('max_rating', ntrp_singles)
+    .single()
+
+  // Create player_season_registration junction record
+  const { error: regError } = await adminClient.from('player_season_registrations').insert({
+    player_id: newPlayer.id,
+    season_id: seasonId,
+    division_id,
+    skill_level_id: skillLevel?.id || null,
+    status: 'active'
   })
 
-  if (error) {
-    console.error('Error registering:', error)
-    return Response.json({ error: error.message }, { status: 500 })
+  if (regError) {
+    console.error('Error creating registration:', regError)
+    // Player was created, but junction failed - continue anyway
   }
 
   redirect('/dashboard')

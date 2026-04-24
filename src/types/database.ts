@@ -150,6 +150,21 @@ export interface Extension {
   requested_by_profile?: Profile
 }
 
+export interface PlayerSeasonRegistration {
+  id: string
+  player_id: string
+  season_id: string
+  division_id: string
+  skill_level_id: string | null
+  status: string
+  created_at: string
+  // Joined fields
+  player?: Player
+  season?: Season
+  division?: Division
+  skill_level?: SkillLevel
+}
+
 // ==================== API RESPONSE TYPES ====================
 
 export interface SeasonWithDetails extends Season {
