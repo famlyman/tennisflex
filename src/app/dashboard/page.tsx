@@ -109,7 +109,7 @@ async function getDashboardData(userId: string) {
     .from('players')
     .select('*')
     .eq('profile_id', userId)
-    .single()
+    .maybeSingle()
 
   if (playerData) {
     player = playerData
