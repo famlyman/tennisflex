@@ -221,6 +221,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .single()
 
     if (regError) {
+      // Handle duplicate gracefully - continue with other divisions
+      if (regError.code === '23505' && regError.message.includes('season_registrations_player_id_season_id_key')) {
+        console.log('Already registered for this season, trying other divisions')
+        continue
+      }
       console.error('Registration error:', regError)
       return Response.json({ error: regError.message }, { status: 500 })
     } else {

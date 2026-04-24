@@ -411,7 +411,7 @@ export default async function Dashboard() {
 
         {/* Seasons List for Players (show seasons available for registration) */}
         {!isCoordinator && dashboardData.player && (
-          <div className="space-y-6">
+          <div className="space-y-6 mb-8">
             {/* All Organization Seasons */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4">
