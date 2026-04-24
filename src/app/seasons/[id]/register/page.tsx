@@ -190,19 +190,30 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
         )}
 
         {isRegistered ? (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-emerald-800 mb-4">You're Registered!</h2>
-            <div className="space-y-2">
-              {userDivisions
-                .filter((d: any) => registeredDivisionIds.includes(d.id))
-                .map((d: any) => (
-                  <div key={d.id} className="flex justify-between text-sm">
-                    <span className="text-emerald-700">{getDivisionLabel(d.type)}</span>
-                    <span className="font-medium text-emerald-800">{d.skillLevelName}</span>
-                  </div>
-                ))}
+          <div className="space-y-6">
+            {/* Show registered divisions */}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-emerald-800 mb-4">You're Registered!</h2>
+              <div className="space-y-2">
+                {userDivisions
+                  .filter((d: any) => registeredDivisionIds.includes(d.id))
+                  .map((d: any) => (
+                    <div key={d.id} className="flex justify-between text-sm">
+                      <span className="text-emerald-700">{getDivisionLabel(d.type)}</span>
+                      <span className="font-medium text-emerald-800">{d.skillLevelName}</span>
+                    </div>
+                  ))}
+              </div>
             </div>
-            <p className="text-sm text-emerald-600 mt-4">Check your dashboard for match schedule.</p>
+            
+            {/* Show form for remaining divisions */}
+            {userDivisions.filter((d: any) => !registeredDivisionIds.includes(d.id)).length > 0 && (
+              <RegistrationForm 
+                divisions={userDivisions.filter((d: any) => !registeredDivisionIds.includes(d.id))}
+                organizationId={seasonData.organization_id}
+                seasonId={seasonId}
+              />
+            )}
           </div>
         ) : (
           <RegistrationForm 
