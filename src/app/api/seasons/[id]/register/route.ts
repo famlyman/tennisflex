@@ -59,16 +59,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const formData = await request.formData()
   
   // Handle division_ids - can be multiple form fields OR comma-separated
-  const divisionIdsAll = formData.getAll('division_ids') as string[]
+  // .getAll() returns File objects when from form submission, so we need to cast properly
+  const divisionIdsAllRaw = formData.getAll('division_ids')
+  const divisionIdsAll = divisionIdsAllRaw.map(v => String(v))
   const divisionIdsRaw = formData.get('division_ids') as string
+  
+  console.log('Raw input - division_ids:', divisionIdsRaw)
+  console.log('All input - division_ids:', divisionIdsAll)
   
   let division_ids: string[]
   if (divisionIdsRaw && divisionIdsRaw.includes(',')) {
-    // Comma-separated string
+    console.log('Using comma-split logic')
     division_ids = divisionIdsRaw.split(',').filter(Boolean)
   } else if (divisionIdsAll.length > 0) {
-    // Multiple form fields
+    console.log('Using getAll logic')
     division_ids = divisionIdsAll.filter(Boolean)
+  } else if (divisionIdsRaw) {
+    console.log('Using single raw value')
+    division_ids = [divisionIdsRaw]
   } else {
     division_ids = []
   }
@@ -79,8 +87,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   console.log('organization_id:', organization_id)
 
   // Early validation
+  console.log('Validating:', { division_ids, organization_id })
   if (!division_ids || division_ids.length === 0) {
-    console.log('No divisions selected, skipping registration')
+    console.log('No divisions - returning error')
     return Response.json({ error: 'No divisions selected' }, { status: 400 })
   }
 
@@ -88,7 +97,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return Response.json({ error: 'Organization not found' }, { status: 400 })
   }
 
-  // Get user's profile
+  console.log('=== LOOKING UP USER ===')
   const { data: profile } = await adminClient
     .from('profiles')
     .select('id, full_name')
@@ -100,29 +109,34 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   // Check for existing player record
-  const { data: existingPlayer } = await adminClient
+  const { data: existingPlayer, error: playerError } = await adminClient
     .from('players')
     .select('id, initial_ntrp_singles, initial_ntrp_doubles')
     .eq('profile_id', profile.id)
     .eq('organization_id', organization_id)
-    .single()
+    .maybeSingle()
+
+  if (playerError) {
+    console.error('Error finding player:', playerError)
+  }
 
   let playerId: string
   let finalNtrpSingles: number
   let finalNtrpDoubles: number
 
   if (existingPlayer) {
+    console.log('Found existing player:', existingPlayer.id)
     playerId = existingPlayer.id
-    // Use existing player record ratings
     finalNtrpSingles = existingPlayer.initial_ntrp_singles || 3.5
     finalNtrpDoubles = existingPlayer.initial_ntrp_doubles || existingPlayer.initial_ntrp_singles || 3.5
   } else {
+    console.log('Creating new player record')
     // New player - need at least one rating, use profile ratings
     const { data: profileData } = await adminClient
       .from('profiles')
       .select('initial_ntrp_singles, initial_ntrp_doubles')
       .eq('id', profile.id)
-      .single()
+      .maybeSingle()
     
     finalNtrpSingles = profileData?.initial_ntrp_singles || 3.5
     finalNtrpDoubles = profileData?.initial_ntrp_doubles || profileData?.initial_ntrp_singles || 3.5
@@ -149,15 +163,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return Response.json({ error: error.message }, { status: 500 })
     }
 
-    playerId = newPlayer.id
+playerId = newPlayer.id
   }
 
-// Get season info
+  // Get season info
   const { data: season } = await adminClient
     .from('seasons')
     .select('name')
     .eq('id', seasonId)
-    .single()
+    .maybeSingle()
 
   // Get divisions info to find skill_level_id for each
   const { data: divisions, error: divError } = await adminClient
