@@ -149,12 +149,12 @@ async function getDashboardData(userId: string) {
       .eq('player_id', player.id)
       .eq('status', 'active')
 
-    playerRegistrations = registrations || []
-
     // Get unique seasons from registrations
     const seasonMap = new Map<string, any>()
+    console.log('Processing', playerRegistrations.length, 'registrations')
     for (const reg of playerRegistrations) {
       if (reg.season && !seasonMap.has(reg.season.id)) {
+        console.log('Adding season:', reg.season.name, 'org:', reg.season.organization?.name)
         seasonMap.set(reg.season.id, {
           ...reg.season,
           organization: reg.season.organization
@@ -162,6 +162,7 @@ async function getDashboardData(userId: string) {
       }
     }
     playerSeasons = Array.from(seasonMap.values())
+    console.log('Final playerSeasons:', playerSeasons)
   }
 
   return {
