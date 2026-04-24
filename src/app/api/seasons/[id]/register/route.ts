@@ -47,6 +47,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const adminClient = createAdminClient()
 
+  console.log('=== REGISTRATION DEBUG ===')
+  console.log('SUPABASE_SECRET_KEY set:', !!process.env.SUPABASE_SECRET_KEY)
+
   const { data: { session } } = await supabase.auth.getSession()
   
   if (!session) {
@@ -151,10 +154,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .single()
 
   // Get divisions info to find skill_level_id for each
-  const { data: divisions } = await adminClient
+  const { data: divisions, error: divError } = await adminClient
     .from('divisions')
     .select('id, type, skill_levels(id, min_rating, max_rating)')
     .in('id', division_ids)
+
+  if (divError) {
+    console.error('Error fetching divisions:', divError)
+    return Response.json({ error: 'Failed to fetch divisions: ' + divError.message }, { status: 500 })
+  }
+
+  console.log('Found divisions:', divisions?.length)
+
+  if (!divisions || divisions.length === 0) {
+    console.error('No divisions found for IDs:', division_ids)
+    return Response.json({ error: 'Invalid divisions selected' }, { status: 400 })
+  }
 
   // Create registration for each division
   const registrations = []
@@ -173,20 +188,38 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     )
     
     // Always create registration (even without skill level match, let coordinator fix it)
-    const { error: regError } = await adminClient
+    // Check if already exists first
+    const { data: existingReg } = await adminClient
       .from('season_registrations')
-      .upsert({
+      .select('id')
+      .eq('player_id', playerId)
+      .eq('season_id', seasonId)
+      .eq('division_id', divisionId)
+      .single()
+
+    if (existingReg) {
+      console.log('Already registered, skipping:', divisionId)
+      continue
+    }
+
+    const { data: regRecord, error: regError } = await adminClient
+      .from('season_registrations')
+      .insert({
         player_id: playerId,
         profile_id: profile.id,
         season_id: seasonId,
         division_id: divisionId,
         skill_level_id: skillLevel?.id || null,
         status: 'active'
-      }, { onConflict: 'player_id,season_id,division_id' })
+      })
+      .select()
+      .single()
 
     if (regError) {
       console.error('Registration error:', regError)
+      return Response.json({ error: regError.message }, { status: 500 })
     } else {
+      console.log('Registration created:', regRecord)
       registrations.push(division.type)
     }
   }

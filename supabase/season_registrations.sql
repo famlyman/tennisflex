@@ -42,15 +42,10 @@ FOR SELECT USING (
   )
 );
 
--- Coordinators can insert registrations for their organization
-CREATE POLICY "Coordinators can insert registrations" ON season_registrations
+-- Players can insert their own registrations
+CREATE POLICY "Players can insert own registrations" ON season_registrations
 FOR INSERT WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM seasons s
-    JOIN coordinators c ON c.organization_id = s.organization_id
-    WHERE s.id = season_registrations.season_id
-    AND c.profile_id = auth.uid()
-  )
+  profile_id = auth.uid()
 );
 
 -- Admin can manage all
