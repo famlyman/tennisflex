@@ -58,14 +58,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const formData = await request.formData()
   
-  // Handle division_ids - can be comma-separated or multiple
+  // Handle division_ids - can be multiple form fields OR comma-separated
+  const divisionIdsAll = formData.getAll('division_ids') as string[]
   const divisionIdsRaw = formData.get('division_ids') as string
-  console.log('Raw division_ids:', divisionIdsRaw)
-  console.log('All form keys:', Array.from(formData.keys()))
   
-  const division_ids = divisionIdsRaw 
-    ? divisionIdsRaw.split(',').filter(Boolean)
-    : formData.getAll('division_ids')
+  let division_ids: string[]
+  if (divisionIdsRaw && divisionIdsRaw.includes(',')) {
+    // Comma-separated string
+    division_ids = divisionIdsRaw.split(',').filter(Boolean)
+  } else if (divisionIdsAll.length > 0) {
+    // Multiple form fields
+    division_ids = divisionIdsAll.filter(Boolean)
+  } else {
+    division_ids = []
+  }
   
   console.log('Parsed division_ids:', division_ids)
   

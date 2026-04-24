@@ -103,13 +103,15 @@ async function getDashboardData(userId: string) {
   // Player data - fetch player's registrations
   let playerRegistrations: any[] = []
   let playerSeasons: any[] = []
-  const { data: player } = await adminClient
+  let player: any = null
+  const { data: playerData } = await adminClient
     .from('players')
     .select('*')
     .eq('profile_id', userId)
     .single()
 
-  if (player) {
+  if (playerData) {
+    player = playerData
     // Get player's season registrations with joined data
     const { data: registrations } = await adminClient
       .from('season_registrations')
