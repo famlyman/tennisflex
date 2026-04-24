@@ -1,77 +1,119 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { createAdminClient } from '@/utils/supabase'
 
-export const dynamic = 'force-dynamic'
+interface Season {
+  id: string
+  name: string
+  organization: { name: string }
+}
 
-export default async function LeaderboardPage() {
-  const cookieStore = await cookies()
-  
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll() {},
-      },
+interface Division {
+  id: string
+  name: string
+  type: string
+  display_name: string
+}
+
+interface SkillLevel {
+  id: string
+  name: string
+}
+
+interface LeaderboardEntry {
+  rank: number
+  player_name: string
+  wins: number
+  losses: number
+  matches: number
+}
+
+export default function LeaderboardPage() {
+  const [seasons, setSeasons] = useState<Season[]>([])
+  const [divisions, setDivisions] = useState<Division[]>([])
+  const [skillLevels, setSkillLevels] = useState<SkillLevel[]>([])
+  const [selectedSeason, setSelectedSeason] = useState<string>('')
+  const [selectedDivision, setSelectedDivision] = useState<string>('')
+  const [selectedSkillLevel, setSelectedSkillLevel] = useState<string>('')
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadSeasons()
+  }, [])
+
+  useEffect(() => {
+    if (selectedSeason) {
+      loadDivisions(selectedSeason)
     }
-  )
+  }, [selectedSeason])
 
-  const { data: { session } } = await supabase.auth.getSession()
+  useEffect(() => {
+    if (selectedDivision) {
+      loadSkillLevels(selectedDivision)
+    }
+  }, [selectedDivision])
 
-  if (!session) {
-    redirect('/login')
+  useEffect(() => {
+    if (selectedSkillLevel) {
+      loadLeaderboard(selectedSkillLevel)
+    }
+  }, [selectedSkillLevel])
+
+  async function loadSeasons() {
+    try {
+      const res = await fetch('/api/leaderboard/seasons')
+      const data = await res.json()
+      setSeasons(data.seasons || [])
+    } catch (err) {
+      console.error(err)
+    }
   }
 
-  const adminClient = createAdminClient()
+  async function loadDivisions(seasonId: string) {
+    try {
+      const res = await fetch(`/api/leaderboard/divisions?season_id=${seasonId}`)
+      const data = await res.json()
+      setDivisions(data.divisions || [])
+      setSelectedDivision('')
+      setSkillLevels([])
+      setLeaderboard([])
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
-  // Get all players with their stats
-  const { data: players } = await adminClient
-    .from('players')
-    .select(`
-      id,
-      tfr_singles,
-      tfr_doubles,
-      match_count_singles,
-      match_count_doubles,
-      wins_singles,
-      losses_singles,
-      wins_doubles,
-      losses_doubles,
-      profile:profiles!players_profile_id_fkey (full_name)
-    `)
-    .order('tfr_singles', { ascending: false })
+  async function loadSkillLevels(divisionId: string) {
+    try {
+      const res = await fetch(`/api/leaderboard/skill-levels?division_id=${divisionId}`)
+      const data = await res.json()
+      setSkillLevels(data.skill_levels || [])
+      setSelectedSkillLevel('')
+      setLeaderboard([])
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
-  // Sort singles leaderboard
-  const singlesLeaderboard = (players || [])
-    .filter(p => p.match_count_singles > 0)
-    .map((p: any, index) => ({
-      rank: index + 1,
-      name: p.profile?.full_name || 'Unknown',
-      rating: p.tfr_singles,
-      wins: p.wins_singles || 0,
-      losses: p.losses_singles || 0,
-      matches: p.match_count_singles,
-    }))
-    .slice(0, 20)
-
-  // Sort doubles leaderboard
-  const doublesLeaderboard = (players || [])
-    .filter(p => p.match_count_doubles > 0)
-    .map((p: any, index) => ({
-      rank: index + 1,
-      name: p.profile?.full_name || 'Unknown',
-      rating: p.tfr_doubles,
-      wins: p.wins_doubles || 0,
-      losses: p.losses_doubles || 0,
-      matches: p.match_count_doubles,
-    }))
-    .slice(0, 20)
+  async function loadLeaderboard(skillLevelId: string) {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/leaderboard/${skillLevelId}`)
+      if (!res.ok) {
+        const data = await res.json()
+        console.error('Leaderboard error:', data)
+        setLeaderboard([])
+        return
+      }
+      const data = await res.json()
+      setLeaderboard(data.leaderboard || [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -95,64 +137,77 @@ export default async function LeaderboardPage() {
             ← Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-slate-900">Leaderboards</h1>
-          <p className="text-slate-600 mt-1">Top players across all Flexes</p>
+          <p className="text-slate-600 mt-1">Select a division to view rankings</p>
         </div>
 
-        {/* Singles Leaderboard */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 mb-8">
-          <div className="p-6 border-b border-slate-100">
-            <h2 className="text-xl font-bold text-slate-900">Men's Singles</h2>
-            <p className="text-sm text-slate-500">Top 20 by TFR rating</p>
-          </div>
-          
-          {singlesLeaderboard.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">
-              No players yet. Join a season to get on the leaderboard!
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {singlesLeaderboard.map((player: any) => (
-                <div key={player.rank} className="p-4 flex items-center">
-                  <div className="w-12 text-lg font-bold text-slate-400">#{player.rank}</div>
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900">{player.name}</p>
-                    <p className="text-sm text-slate-500">
-                      {player.wins}W - {player.losses}L • {player.matches} matches
-                    </p>
-                  </div>
-                  <div className="text-xl font-bold text-indigo-600">
-                    {player.rating?.toFixed(1) || '--'}
-                  </div>
-                </div>
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Season</label>
+            <select
+              value={selectedSeason}
+              onChange={(e) => setSelectedSeason(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-900"
+            >
+              <option value="">Select season...</option>
+              {seasons.map((s) => (
+                <option key={s.id} value={s.id}>{s.name} - {s.organization?.name}</option>
               ))}
-            </div>
-          )}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Division</label>
+            <select
+              value={selectedDivision}
+              onChange={(e) => setSelectedDivision(e.target.value)}
+              disabled={!selectedSeason}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 disabled:opacity-50"
+            >
+              <option value="">Select division...</option>
+              {divisions.map((d) => (
+                <option key={d.id} value={d.id}>{d.display_name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Skill Level</label>
+            <select
+              value={selectedSkillLevel}
+              onChange={(e) => setSelectedSkillLevel(e.target.value)}
+              disabled={!selectedDivision}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 disabled:opacity-50"
+            >
+              <option value="">Select level...</option>
+              {skillLevels.map((sl) => (
+                <option key={sl.id} value={sl.id}>{sl.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Doubles Leaderboard */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
           <div className="p-6 border-b border-slate-100">
-            <h2 className="text-xl font-bold text-slate-900">Men's Doubles</h2>
-            <p className="text-sm text-slate-500">Top 20 by TFR rating</p>
+            <h2 className="text-xl font-bold text-slate-900">Rankings</h2>
+            <p className="text-sm text-slate-500">Top 20 by wins</p>
           </div>
           
-          {doublesLeaderboard.length === 0 ? (
+          {loading ? (
+            <div className="p-8 text-center text-slate-500">Loading...</div>
+          ) : leaderboard.length === 0 ? (
             <div className="p-8 text-center text-slate-500">
-              No players yet. Join a season to get on the leaderboard!
+              {selectedSkillLevel ? 'No players yet in this division.' : 'Select a skill level to view rankings.'}
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {doublesLeaderboard.map((player: any) => (
+              {leaderboard.map((player: LeaderboardEntry) => (
                 <div key={player.rank} className="p-4 flex items-center">
                   <div className="w-12 text-lg font-bold text-slate-400">#{player.rank}</div>
                   <div className="flex-1">
-                    <p className="font-medium text-slate-900">{player.name}</p>
+                    <p className="font-medium text-slate-900">{player.player_name}</p>
                     <p className="text-sm text-slate-500">
                       {player.wins}W - {player.losses}L • {player.matches} matches
                     </p>
-                  </div>
-                  <div className="text-xl font-bold text-indigo-600">
-                    {player.rating?.toFixed(1) || '--'}
                   </div>
                 </div>
               ))}

@@ -22,6 +22,7 @@ export interface Profile {
   id: string
   full_name: string
   avatar_url: string | null
+  gender: 'male' | 'female' | 'other' | null
   created_at: string
 }
 
@@ -150,6 +151,7 @@ export interface Extension {
   requested_by_profile?: Profile
 }
 
+<<<<<<< HEAD
 export interface PlayerSeasonRegistration {
   id: string
   player_id: string
@@ -158,6 +160,17 @@ export interface PlayerSeasonRegistration {
   skill_level_id: string | null
   status: string
   created_at: string
+=======
+export interface SeasonRegistration {
+  id: string
+  player_id: string
+  season_id: string
+  division_id: string | null
+  skill_level_id: string | null
+  status: 'active' | 'withdrawn' | 'completed'
+  registered_at: string
+  updated_at: string
+>>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
   // Joined fields
   player?: Player
   season?: Season
@@ -165,6 +178,21 @@ export interface PlayerSeasonRegistration {
   skill_level?: SkillLevel
 }
 
+<<<<<<< HEAD
+=======
+export interface Notification {
+  id: string
+  user_id: string
+  type: string
+  title: string
+  message: string | null
+  link: string | null
+  data: Record<string, any>
+  read: boolean
+  created_at: string
+}
+
+>>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
 // ==================== API RESPONSE TYPES ====================
 
 export interface SeasonWithDetails extends Season {

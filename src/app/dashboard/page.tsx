@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase'
+import NotificationBell from '@/components/NotificationBell'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,17 +51,35 @@ async function getDashboardData(userId: string) {
       .select('*', { count: 'exact', head: true })
       .in('organization_id', orgIds)
 
-    // Get match counts
-    const { count: totalMatches } = await adminClient
-      .from('matches')
-      .select('*', { count: 'exact', head: true })
-      .in('organization_id', orgIds)
+    // Get season IDs for these organizations
+    const seasonRes = await adminClient.from('seasons').select('id').in('organization_id', orgIds)
+    const seasonIds = (seasonRes.data || []).map(s => s.id)
 
-    const { count: pendingMatches } = await adminClient
-      .from('matches')
-      .select('*', { count: 'exact', head: true })
-      .in('organization_id', orgIds)
-      .eq('status', 'scheduled')
+    // Get division IDs for these seasons
+    const divisionRes = seasonIds.length > 0 
+      ? await adminClient.from('divisions').select('id').in('season_id', seasonIds)
+      : { data: [] }
+    const divisionIds = (divisionRes.data || []).map(d => d.id)
+
+    // Get skill level IDs for these divisions
+    const skillLevelRes = divisionIds.length > 0
+      ? await adminClient.from('skill_levels').select('id').in('division_id', divisionIds)
+      : { data: [] }
+    const skillLevelIds = (skillLevelRes.data || []).map(s => s.id)
+
+    // Get total matches
+    let totalMatches = 0
+    if (skillLevelIds.length > 0) {
+      const matchRes = await adminClient.from('matches').select('*', { count: 'exact', head: true }).in('skill_level_id', skillLevelIds)
+      totalMatches = matchRes.count || 0
+    }
+
+    // Get pending matches (scheduled or in_progress)
+    let pendingMatches = 0
+    if (skillLevelIds.length > 0) {
+      const pendingRes = await adminClient.from('matches').select('*', { count: 'exact', head: true }).in('skill_level_id', skillLevelIds).neq('status', 'completed')
+      pendingMatches = pendingRes.count || 0
+    }
 
     const activeSeasonCount = (seasonsData || []).filter(
       s => s.status === 'active' || s.status === 'registration_open'
@@ -81,6 +100,7 @@ async function getDashboardData(userId: string) {
     }
   }
 
+<<<<<<< HEAD
   // Player data - fetch player's registrations
   let playerRegistrations: any[] = []
   const { data: player } = await adminClient
@@ -114,13 +134,73 @@ async function getDashboardData(userId: string) {
       .eq('status', 'active')
 
     playerRegistrations = registrations || []
+=======
+  // Player - get their full record including ratings and registered divisions
+  const { data: playerData } = await adminClient
+    .from('players')
+    .select('*, organization:organizations!players_organization_id_fkey (name)')
+    .eq('profile_id', userId)
+    .single()
+
+  if (playerData) {
+    const playerOrgId = playerData.organization_id
+
+    const { data: playerSeasons } = await adminClient
+      .from('seasons')
+      .select(`
+        *,
+        divisions (id),
+        organization:organizations!seasons_organization_id_fkey (name)
+      `)
+      .eq('organization_id', playerOrgId)
+      .order('created_at', { ascending: false })
+
+    // Get player's registered divisions (from season_registrations)
+    const { data: registrations } = await adminClient
+      .from('season_registrations')
+      .select(`
+        id,
+        status,
+        profile_id,
+        division:divisions!season_registrations_division_id_fkey (
+          id,
+          name,
+          type,
+          skill_levels!divisions_skill_levels_fkey (id, name)
+        ),
+        season:seasons!season_registrations_season_id_fkey (id, name, status)
+      `)
+      .eq('profile_id', userId)
+      .eq('status', 'active')
+
+    return {
+      profile,
+      isCoordinator,
+      player: playerData,
+      registrations: registrations || [],
+      activeMatchCount: 0,
+      organizations: [],
+      seasons: playerSeasons || [],
+      playerCount: 0,
+      activeSeasonCount: (playerSeasons || []).filter(
+        s => s.status === 'active' || s.status === 'registration_open'
+      ).length,
+      totalMatches: 0,
+      pendingMatches: 0,
+    }
+>>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
   }
 
   return {
     profile,
     isCoordinator,
+<<<<<<< HEAD
     player,
     playerRegistrations,
+=======
+    player: null,
+    registrations: [],
+>>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
     activeMatchCount: 0,
     organizations: [],
     seasons: [],
@@ -176,6 +256,7 @@ export default async function Dashboard() {
             <span className="font-bold text-xl tracking-tight">Tennis-Flex</span>
           </Link>
           <div className="flex items-center gap-4">
+            <NotificationBell />
             <span className="text-sm text-slate-600">{fullName}</span>
             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
               isPlatformOwner 
@@ -238,22 +319,38 @@ export default async function Dashboard() {
                 <div className="flex gap-8">
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
+<<<<<<< HEAD
                       {dashboardData.player?.tfr_singles 
                         ? (dashboardData.player.tfr_singles / 10).toFixed(1) 
                         : '--'}
+=======
+                      {dashboardData.player?.tfr_singles ? (parseFloat(dashboardData.player.tfr_singles) / 10).toFixed(1) : '--'}
+>>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
                     </p>
                     <p className="text-xs text-slate-500">Singles</p>
+                    <p className="text-xs text-slate-400">
+                      {dashboardData.player?.initial_ntrp_singles ? `NTRP: ${dashboardData.player.initial_ntrp_singles}` : ''}
+                    </p>
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
+<<<<<<< HEAD
                       {dashboardData.player?.tfr_doubles 
                         ? (dashboardData.player.tfr_doubles / 10).toFixed(1) 
                         : '--'}
+=======
+                      {dashboardData.player?.tfr_doubles ? (parseFloat(dashboardData.player.tfr_doubles) / 10).toFixed(1) : '--'}
+>>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
                     </p>
                     <p className="text-xs text-slate-500">Doubles</p>
+                    <p className="text-xs text-slate-400">
+                      {dashboardData.player?.initial_ntrp_doubles ? `NTRP: ${dashboardData.player.initial_ntrp_doubles}` : ''}
+                    </p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-400 mt-4">Complete matches to establish your rating</p>
+                <p className="text-sm text-slate-400 mt-4">
+                  {dashboardData.player?.match_count_singles || 0} matches played
+                </p>
               </div>
                
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -352,6 +449,128 @@ export default async function Dashboard() {
           </div>
         )}
 
+        {/* Seasons List for Players (show seasons available for registration) */}
+        {!isCoordinator && dashboardData.player && (
+          <div className="space-y-6">
+            {/* Active/Registered Season */}
+            {dashboardData.seasons.find(s => s.status === 'active' || s.status === 'registration_open') && (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">Your Season</h2>
+                </div>
+                
+                {dashboardData.seasons
+                  .filter(s => s.status === 'active' || s.status === 'registration_open')
+                  .map((season: any) => (
+                    <div key={season.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-slate-50 rounded-xl border border-indigo-100">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <p className="font-medium text-slate-900 text-lg">{season.name}</p>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            season.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+                          }`}>
+                            {season.status === 'registration_open' ? 'Registration Open' : 'Active'}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-500">
+                          {season.organization?.name || 'Unknown'}
+                        </p>
+                        <p className="text-sm text-slate-400">
+                          {new Date(season.season_start).toLocaleDateString()} - {new Date(season.season_end).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+
+                {/* Your Registered Divisions */}
+                {dashboardData.registrations && dashboardData.registrations.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3">Your Divisions</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {dashboardData.registrations.map((reg: any) => {
+                        const division = reg.division
+                        const skillLevel = division?.skill_levels?.[0]
+                        return (
+                          <div key={reg.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-slate-900">
+                                  {division?.type === 'mens_singles' ? "Men's Singles" :
+                                   division?.type === 'womens_singles' ? "Women's Singles" :
+                                   division?.type === 'mens_doubles' ? "Men's Doubles" :
+                                   division?.type === 'womens_doubles' ? "Women's Doubles" :
+                                   division?.type === 'mixed_doubles' ? "Mixed Doubles" : division?.name}
+                                </p>
+                                <p className="text-sm text-slate-500">{reg.season?.name}</p>
+                              </div>
+                              <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                                {skillLevel?.name || 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* All Organization Seasons */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">All {dashboardData.player.organization?.name} Seasons</h2>
+              </div>
+              
+              {dashboardData.seasons.length === 0 ? (
+                <p className="text-slate-500">No seasons available in your organization.</p>
+              ) : (
+                <div className="space-y-3">
+                  {dashboardData.seasons.map((season: any) => {
+                    const isOpen = season.status === 'registration_open'
+                    return (
+                      <div key={season.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <p className="font-medium text-slate-900">{season.name}</p>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              season.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                              season.status === 'registration_open' ? 'bg-emerald-100 text-emerald-700' :
+                              season.status === 'completed' ? 'bg-slate-200 text-slate-600' :
+                              'bg-slate-100 text-slate-500'
+                            }`}>
+                              {season.status === 'registration_open' ? 'Registration Open' : season.status}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-400">
+                            {new Date(season.registration_start).toLocaleDateString()} - {new Date(season.registration_end).toLocaleDateString()}
+                            {isOpen && ' • Select your division when registering'}
+                          </p>
+                        </div>
+                        {isOpen ? (
+                          <Link
+                            href={`/seasons/${season.id}/register`}
+                            className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                          >
+                            Register
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/seasons/${season.id}`}
+                            className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+                          >
+                            View
+                          </Link>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-8">
           <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -395,6 +614,24 @@ export default async function Dashboard() {
                   </div>
                   <p className="font-semibold text-slate-900">Create Season</p>
                   <p className="text-sm text-slate-500">Start a new season</p>
+                </Link>
+                <Link href="/leaderboard" className="p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
+                  <div className="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <p className="font-semibold text-slate-900">Leaderboards</p>
+                  <p className="text-sm text-slate-500">View division rankings</p>
+                </Link>
+                <Link href="/divisions" className="p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
+                  <div className="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                  </div>
+                  <p className="font-semibold text-slate-900">Manage Divisions</p>
+                  <p className="text-sm text-slate-500">Setup divisions</p>
                 </Link>
               </>
             ) : (

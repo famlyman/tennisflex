@@ -141,12 +141,12 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                   className="object-cover"
                 />
               </div>
-              <span className="font-bold text-xl tracking-tight text-slate-900">Tennis-Flex</span>
+              <span className="font-bold text-xl tracking-tight text-graphite-900">Tennis-Flex</span>
             </Link>
             <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-              <Link href="#flexes" className="text-slate-600 hover:text-indigo-600 transition-colors">Find Your Flex</Link>
-              <Link href="#features" className="text-slate-600 hover:text-indigo-600 transition-colors">How It Works</Link>
-              <Link href="#ratings" className="text-slate-600 hover:text-indigo-600 transition-colors">TFR System</Link>
+              <Link href="#flexes" className="text-graphite-600 hover:text-indigo-600 transition-colors">Find Your Flex</Link>
+              <Link href="#features" className="text-graphite-600 hover:text-indigo-600 transition-colors">How It Works</Link>
+              <Link href="#ratings" className="text-graphite-600 hover:text-indigo-600 transition-colors">TFR System</Link>
               <Link 
                 href="/login" 
                 className="px-5 py-2.5 bg-slate-900 text-white rounded-full hover:bg-indigo-600 transition-colors"
@@ -177,8 +177,8 @@ export default function HomeClient({ organizations }: HomeClientProps) {
 
                 <AnimatedSection delay={100}>
                   <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1]">
-                    Your Game, <br />
-                    <span className="gradient-text">Your Time</span>
+                    Flex Your Game, <br />
+                    <span className="gradient-text">Own Your Time</span>
                   </h1>
                 </AnimatedSection>
 
@@ -190,7 +190,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                   </p>
                 </AnimatedSection>
 
-                <AnimatedSection delay={300}>
+                {/* <AnimatedSection delay={300}>
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Link 
                       href="/register?type=player" 
@@ -208,7 +208,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                       Real Play, Real Easy
                     </Link>
                   </div>
-                </AnimatedSection>
+                </AnimatedSection> */}
 
                 <AnimatedSection delay={400}>
                   <div className="flex items-center gap-6 mt-10 text-sm text-slate-500">
@@ -217,7 +217,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                         <div key={i} className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 border-2 border-white" />
                       ))}
                     </div>
-                    <span>2,400+ players already joined</span>
+                    <span>Join the growing Flex community</span>
                   </div>
                 </AnimatedSection>
               </div>

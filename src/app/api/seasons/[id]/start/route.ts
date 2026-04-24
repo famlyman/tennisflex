@@ -32,7 +32,6 @@ export async function POST(
 
     const adminClient = createAdminClient()
 
-    // Check user is a coordinator of this season's organization
     const { data: season } = await adminClient
       .from('seasons')
       .select('organization_id, status')
@@ -54,20 +53,18 @@ export async function POST(
       return NextResponse.json({ error: 'Not a coordinator of this season' }, { status: 403 })
     }
 
-    // Update season status to registration_open
     const { error: updateError } = await adminClient
       .from('seasons')
-      .update({ status: 'registration_open' })
+      .update({ status: 'active' })
       .eq('id', id)
 
     if (updateError) {
-      console.error('Update error:', updateError)
-      return NextResponse.json({ error: `Update failed: ${updateError.message}` }, { status: 500 })
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
     redirect(`/seasons/${id}`)
   } catch (error) {
-    console.error('Error opening registration:', error)
+    console.error('Error starting season:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

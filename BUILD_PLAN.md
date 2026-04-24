@@ -147,9 +147,9 @@ Organization (Flex)
 | 7 | Season creation | ✅ Complete |
 | 8 | Division management | ✅ Complete |
 | 9 | Player registration | ✅ Complete |
-| 10 | Match pages + messaging | ⏳ Pending |
-| 11 | Score submission | ⏳ Pending |
-| 12 | Leaderboard | ⏳ Pending |
+| 10 | Match pages + scoring | ✅ Complete |
+| 11 | Score submission | ✅ Complete |
+| 12 | Leaderboard | ✅ Complete |
 | 13 | Flag review | ⏳ Pending |
 | 14 | TFR algorithm | ⏳ Pending |
 
@@ -186,6 +186,24 @@ Organization (Flex)
 - Service worker for caching
 - Offline support
 
+### Match Pages + Score Submission ✅
+- Skill level page shows matches with status indicators
+- Winner highlighting for completed matches
+- Score entry modal with set-by-set dropdowns (0-7)
+- Both coordinators and match players can submit scores
+- Coordinators can edit any score
+
+### Leaderboard (Per-Division) ✅
+- Cascading select: Season → Division → Skill Level
+- Division names: Men's Singles, Women's Singles, Men's Doubles, Women's Doubles, Mixed Doubles
+- Ranked by wins, top 20 players
+- Link added to coordinator dashboard
+
+### Dashboard Improvements ✅
+- Fixed match counts through proper organization→season→division→skill_level chain
+- Quick actions: Create Season, Leaderboards, Manage Divisions
+- Pending matches count now includes all non-completed matches
+
 ---
 
 ## Project Structure
@@ -212,7 +230,14 @@ src/
 │   └── api/
 │       ├── admin/chapters/         # Flex admin APIs
 │       ├── seasons/                # Season APIs
-│       └── divisions/              # Division APIs
+│       ├── divisions/              # Division APIs
+│       ├── matches/[id]/score/    # Score submission API
+│       ├── skill-levels/[id]/     # Skill level matches API
+│       └── leaderboard/            # Leaderboard APIs
+│           ├── [id]/             # Get leaderboard for skill level
+│           ├── seasons/           # Get active seasons
+│           ├── divisions/          # Get divisions for season
+│           └── skill-levels/        # Get skill levels for division
 ├── actions/                        # Server actions
 ├── components/                    # UI components
 ├── types/database.ts              # TypeScript types
@@ -248,7 +273,9 @@ RESEND_API_KEY=                  # Resend API key for transactional emails (free
 - **Fixed RLS issues**: Updated API routes to use admin client for data operations
 - **Dashboard redesign**: Added stats cards, seasons list, removed redundant buttons
 - **Profile page**: New profile page with self-rating (NTRP), ratings display, win/loss stats
-- **Leaderboard page**: New leaderboard showing top 20 players for singles/doubles
+- **Score submission modal**: Set-by-set dropdowns (0-7), winner selection
+- **Per-division leaderboard**: Fixed org lookup through division→season→organization chain
+- **Fixed pending matches**: Dashboard now correctly counts non-completed matches
 
 ### Quick SQL Reference
 

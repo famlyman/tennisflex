@@ -2,60 +2,57 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import RegistrationForm from '@/components/RegistrationForm'
 
-async function getSeasonWithDivisions(seasonId: string) {
+// Find skill level that matches a specific rating
+function findMatchingSkillLevel(skillLevels: any[], rating: number) {
+  if (!skillLevels || !rating) return null
+  return skillLevels.find((sl: any) => 
+    rating >= sl.min_rating && rating <= sl.max_rating
+  )
+}
+
+// Division type categories
+function getDivisionCategory(type: string): 'singles' | 'doubles' {
+  if (type.includes('singles')) return 'singles'
+  return 'doubles'
+}
+
+function getDivisionLabel(type: string): string {
+  switch (type) {
+    case 'mens_singles': return "Men's Singles"
+    case 'womens_singles': return "Women's Singles"
+    case 'mens_doubles': return "Men's Doubles"
+    case 'womens_doubles': return "Women's Doubles"
+    case 'mixed_doubles': return "Mixed Doubles"
+    default: return type
+  }
+}
+
+async function getSeasonWithSkillLevels(seasonId: string) {
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Record<string, unknown>)
-            )
-          } catch {
-            // Ignore
-          }
-        },
+        getAll() { return cookieStore.getAll() },
+        setAll() {},
       },
     }
   )
 
-  // Get season with organization
-  const { data: season, error } = await supabase
+  const { data: season } = await supabase
     .from('seasons')
-    .select(`
-      *,
-      organization:organizations!seasons_organization_id_fkey (
-        id,
-        name,
-        slug
-      )
-    `)
+    .select('*, organization:organizations!seasons_organization_id_fkey (id, name, slug)')
     .eq('id', seasonId)
     .single()
 
-  if (error || !season) {
-    return null
-  }
+  if (!season) return null
 
-  // Get divisions with skill levels
   const { data: divisions } = await supabase
     .from('divisions')
-    .select(`
-      *,
-      skill_levels (
-        id,
-        name,
-        min_rating,
-        max_rating
-      )
-    `)
+    .select('id, name, type, season_id, skill_levels (id, name, min_rating, max_rating)')
     .eq('season_id', seasonId)
     .order('name')
 
@@ -71,240 +68,149 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Record<string, unknown>)
-            )
-          } catch {
-            // Ignore
-          }
-        },
+        getAll() { return cookieStore.getAll() },
+        setAll() {},
       },
     }
   )
 
   const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
 
-  if (!session) {
-    redirect('/login')
-  }
-
-  const seasonData = await getSeasonWithDivisions(seasonId)
-
-  if (!seasonData) {
-    notFound()
-  }
+  const seasonData = await getSeasonWithSkillLevels(seasonId)
+  if (!seasonData) notFound()
 
   if (seasonData.status !== 'registration_open') {
     return (
       <div className="min-h-screen bg-slate-50">
         <nav className="bg-white border-b border-slate-200 px-6 py-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl leading-none">T</span>
-              </div>
-              <span className="font-bold text-xl tracking-tight">Tennis-Flex</span>
+            <Link href="/dashboard" className="text-sm text-slate-600 hover:text-indigo-600">
+              ← Back to Dashboard
             </Link>
           </div>
         </nav>
         <main className="max-w-2xl mx-auto px-6 py-12 text-center">
           <h1 className="text-2xl font-bold text-slate-900 mb-4">Registration Closed</h1>
           <p className="text-slate-600">Registration for this season is not open.</p>
-          <Link href="/seasons" className="mt-4 inline-block text-indigo-600 hover:underline">
-            Browse Other Seasons
-          </Link>
         </main>
       </div>
     )
   }
 
-  // Check if user is already registered
-  const profile = await supabase
+  // Get user profile data (gender + BOTH ratings)
+  const { data: profile } = await supabase
     .from('profiles')
-    .select('id')
+    .select('full_name, gender, initial_ntrp_singles, initial_ntrp_doubles')
     .eq('id', session.user.id)
     .single()
 
-  if (profile.data) {
-    const { data: existingReg } = await supabase
-      .from('players')
-      .select('id')
-      .eq('profile_id', profile.data.id)
-      .eq('organization_id', seasonData.organization_id)
-      .single()
+  // Check if already a player in this organization
+  const { data: existingPlayer } = await supabase
+    .from('players')
+    .select('initial_ntrp_singles, initial_ntrp_doubles')
+    .eq('profile_id', session.user.id)
+    .eq('organization_id', seasonData.organization_id)
+    .single()
 
-    if (existingReg) {
-      return (
-        <div className="min-h-screen bg-slate-50">
-          <nav className="bg-white border-b border-slate-200 px-6 py-4">
-            <div className="max-w-7xl mx-auto flex justify-between items-center">
-              <Link href="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-xl leading-none">T</span>
-                </div>
-                <span className="font-bold text-xl tracking-tight">Tennis-Flex</span>
-              </Link>
-            </div>
-          </nav>
-          <main className="max-w-2xl mx-auto px-6 py-12 text-center">
-            <h1 className="text-2xl font-bold text-slate-900 mb-4">Already Registered</h1>
-            <p className="text-slate-600">You are already registered for this season.</p>
-            <Link href="/dashboard" className="mt-4 inline-block text-indigo-600 hover:underline">
-              Back to Dashboard
-            </Link>
-          </main>
-        </div>
-      )
-    }
+  // Use profile data first, then player data, then defaults
+  const userGender = profile?.gender || null
+  const singlesRating = profile?.initial_ntrp_singles || existingPlayer?.initial_ntrp_singles || 3.5
+  const doublesRating = profile?.initial_ntrp_doubles || existingPlayer?.initial_ntrp_doubles || 3.5
+
+  // Map gender to allowed division types
+  const genderMap: Record<string, string[]> = {
+    male: ['mens_singles', 'mens_doubles', 'mixed_doubles'],
+    female: ['womens_singles', 'womens_doubles', 'mixed_doubles'],
+    other: ['mens_singles', 'womens_singles', 'mens_doubles', 'womens_doubles', 'mixed_doubles'],
+    null: ['mens_singles', 'womens_singles', 'mens_doubles', 'womens_doubles', 'mixed_doubles'],
   }
+
+  const allowedTypes = genderMap[userGender as string] || genderMap['null']
+
+  // Filter divisions and find matching skill level for each
+  const userDivisions = seasonData.divisions
+    ?.filter((d: any) => allowedTypes.includes(d.type))
+    .map((d: any) => {
+      const category = getDivisionCategory(d.type)
+      const rating = category === 'singles' ? singlesRating : doublesRating
+      const matchingLevel = findMatchingSkillLevel(d.skill_levels, rating)
+      return {
+        ...d,
+        category,
+        rating,
+        matchingLevel,
+        skillLevelName: matchingLevel?.name || null,
+      }
+    })
+    .filter((d: any) => d.matchingLevel !== null) || []
+
+  // Check if already registered
+  const { data: existingRegistrations } = await supabase
+    .from('season_registrations')
+    .select('id, division_id, status')
+    .eq('profile_id', session.user.id)
+    .eq('season_id', seasonId)
+    .eq('status', 'active')
+
+  const isRegistered = existingRegistrations && existingRegistrations.length > 0
+  const registeredDivisionIds = existingRegistrations?.map(r => r.division_id) || []
+
+  // Show prompt to update profile if no ratings set
+  const needsProfileSetup = !profile?.initial_ntrp_singles && !profile?.initial_ntrp_doubles
 
   return (
     <div className="min-h-screen bg-slate-50">
       <nav className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl leading-none">T</span>
-            </div>
-            <span className="font-bold text-xl tracking-tight">Tennis-Flex</span>
-          </Link>
           <Link href="/dashboard" className="text-sm text-slate-600 hover:text-indigo-600">
-            Dashboard
+            ← Back to Dashboard
           </Link>
         </div>
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-12">
-        <Link href="/seasons" className="text-sm text-slate-600 hover:text-indigo-600 mb-4 inline-flex items-center">
-          ← Back to Seasons
-        </Link>
-
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 mb-8">
-          <div className="mb-6">
-            <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium mb-2">
-              Registration Open
-            </span>
-            <h1 className="text-3xl font-bold text-slate-900">{seasonData.name}</h1>
-            <p className="text-slate-600">{seasonData.organization?.name}</p>
-          </div>
-
-          <div className="flex flex-wrap gap-4 text-sm text-slate-500">
-            <div>Registration: {new Date(seasonData.registration_start).toLocaleDateString()} - {new Date(seasonData.registration_end).toLocaleDateString()}</div>
-            <div>Season: {new Date(seasonData.season_start).toLocaleDateString()} - {new Date(seasonData.season_end).toLocaleDateString()}</div>
-          </div>
+        <div className="text-center mb-8">
+          <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium mb-3">
+            Registration Open
+          </span>
+          <h1 className="text-3xl font-bold text-slate-900">{seasonData.name}</h1>
+          <p className="text-slate-600">{seasonData.organization?.name}</p>
+          <p className="text-sm text-slate-500 mt-2">
+            Rating: {singlesRating} (Singles) / {doublesRating} (Doubles)
+          </p>
         </div>
 
-        <form action={`/api/seasons/${seasonId}/register`} method="POST" className="space-y-6">
-          <input type="hidden" name="organization_id" value={seasonData.organization_id} />
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-3">
-              Select Division
-            </label>
-            <div className="space-y-3">
-              {seasonData.divisions?.map((division: any) => (
-                <label key={division.id} className="block">
-                  <input
-                    type="radio"
-                    name="division_id"
-                    value={division.id}
-                    required
-                    className="peer sr-only"
-                  />
-                  <div className="p-4 rounded-xl border-2 border-slate-200 hover:border-indigo-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all cursor-pointer">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-slate-900">{division.name}</p>
-                        <p className="text-sm text-slate-500">
-                          {division.type === 'mens_singles' && "Men's Singles"}
-                          {division.type === 'womens_singles' && "Women's Singles"}
-                          {division.type === 'mens_doubles' && "Men's Doubles"}
-                          {division.type === 'womens_doubles' && "Women's Doubles"}
-                          {division.type === 'mixed_doubles' && "Mixed Doubles"}
-                        </p>
-                      </div>
-                      {division.skill_levels?.length > 0 && (
-                        <div className="text-sm text-slate-500">
-                          {division.skill_levels.map((sl: any) => sl.name).join(', ')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="ntrp_singles" className="block text-sm font-medium text-slate-700 mb-2">
-              Your Self-Reported NTRP Rating (Singles)
-            </label>
-            <select
-              id="ntrp_singles"
-              name="ntrp_singles"
-              required
-              className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:ring-indigo-500"
-            >
-              <option value="">Select your rating</option>
-              <option value="2.5">2.5</option>
-              <option value="3.0">3.0</option>
-              <option value="3.5">3.5</option>
-              <option value="4.0">4.0</option>
-              <option value="4.5">4.5</option>
-              <option value="5.0">5.0</option>
-              <option value="5.5">5.5</option>
-              <option value="6.0">6.0</option>
-              <option value="6.5">6.5</option>
-              <option value="7.0">7.0</option>
-            </select>
-            <p className="text-sm text-slate-500 mt-1">
-              Rate yourself honestly based on your playing ability. Coordinators may verify.
-            </p>
-          </div>
-
-          <div>
-            <label htmlFor="ntrp_doubles" className="block text-sm font-medium text-slate-700 mb-2">
-              Your Self-Reported NTRP Rating (Doubles)
-            </label>
-            <select
-              id="ntrp_doubles"
-              name="ntrp_doubles"
-              required
-              className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:ring-indigo-500"
-            >
-              <option value="">Select your rating</option>
-              <option value="2.5">2.5</option>
-              <option value="3.0">3.0</option>
-              <option value="3.5">3.5</option>
-              <option value="4.0">4.0</option>
-              <option value="4.5">4.5</option>
-              <option value="5.0">5.0</option>
-              <option value="5.5">5.5</option>
-              <option value="6.0">6.0</option>
-              <option value="6.5">6.5</option>
-              <option value="7.0">7.0</option>
-            </select>
-          </div>
-
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        {needsProfileSetup && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-amber-800">
-              <strong>Important:</strong> By registering, you commit to playing matches throughout the season. 
-              Unplayed matches won't count toward your rating or standings.
+              <Link href="/profile" className="underline font-medium">Set up your ratings in your profile</Link> before registering.
             </p>
           </div>
+        )}
 
-          <button
-            type="submit"
-            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
-          >
-            Register for Season
-          </button>
-        </form>
+        {isRegistered ? (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-emerald-800 mb-4">You're Registered!</h2>
+            <div className="space-y-2">
+              {userDivisions
+                .filter((d: any) => registeredDivisionIds.includes(d.id))
+                .map((d: any) => (
+                  <div key={d.id} className="flex justify-between text-sm">
+                    <span className="text-emerald-700">{getDivisionLabel(d.type)}</span>
+                    <span className="font-medium text-emerald-800">{d.skillLevelName}</span>
+                  </div>
+                ))}
+            </div>
+            <p className="text-sm text-emerald-600 mt-4">Check your dashboard for match schedule.</p>
+          </div>
+        ) : (
+          <RegistrationForm 
+            divisions={userDivisions}
+            organizationId={seasonData.organization_id}
+            seasonId={seasonId}
+          />
+        )}
       </main>
     </div>
   )
