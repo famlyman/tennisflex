@@ -252,9 +252,16 @@ playerId = newPlayer.id
       continue
     }
 
-    console.log('Registration created:', regRecord)
-    registrations.push(division.type)
+    if (regRecord) {
+      console.log('✅ Registration created:', regRecord.id, 'for division:', divisionId)
+      registrations.push(division.type)
+    } else {
+      console.log('⚠️ No record returned but no error')
+    }
   }
+
+  console.log('=== FINAL RESULT ===')
+  console.log('Registrations to save:', registrations)
 
   // Create notification
   await createNotification(
