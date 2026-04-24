@@ -103,6 +103,7 @@ async function getDashboardData(userId: string) {
   // Player data - fetch player's registrations
   let playerRegistrations: any[] = []
   let playerSeasons: any[] = []
+  let allOrgSeasons: any[] = []
   let player: any = null
   const { data: playerData } = await adminClient
     .from('players')
@@ -112,6 +113,19 @@ async function getDashboardData(userId: string) {
 
   if (playerData) {
     player = playerData
+    
+    // Fetch all seasons from player's organization
+    const { data: orgSeasons } = await adminClient
+      .from('seasons')
+      .select(`
+        *,
+        organization:organizations!seasons_organization_id_fkey (id, name)
+      `)
+      .eq('organization_id', player.organization_id)
+      .order('created_at', { ascending: false })
+    
+    allOrgSeasons = orgSeasons || []
+    
     // Get player's season registrations with joined data
     const { data: registrations } = await adminClient
       .from('season_registrations')
@@ -137,7 +151,7 @@ async function getDashboardData(userId: string) {
 
     playerRegistrations = registrations || []
 
-    // Get unique seasons from registrations for player view
+    // Get unique seasons from registrations
     const seasonMap = new Map<string, any>()
     for (const reg of playerRegistrations) {
       if (reg.season && !seasonMap.has(reg.season.id)) {
@@ -157,7 +171,7 @@ async function getDashboardData(userId: string) {
     playerRegistrations,
     activeMatchCount: 0,
     organizations: [],
-    seasons: playerSeasons,
+    seasons: playerSeasons.length > 0 ? playerSeasons : allOrgSeasons,
     playerCount: 0,
     activeSeasonCount: 0,
     totalMatches: 0,
