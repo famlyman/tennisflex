@@ -100,9 +100,9 @@ async function getDashboardData(userId: string) {
     }
   }
 
-<<<<<<< HEAD
   // Player data - fetch player's registrations
   let playerRegistrations: any[] = []
+  let playerSeasons: any[] = []
   const { data: player } = await adminClient
     .from('players')
     .select('*')
@@ -112,10 +112,10 @@ async function getDashboardData(userId: string) {
   if (player) {
     // Get player's season registrations with joined data
     const { data: registrations } = await adminClient
-      .from('player_season_registrations')
+      .from('season_registrations')
       .select(`
         *,
-        season:seasons!player_season_registrations_season_id_fkey (
+        season:seasons!season_registrations_season_id_fkey (
           id,
           name,
           status,
@@ -124,7 +124,7 @@ async function getDashboardData(userId: string) {
           organization_id,
           organization:organizations!seasons_organization_id_fkey (name)
         ),
-        division:divisions!player_season_registrations_division_id_fkey (
+        division:divisions!season_registrations_division_id_fkey (
           id,
           name,
           type
@@ -134,76 +134,28 @@ async function getDashboardData(userId: string) {
       .eq('status', 'active')
 
     playerRegistrations = registrations || []
-=======
-  // Player - get their full record including ratings and registered divisions
-  const { data: playerData } = await adminClient
-    .from('players')
-    .select('*, organization:organizations!players_organization_id_fkey (name)')
-    .eq('profile_id', userId)
-    .single()
 
-  if (playerData) {
-    const playerOrgId = playerData.organization_id
-
-    const { data: playerSeasons } = await adminClient
-      .from('seasons')
-      .select(`
-        *,
-        divisions (id),
-        organization:organizations!seasons_organization_id_fkey (name)
-      `)
-      .eq('organization_id', playerOrgId)
-      .order('created_at', { ascending: false })
-
-    // Get player's registered divisions (from season_registrations)
-    const { data: registrations } = await adminClient
-      .from('season_registrations')
-      .select(`
-        id,
-        status,
-        profile_id,
-        division:divisions!season_registrations_division_id_fkey (
-          id,
-          name,
-          type,
-          skill_levels!divisions_skill_levels_fkey (id, name)
-        ),
-        season:seasons!season_registrations_season_id_fkey (id, name, status)
-      `)
-      .eq('profile_id', userId)
-      .eq('status', 'active')
-
-    return {
-      profile,
-      isCoordinator,
-      player: playerData,
-      registrations: registrations || [],
-      activeMatchCount: 0,
-      organizations: [],
-      seasons: playerSeasons || [],
-      playerCount: 0,
-      activeSeasonCount: (playerSeasons || []).filter(
-        s => s.status === 'active' || s.status === 'registration_open'
-      ).length,
-      totalMatches: 0,
-      pendingMatches: 0,
+    // Get unique seasons from registrations for player view
+    const seasonMap = new Map<string, any>()
+    for (const reg of playerRegistrations) {
+      if (reg.season && !seasonMap.has(reg.season.id)) {
+        seasonMap.set(reg.season.id, {
+          ...reg.season,
+          organization: reg.season.organization
+        })
+      }
     }
->>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
+    playerSeasons = Array.from(seasonMap.values())
   }
 
   return {
     profile,
     isCoordinator,
-<<<<<<< HEAD
     player,
     playerRegistrations,
-=======
-    player: null,
-    registrations: [],
->>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
     activeMatchCount: 0,
     organizations: [],
-    seasons: [],
+    seasons: playerSeasons,
     playerCount: 0,
     activeSeasonCount: 0,
     totalMatches: 0,
@@ -319,13 +271,9 @@ export default async function Dashboard() {
                 <div className="flex gap-8">
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
-<<<<<<< HEAD
                       {dashboardData.player?.tfr_singles 
                         ? (dashboardData.player.tfr_singles / 10).toFixed(1) 
                         : '--'}
-=======
-                      {dashboardData.player?.tfr_singles ? (parseFloat(dashboardData.player.tfr_singles) / 10).toFixed(1) : '--'}
->>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
                     </p>
                     <p className="text-xs text-slate-500">Singles</p>
                     <p className="text-xs text-slate-400">
@@ -334,13 +282,9 @@ export default async function Dashboard() {
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
-<<<<<<< HEAD
                       {dashboardData.player?.tfr_doubles 
                         ? (dashboardData.player.tfr_doubles / 10).toFixed(1) 
                         : '--'}
-=======
-                      {dashboardData.player?.tfr_doubles ? (parseFloat(dashboardData.player.tfr_doubles) / 10).toFixed(1) : '--'}
->>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
                     </p>
                     <p className="text-xs text-slate-500">Doubles</p>
                     <p className="text-xs text-slate-400">
@@ -483,11 +427,11 @@ export default async function Dashboard() {
                   ))}
 
                 {/* Your Registered Divisions */}
-                {dashboardData.registrations && dashboardData.registrations.length > 0 && (
+                {dashboardData.playerRegistrations && dashboardData.playerRegistrations.length > 0 && (
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold text-slate-900 mb-3">Your Divisions</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {dashboardData.registrations.map((reg: any) => {
+                      {dashboardData.playerRegistrations.map((reg: any) => {
                         const division = reg.division
                         const skillLevel = division?.skill_levels?.[0]
                         return (

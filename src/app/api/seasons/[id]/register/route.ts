@@ -146,55 +146,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     playerId = newPlayer.id
   }
 
-  // Get season info
+// Get season info
   const { data: season } = await adminClient
     .from('seasons')
     .select('name')
     .eq('id', seasonId)
     .single()
 
-<<<<<<< HEAD
-  // Create player record with the registration (using admin client)
-  const { data: newPlayer, error } = await adminClient.from('players').insert({
-    profile_id: profile.id,
-    organization_id,
-    initial_ntrp_singles: ntrp_singles,
-    initial_ntrp_doubles: ntrp_doubles,
-    tfr_singles,
-    tfr_doubles,
-    rating_deviation: 4.0, // Default deviation
-    match_count_singles: 0,
-    match_count_doubles: 0,
-    flag_count: 0
-  }).select().single()
-
-  if (error || !newPlayer) {
-    console.error('Error registering:', error)
-    return Response.json({ error: error?.message || 'Failed to register' }, { status: 500 })
-  }
-
-  // Get skill_level_id based on the player's NTRP rating
-  const { data: skillLevel } = await adminClient
-    .from('skill_levels')
-    .select('id, min_rating, max_rating')
-    .eq('division_id', division_id)
-    .lte('min_rating', ntrp_singles)
-    .gte('max_rating', ntrp_singles)
-    .single()
-
-  // Create player_season_registration junction record
-  const { error: regError } = await adminClient.from('player_season_registrations').insert({
-    player_id: newPlayer.id,
-    season_id: seasonId,
-    division_id,
-    skill_level_id: skillLevel?.id || null,
-    status: 'active'
-  })
-
-  if (regError) {
-    console.error('Error creating registration:', regError)
-    // Player was created, but junction failed - continue anyway
-=======
   // Get divisions info to find skill_level_id for each
   const { data: divisions, error: divError } = await adminClient
     .from('divisions')
@@ -229,7 +187,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       playerRating >= sl.min_rating && playerRating <= sl.max_rating
     )
     
-    // Always create registration (even without skill level match, let coordinator fix it)
     // Check if already exists first
     const { data: existingReg } = await adminClient
       .from('season_registrations')
@@ -291,7 +248,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       `${profile.full_name} has registered for ${season?.name || 'the season'} (${registrations.length} divisions)`,
       `/seasons/${seasonId}`
     )
->>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
   }
 
   redirect('/dashboard')

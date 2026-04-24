@@ -151,16 +151,6 @@ export interface Extension {
   requested_by_profile?: Profile
 }
 
-<<<<<<< HEAD
-export interface PlayerSeasonRegistration {
-  id: string
-  player_id: string
-  season_id: string
-  division_id: string
-  skill_level_id: string | null
-  status: string
-  created_at: string
-=======
 export interface SeasonRegistration {
   id: string
   player_id: string
@@ -168,9 +158,7 @@ export interface SeasonRegistration {
   division_id: string | null
   skill_level_id: string | null
   status: 'active' | 'withdrawn' | 'completed'
-  registered_at: string
-  updated_at: string
->>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
+  created_at: string
   // Joined fields
   player?: Player
   season?: Season
@@ -178,8 +166,6 @@ export interface SeasonRegistration {
   skill_level?: SkillLevel
 }
 
-<<<<<<< HEAD
-=======
 export interface Notification {
   id: string
   user_id: string
@@ -192,7 +178,6 @@ export interface Notification {
   created_at: string
 }
 
->>>>>>> 642995da27abe0fc69ea856c5cec5c0ccefdd1d5
 // ==================== API RESPONSE TYPES ====================
 
 export interface SeasonWithDetails extends Season {
