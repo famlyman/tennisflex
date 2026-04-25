@@ -145,25 +145,23 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
     })
     .filter((d: any) => d.matchingLevel !== null) || []
 
-  // Check if already registered (get all, not just active)
-  const { data: existingRegistrations } = await supabase
+  // Check if already registered - query ALL registrations user has, filter by season in JS
+  const { data: allRegistrations } = await supabase
     .from('season_registrations')
-    .select('id, division_id, status, season_id')
+    .select('id, division_id, season_id')
     .eq('profile_id', session.user.id)
-    .eq('season_id', seasonId)
 
-  console.log('Season:', seasonId)
-  console.log('Existing regs found for this season:', existingRegistrations?.length)
-  console.log('Registered division IDs:', existingRegistrations?.map(r => r.division_id))
-
-  // Filter divisions to show only those NOT registered for THIS season
+  console.log('All user registrations:', allRegistrations?.length, 'for seasons:', allRegistrations?.map(r => r.season_id))
+  
+  // Filter to THIS season
+  const existingRegistrations = allRegistrations?.filter(r => r.season_id === seasonId) || []
+  
+  const isRegisteredForSeason = existingRegistrations.length > 0
+  const registeredDivisionIds = existingRegistrations.map(r => r.division_id) || []
+  
+  // Divisions NOT yet registered for this season
   const unregisteredDivisions = userDivisions
-    .filter((d: any) => !existingRegistrations?.some(reg => reg.division_id === d.id))
-  
-  const isRegisteredForSeason = existingRegistrations && existingRegistrations.length > 0
-  const registeredDivisionIds = existingRegistrations?.map(r => r.division_id) || []
-  
-  console.log('Unregistered divisions count:', unregisteredDivisions.length)
+    .filter((d: any) => !registeredDivisionIds.includes(d.id))
 
   // Show prompt to update profile if no ratings set
   const needsProfileSetup = !profile?.initial_ntrp_singles && !profile?.initial_ntrp_doubles
@@ -198,37 +196,43 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
           </div>
         )}
 
-        {isRegisteredForSeason ? (
+        {isRegisteredForSeason && unregisteredDivisions.length > 0 ? (
           <div className="space-y-6">
-            {/* Show registered divisions - only if there are unregistered ones remaining */}
-            {unregisteredDivisions.length > 0 ? (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
-                <h2 className="text-lg font-semibold text-emerald-800 mb-4">You're Registered!</h2>
-                <div className="space-y-2">
-                  {userDivisions
-                    .filter((d: any) => registeredDivisionIds.includes(d.id))
-                    .map((d: any) => (
-                      <div key={d.id} className="flex justify-between text-sm">
-                        <span className="text-emerald-700">{getDivisionLabel(d.type)}</span>
-                        <span className="font-medium text-emerald-800">{d.skillLevelName}</span>
-                      </div>
-                    ))}
-                </div>
+            {/* Already registered, show what + form for remaining */}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-emerald-800 mb-4">You're Registered!</h2>
+              <div className="space-y-2">
+                {userDivisions
+                  .filter((d: any) => registeredDivisionIds.includes(d.id))
+                  .map((d: any) => (
+                    <div key={d.id} className="flex justify-between text-sm">
+                      <span className="text-emerald-700">{getDivisionLabel(d.type)}</span>
+                      <span className="font-medium text-emerald-800">{d.skillLevelName}</span>
+                    </div>
+                  ))}
               </div>
-            ) : (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
-                <p className="text-emerald-800 font-medium">You're registered for all available divisions!</p>
-              </div>
-            )}
+            </div>
             
-            {/* Show form for remaining divisions - only if any remain */}
-            {unregisteredDivisions.length > 0 && (
-              <RegistrationForm 
-                divisions={unregisteredDivisions}
-                organizationId={seasonData.organization_id}
-                seasonId={seasonId}
-              />
-            )}
+            <RegistrationForm 
+              divisions={unregisteredDivisions}
+              organizationId={seasonData.organization_id}
+              seasonId={seasonId}
+            />
+          </div>
+        ) : isRegisteredForSeason ? (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-emerald-800 mb-4">You're Registered!</h2>
+            <div className="space-y-2">
+              {userDivisions
+                .filter((d: any) => registeredDivisionIds.includes(d.id))
+                .map((d: any) => (
+                  <div key={d.id} className="flex justify-between text-sm">
+                    <span className="text-emerald-700">{getDivisionLabel(d.type)}</span>
+                    <span className="font-medium text-emerald-800">{d.skillLevelName}</span>
+                  </div>
+                ))}
+            </div>
+            <p className="text-sm text-emerald-600 mt-4">You're registered for all available divisions!</p>
           </div>
         ) : (
           <RegistrationForm 
