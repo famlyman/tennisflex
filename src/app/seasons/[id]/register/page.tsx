@@ -145,17 +145,31 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
     })
     .filter((d: any) => d.matchingLevel !== null) || []
 
-  // Check if already registered - query ALL registrations user has, filter by season in JS
-  const { data: allRegistrations } = await supabase
+  // Check if already registered - query ALL registrations for this season
+  console.log('Session user id:', session.user.id)
+  console.log('Querying season_registrations for season:', seasonId)
+  
+  // Try both profile_id and player_id queries
+  const { data: byProfileId, error: profileError } = await supabase
     .from('season_registrations')
-    .select('id, division_id, season_id')
+    .select('id, division_id, season_id, profile_id, player_id')
     .eq('profile_id', session.user.id)
+    .eq('season_id', seasonId)
 
-  console.log('All user registrations:', allRegistrations?.length, 'for seasons:', allRegistrations?.map(r => r.season_id))
+  console.log('By profile_id error:', profileError)
+  console.log('By profile_id result:', byProfileId?.length)
   
-  // Filter to THIS season
-  const existingRegistrations = allRegistrations?.filter(r => r.season_id === seasonId) || []
+  // Get registrations for this season regardless of user
+  const { data: seasonRegs, error: seasonError } = await supabase
+    .from('season_registrations')
+    .select('*')
+    .eq('season_id', seasonId)
+
+  console.log('All season registrations error:', seasonError)
+  console.log('All season registrations count:', seasonRegs?.length)
+  console.log('Sample record:', seasonRegs?.[0])
   
+  const existingRegistrations = byProfileId || []
   const isRegisteredForSeason = existingRegistrations.length > 0
   const registeredDivisionIds = existingRegistrations.map(r => r.division_id) || []
   
