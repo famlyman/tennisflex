@@ -290,6 +290,9 @@ RESEND_API_KEY=                  # Resend API key for transactional emails (free
 - **Score submission modal**: Set-by-set dropdowns (0-7), winner selection
 - **Per-division leaderboard**: Fixed org lookup through division→season→organization chain
 - **Fixed pending matches**: Dashboard now correctly counts non-completed matches
+- **Player dashboard cards**: Changed to 3-column horizontal layout
+- **Leaderboard card**: Now shows actual leaderboard for player's skill level based on their TFR/initial NTRP
+- **Profile page redesign**: Modern profile with avatar (initials), stats grid, two-column layout for ratings and account
 
 ### Quick SQL Reference
 
