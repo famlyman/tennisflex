@@ -51,18 +51,28 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const orgId = season.organization_id
     console.log('Found orgId:', orgId)
 
-    const { data: matches } = await adminClient
-      .from('matches')
-      .select('id, home_player_id, away_player_id, winner_id, status')
+    // Get registrations for this skill level
+    const { data: registrations } = await adminClient
+      .from('season_registrations')
+      .select('player_id')
       .eq('skill_level_id', skillLevelId)
-      .eq('status', 'completed')
+      .eq('status', 'active')
 
-    console.log('Found matches:', matches?.length)
+    console.log('Found registrations:', registrations?.length)
+
+    // Only include registered players
+    const registeredPlayerIds = new Set((registrations || []).map(r => r.player_id))
+
+    if (registeredPlayerIds.size === 0) {
+      console.log('No registered players for this skill level')
+      return NextResponse.json({ leaderboard: [] })
+    }
 
     const { data: players } = await adminClient
       .from('players')
       .select('id, tfr_singles, profile:profiles (full_name)')
       .eq('organization_id', orgId)
+      .in('id', Array.from(registeredPlayerIds))
 
     const minRating = skillLevel.min_rating
     const maxRating = skillLevel.max_rating
@@ -71,6 +81,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       if (!minRating || !maxRating) return true
       return p.tfr_singles >= minRating && p.tfr_singles <= maxRating
     })
+
+    const { data: matches } = await adminClient
+      .from('matches')
+      .select('id, home_player_id, away_player_id, winner_id, status')
+      .eq('skill_level_id', skillLevelId)
+      .eq('status', 'completed')
 
     const leaderboard = eligiblePlayers.map((player: any) => {
       const playerMatches = (matches || []).filter((m: any) => 
