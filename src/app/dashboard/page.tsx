@@ -183,16 +183,27 @@ async function getDashboardData(userId: string) {
             .from('skill_levels')
             .select('id, name, min_rating, max_rating')
             .eq('division_id', primaryReg.division.id)
+            .order('min_rating', { ascending: true })
           
           if (skillLevels && skillLevels.length > 0) {
-            // Find the player's skill level based on their TFR
-            const playerTfr = player.tfr_singles || player.initial_ntrp_singles * 10 || 0
+            // Determine which rating to use based on division type (singles vs doubles)
+            const isDoubles = primaryReg.division.type?.includes('doubles') || primaryReg.division.name?.toLowerCase().includes('doubles')
+            const playerRating = isDoubles 
+              ? (player.initial_ntrp_doubles || player.tfr_doubles / 10 || 0)
+              : (player.initial_ntrp_singles || player.tfr_singles / 10 || 0)
+            
+            console.log('DEBUG: Player rating:', playerRating, 'isDoubles:', isDoubles, 'skillLevels:', skillLevels.map(sl => ({ name: sl.name, min: sl.min_rating, max: sl.max_rating })))
+            
+            // Find the player's skill level based on their rating
+            // Note: skill_levels store ratings as TFR (e.g., 35 for 3.5), so we need to multiply
+            const playerTfr = playerRating * 10
             const playerSkillLevel = skillLevels.find((sl: any) => {
               if (!sl.min_rating || !sl.max_rating) return false
               return playerTfr >= sl.min_rating && playerTfr <= sl.max_rating
             })
 
             const targetSkillLevel = playerSkillLevel || skillLevels[0]
+            console.log('DEBUG: Selected skill level:', targetSkillLevel?.name, 'playerTfr:', playerTfr)
 
             // Get matches for this skill level
             const { data: matches } = await adminClient
