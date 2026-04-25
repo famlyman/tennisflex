@@ -106,6 +106,8 @@ async function getDashboardData(userId: string) {
   let playerSeasons: any[] = []
   let allOrgSeasons: any[] = []
   let player: any = null
+  let leaderboardData: any = null
+  
   const { data: playerData } = await adminClient
     .from('players')
     .select('*')
@@ -171,6 +173,80 @@ async function getDashboardData(userId: string) {
         }
       }
       playerSeasons = Array.from(seasonMap.values())
+
+      // Fetch leaderboard for player's first/primary registration
+      if (playerRegistrations.length > 0) {
+        const primaryReg = playerRegistrations[0]
+        if (primaryReg.division && primaryReg.season) {
+          // Get skill levels for this division
+          const { data: skillLevels } = await adminClient
+            .from('skill_levels')
+            .select('id, name, min_rating, max_rating')
+            .eq('division_id', primaryReg.division.id)
+          
+          if (skillLevels && skillLevels.length > 0) {
+            // Get matches for this division
+            const skillLevelIds = skillLevels.map((sl: any) => sl.id)
+            const { data: matches } = await adminClient
+              .from('matches')
+              .select('id, home_player_id, away_player_id, winner_id, status')
+              .in('skill_level_id', skillLevelIds)
+              .eq('status', 'completed')
+
+            // Get all players in organization with their TFR
+            const { data: players } = await adminClient
+              .from('players')
+              .select('id, tfr_singles, profile:profiles (full_name)')
+              .eq('organization_id', player.organization_id)
+
+            // Build leaderboard for each skill level
+            const leaderboardByLevel: Record<string, any[]> = {}
+            
+            for (const sl of skillLevels) {
+              const eligiblePlayers = (players || []).filter((p: any) => {
+                if (!sl.min_rating || !sl.max_rating) return true
+                return p.tfr_singles >= sl.min_rating && p.tfr_singles <= sl.max_rating
+              })
+
+              const leaderboard = eligiblePlayers.map((p: any) => {
+                const playerMatches = (matches || []).filter((m: any) => 
+                  m.skill_level_id === sl.id && (m.home_player_id === p.id || m.away_player_id === p.id)
+                )
+                
+                let wins = 0
+                let losses = 0
+                playerMatches.forEach((m: any) => {
+                  if (m.winner_id === p.id) wins++
+                  else if (m.winner_id) losses++
+                })
+
+                return {
+                  player_id: p.id,
+                  player_name: p.profile?.full_name || 'Unknown',
+                  wins,
+                  losses,
+                  matches: playerMatches.length,
+                }
+              })
+
+              leaderboard.sort((a: any, b: any) => {
+                if (b.wins !== a.wins) return b.wins - a.wins
+                return b.matches - a.matches
+              })
+
+              leaderboardByLevel[sl.id] = leaderboard.slice(0, 10)
+            }
+
+            leaderboardData = {
+              division: primaryReg.division,
+              season: primaryReg.season,
+              skillLevels,
+              leaderboardByLevel,
+              matches: matches || [],
+            }
+          }
+        }
+      }
     }
   }
 
@@ -181,11 +257,12 @@ async function getDashboardData(userId: string) {
     playerRegistrations,
     activeMatchCount: 0,
     organizations: [],
-    seasons: playerSeasons.length > 0 ? playerSeasons : allOrgSeasons,  // Show all if none registered
+    seasons: playerSeasons.length > 0 ? playerSeasons : allOrgSeasons,
     playerCount: 0,
     activeSeasonCount: 0,
     totalMatches: 0,
     pendingMatches: 0,
+    leaderboardData,
   }
 }
 
@@ -264,7 +341,7 @@ export default async function Dashboard() {
           </p>
         </div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div className="grid md:grid-cols-3 gap-6 mb-8">
           {isCoordinator ? (
             <>
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -288,7 +365,7 @@ export default async function Dashboard() {
                 <p className="text-sm text-slate-500">awaiting scores</p>
               </div>
             </>
-) : (
+          ) : (
             // Player view - show TFR ratings and recent activity
             <>
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -322,15 +399,45 @@ export default async function Dashboard() {
                   {dashboardData.player?.match_count_singles || 0} matches played
                 </p>
               </div>
-               
+
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-slate-900">Leaderboard</h3>
                   <Link href="/leaderboard" className="text-sm text-indigo-600 hover:underline">
-                    View Full →
+                    Full →
                   </Link>
                 </div>
-                <p className="text-slate-500 text-sm">Join a season to appear on the leaderboard!</p>
+                {dashboardData.leaderboardData ? (
+                  <div className="space-y-4">
+                    <p className="text-xs text-slate-500 mb-3">
+                      {dashboardData.leaderboardData.season?.name} • {dashboardData.leaderboardData.division?.name || dashboardData.leaderboardData.division?.type?.replace('_', ' ')}
+                    </p>
+                    {dashboardData.leaderboardData.skillLevels?.map((sl: any) => {
+                      const entries = dashboardData.leaderboardData.leaderboardByLevel?.[sl.id] || []
+                      if (entries.length === 0) return null
+                      return (
+                        <div key={sl.id}>
+                          <p className="text-sm font-medium text-slate-700 mb-2">{sl.name}</p>
+                          <div className="space-y-1">
+                            {entries.slice(0, 5).map((entry: any, idx: number) => (
+                              <div key={entry.player_id} className="flex items-center gap-2 text-sm">
+                                <span className={`w-5 text-center font-medium ${
+                                  idx === 0 ? 'text-amber-500' : idx === 1 ? 'text-slate-400' : idx === 2 ? 'text-orange-400' : 'text-slate-400'
+                                }`}>
+                                  {idx + 1}
+                                </span>
+                                <span className="flex-1 truncate">{entry.player_name}</span>
+                                <span className="text-slate-500">{entry.wins}W-{entry.losses}L</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm">Join a season to appear on the leaderboard!</p>
+                )}
               </div>
 
               {dashboardData.playerRegistrations.length > 0 && (
@@ -338,23 +445,20 @@ export default async function Dashboard() {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-slate-900">Your Registrations</h3>
                     <Link href="/seasons" className="text-sm text-indigo-600 hover:underline">
-                      Browse More →
+                      More →
                     </Link>
                   </div>
                   <div className="space-y-3">
                     {dashboardData.playerRegistrations.map((reg: any) => (
-                      <div key={reg.id} className="p-4 bg-slate-50 rounded-lg">
+                      <div key={reg.id} className="p-3 bg-slate-50 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-medium text-slate-900">{reg.season?.name}</p>
-                            <p className="text-sm text-slate-500">
+                            <p className="font-medium text-slate-900 text-sm">{reg.season?.name}</p>
+                            <p className="text-xs text-slate-500">
                               {reg.division?.name || reg.division?.type?.replace('_', ' ')}
                             </p>
-                            <p className="text-xs text-slate-400">
-                              {reg.season?.organization?.name}
-                            </p>
                           </div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                             reg.season?.status === 'active' ? 'bg-blue-100 text-blue-700' :
                             reg.season?.status === 'registration_open' ? 'bg-emerald-100 text-emerald-700' :
                             'bg-slate-100 text-slate-500'
