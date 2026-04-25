@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import RegistrationForm from '@/components/RegistrationForm'
+import { createAdminClient } from '@/utils/supabase'
 
 // Find skill level that matches a specific rating
 function findMatchingSkillLevel(skillLevels: any[], rating: number) {
@@ -149,25 +150,29 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
   console.log('Session user id:', session.user.id)
   console.log('Querying season_registrations for season:', seasonId)
   
-  // Try both profile_id and player_id queries
-  const { data: byProfileId, error: profileError } = await supabase
+  // Use admin client to bypass RLS
+  const adminClient = createAdminClient()
+  
+  // First check the season_registrations table directly
+  const { data: allRegs, error: allErr } = await adminClient
     .from('season_registrations')
-    .select('id, division_id, season_id, profile_id, player_id')
+    .select('*')
+    .eq('season_id', seasonId)
+  
+  console.log('Admin query - all regs for season:', allRegs?.length)
+  console.log('Admin query - error:', allErr)
+  console.log('Admin query - sample:', JSON.stringify(allRegs?.[0]))
+  
+  // Now query by profile_id
+  const { data: byProfileId, error: profileError } = await adminClient
+    .from('season_registrations')
+    .select('*')
     .eq('profile_id', session.user.id)
     .eq('season_id', seasonId)
 
   console.log('By profile_id error:', profileError)
-  console.log('By profile_id result:', byProfileId?.length)
-  
-  // Get registrations for this season regardless of user
-  const { data: seasonRegs, error: seasonError } = await supabase
-    .from('season_registrations')
-    .select('*')
-    .eq('season_id', seasonId)
-
-  console.log('All season registrations error:', seasonError)
-  console.log('All season registrations count:', seasonRegs?.length)
-  console.log('Sample record:', seasonRegs?.[0])
+  console.log('By profile_id result count:', byProfileId?.length)
+  console.log('By profile_id sample:', JSON.stringify(byProfileId?.[0]))
   
   const existingRegistrations = byProfileId || []
   const isRegisteredForSeason = existingRegistrations.length > 0
