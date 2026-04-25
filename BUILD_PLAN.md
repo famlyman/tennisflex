@@ -30,7 +30,7 @@ Organization (Flex)
 ├── Coordinator (admin/coordinator)
 ├── Season
 │   ├── Division (singles/doubles type)
-│   │   └── SkillLevel (NTRP buckets)
+│   │   └── SkillLevel (TFR buckets)
 │   │       └── Player
 │   │           ├── TFR ratings
 │   │           └── Match history
@@ -51,7 +51,7 @@ Organization (Flex)
 | `coordinators` | Flex admins |
 | `seasons` | Season configs |
 | `divisions` | Men's/Women's Singles/Doubles, Mixed |
-| `skill_levels` | NTRP rating buckets |
+| `skill_levels` | TFR rating buckets (stored as NTRP × 10) |
 | `players` | Player records with TFR ratings |
 | `matches` | Match scheduling and scores |
 | `messages` | In-app chat between opponents |
@@ -114,6 +114,11 @@ Organization (Flex)
 | Close loss | -3 to -5 |
 | Blowout loss | -8 to -12 |
 
+### Skill Level Storage
+- **Scale:** Ratings stored as TFR (NTRP × 10), e.g., 3.5 NTRP = 35 TFR
+- Rating range: 25-165 (2.5 NTRP to 16.5 NTRP equivalent)
+- Skill level min/max ratings stored multiplied by 10
+
 ### Confidence Badges
 
 | Matches | Badge | Display |
@@ -144,14 +149,14 @@ Organization (Flex)
 | 4 | Flex model | ✅ Complete |
 | 5 | Request Flex flow | ✅ Complete |
 | 6 | Coordinator onboarding | ✅ Complete |
-| 7 | Season creation | ✅ Complete |
+| 7 | Season creation (with description) | ✅ Complete |
 | 8 | Division management | ✅ Complete |
 | 9 | Player registration | ✅ Complete |
 | 10 | Match pages + scoring | ✅ Complete |
 | 11 | Score submission | ✅ Complete |
-| 12 | Leaderboard | ✅ Complete |
-| 13 | Flag review | ⏳ Pending |
-| 14 | TFR algorithm | ⏳ Pending |
+| 12 | Leaderboard (registered only) | ✅ Complete |
+| 13 | TFR rating display fix | ✅ Complete |
+| 14 | Flag review | ⏳ Pending |
 
 ---
 
@@ -175,6 +180,8 @@ Organization (Flex)
 - Division management page (/divisions)
 - Add/remove divisions (Men's/Women's Singles/Doubles, Mixed)
 - Add/remove skill levels within divisions
+- Season description field for coordinator notes
+- Skill levels now store ratings in TFR scale (×10)
 
 ### Auth Improvements ✅
 - Set Password Page for new users
