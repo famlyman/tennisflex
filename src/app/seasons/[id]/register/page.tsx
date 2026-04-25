@@ -148,12 +148,22 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
   // Check if already registered (get all, not just active)
   const { data: existingRegistrations } = await supabase
     .from('season_registrations')
-    .select('id, division_id, status')
+    .select('id, division_id, status, season_id')
     .eq('profile_id', session.user.id)
     .eq('season_id', seasonId)
 
-  const isRegistered = existingRegistrations && existingRegistrations.length > 0
+  console.log('Season:', seasonId)
+  console.log('Existing regs found for this season:', existingRegistrations?.length)
+  console.log('Registered division IDs:', existingRegistrations?.map(r => r.division_id))
+
+  // Filter divisions to show only those NOT registered for THIS season
+  const unregisteredDivisions = userDivisions
+    .filter((d: any) => !existingRegistrations?.some(reg => reg.division_id === d.id))
+  
+  const isRegisteredForSeason = existingRegistrations && existingRegistrations.length > 0
   const registeredDivisionIds = existingRegistrations?.map(r => r.division_id) || []
+  
+  console.log('Unregistered divisions count:', unregisteredDivisions.length)
 
   // Show prompt to update profile if no ratings set
   const needsProfileSetup = !profile?.initial_ntrp_singles && !profile?.initial_ntrp_doubles
@@ -188,10 +198,10 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
           </div>
         )}
 
-        {isRegistered ? (
+        {isRegisteredForSeason ? (
           <div className="space-y-6">
             {/* Show registered divisions - only if there are unregistered ones remaining */}
-            {userDivisions.filter((d: any) => !registeredDivisionIds.includes(d.id)).length > 0 && (
+            {unregisteredDivisions.length > 0 ? (
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
                 <h2 className="text-lg font-semibold text-emerald-800 mb-4">You're Registered!</h2>
                 <div className="space-y-2">
@@ -205,19 +215,19 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
                     ))}
                 </div>
               </div>
-            )}
-            
-            {/* Show form for remaining divisions - only if any remain */}
-            {userDivisions.filter((d: any) => !registeredDivisionIds.includes(d.id)).length > 0 ? (
-              <RegistrationForm 
-                divisions={userDivisions.filter((d: any) => !registeredDivisionIds.includes(d.id))}
-                organizationId={seasonData.organization_id}
-                seasonId={seasonId}
-              />
             ) : (
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
                 <p className="text-emerald-800 font-medium">You're registered for all available divisions!</p>
               </div>
+            )}
+            
+            {/* Show form for remaining divisions - only if any remain */}
+            {unregisteredDivisions.length > 0 && (
+              <RegistrationForm 
+                divisions={unregisteredDivisions}
+                organizationId={seasonData.organization_id}
+                seasonId={seasonId}
+              />
             )}
           </div>
         ) : (
