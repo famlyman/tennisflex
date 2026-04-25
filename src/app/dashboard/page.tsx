@@ -174,7 +174,7 @@ async function getDashboardData(userId: string) {
       }
       playerSeasons = Array.from(seasonMap.values())
 
-      // Fetch leaderboard for player's first/primary registration
+      // Fetch leaderboard for player's registered skill level
       if (playerRegistrations.length > 0) {
         const primaryReg = playerRegistrations[0]
         if (primaryReg.division && primaryReg.season) {
@@ -185,12 +185,20 @@ async function getDashboardData(userId: string) {
             .eq('division_id', primaryReg.division.id)
           
           if (skillLevels && skillLevels.length > 0) {
-            // Get matches for this division
-            const skillLevelIds = skillLevels.map((sl: any) => sl.id)
+            // Find the player's skill level based on their TFR
+            const playerTfr = player.tfr_singles || player.initial_ntrp_singles * 10 || 0
+            const playerSkillLevel = skillLevels.find((sl: any) => {
+              if (!sl.min_rating || !sl.max_rating) return false
+              return playerTfr >= sl.min_rating && playerTfr <= sl.max_rating
+            })
+
+            const targetSkillLevel = playerSkillLevel || skillLevels[0]
+
+            // Get matches for this skill level
             const { data: matches } = await adminClient
               .from('matches')
-              .select('id, home_player_id, away_player_id, winner_id, status')
-              .in('skill_level_id', skillLevelIds)
+              .select('id, home_player_id, away_player_id, winner_id, status, skill_level_id')
+              .eq('skill_level_id', targetSkillLevel.id)
               .eq('status', 'completed')
 
             // Get all players in organization with their TFR
@@ -199,50 +207,44 @@ async function getDashboardData(userId: string) {
               .select('id, tfr_singles, profile:profiles (full_name)')
               .eq('organization_id', player.organization_id)
 
-            // Build leaderboard for each skill level
-            const leaderboardByLevel: Record<string, any[]> = {}
-            
-            for (const sl of skillLevels) {
-              const eligiblePlayers = (players || []).filter((p: any) => {
-                if (!sl.min_rating || !sl.max_rating) return true
-                return p.tfr_singles >= sl.min_rating && p.tfr_singles <= sl.max_rating
+            // Filter eligible players for this skill level
+            const eligiblePlayers = (players || []).filter((p: any) => {
+              if (!targetSkillLevel.min_rating || !targetSkillLevel.max_rating) return true
+              return p.tfr_singles >= targetSkillLevel.min_rating && p.tfr_singles <= targetSkillLevel.max_rating
+            })
+
+            // Build leaderboard for this skill level
+            const leaderboard = eligiblePlayers.map((p: any) => {
+              const playerMatches = (matches || []).filter((m: any) => 
+                m.home_player_id === p.id || m.away_player_id === p.id
+              )
+              
+              let wins = 0
+              let losses = 0
+              playerMatches.forEach((m: any) => {
+                if (m.winner_id === p.id) wins++
+                else if (m.winner_id) losses++
               })
 
-              const leaderboard = eligiblePlayers.map((p: any) => {
-                const playerMatches = (matches || []).filter((m: any) => 
-                  m.skill_level_id === sl.id && (m.home_player_id === p.id || m.away_player_id === p.id)
-                )
-                
-                let wins = 0
-                let losses = 0
-                playerMatches.forEach((m: any) => {
-                  if (m.winner_id === p.id) wins++
-                  else if (m.winner_id) losses++
-                })
+              return {
+                player_id: p.id,
+                player_name: p.profile?.full_name || 'Unknown',
+                wins,
+                losses,
+                matches: playerMatches.length,
+              }
+            })
 
-                return {
-                  player_id: p.id,
-                  player_name: p.profile?.full_name || 'Unknown',
-                  wins,
-                  losses,
-                  matches: playerMatches.length,
-                }
-              })
-
-              leaderboard.sort((a: any, b: any) => {
-                if (b.wins !== a.wins) return b.wins - a.wins
-                return b.matches - a.matches
-              })
-
-              leaderboardByLevel[sl.id] = leaderboard.slice(0, 10)
-            }
+            leaderboard.sort((a: any, b: any) => {
+              if (b.wins !== a.wins) return b.wins - a.wins
+              return b.matches - a.matches
+            })
 
             leaderboardData = {
               division: primaryReg.division,
               season: primaryReg.season,
-              skillLevels,
-              leaderboardByLevel,
-              matches: matches || [],
+              skillLevel: targetSkillLevel,
+              leaderboard: leaderboard.slice(0, 10),
             }
           }
         }
@@ -408,32 +410,26 @@ export default async function Dashboard() {
                   </Link>
                 </div>
                 {dashboardData.leaderboardData ? (
-                  <div className="space-y-4">
-                    <p className="text-xs text-slate-500 mb-3">
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2">
                       {dashboardData.leaderboardData.season?.name} • {dashboardData.leaderboardData.division?.name || dashboardData.leaderboardData.division?.type?.replace('_', ' ')}
                     </p>
-                    {dashboardData.leaderboardData.skillLevels?.map((sl: any) => {
-                      const entries = dashboardData.leaderboardData.leaderboardByLevel?.[sl.id] || []
-                      if (entries.length === 0) return null
-                      return (
-                        <div key={sl.id}>
-                          <p className="text-sm font-medium text-slate-700 mb-2">{sl.name}</p>
-                          <div className="space-y-1">
-                            {entries.slice(0, 5).map((entry: any, idx: number) => (
-                              <div key={entry.player_id} className="flex items-center gap-2 text-sm">
-                                <span className={`w-5 text-center font-medium ${
-                                  idx === 0 ? 'text-amber-500' : idx === 1 ? 'text-slate-400' : idx === 2 ? 'text-orange-400' : 'text-slate-400'
-                                }`}>
-                                  {idx + 1}
-                                </span>
-                                <span className="flex-1 truncate">{entry.player_name}</span>
-                                <span className="text-slate-500">{entry.wins}W-{entry.losses}L</span>
-                              </div>
-                            ))}
-                          </div>
+                    <p className="text-sm font-medium text-indigo-600 mb-3">
+                      {dashboardData.leaderboardData.skillLevel?.name}
+                    </p>
+                    <div className="space-y-1">
+                      {dashboardData.leaderboardData.leaderboard?.slice(0, 5).map((entry: any, idx: number) => (
+                        <div key={entry.player_id} className="flex items-center gap-2 text-sm">
+                          <span className={`w-5 text-center font-medium ${
+                            idx === 0 ? 'text-amber-500' : idx === 1 ? 'text-slate-400' : idx === 2 ? 'text-orange-400' : 'text-slate-400'
+                          }`}>
+                            {idx + 1}
+                          </span>
+                          <span className="flex-1 truncate">{entry.player_name}</span>
+                          <span className="text-slate-500">{entry.wins}W-{entry.losses}L</span>
                         </div>
-                      )
-                    })}
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <p className="text-slate-500 text-sm">Join a season to appear on the leaderboard!</p>
