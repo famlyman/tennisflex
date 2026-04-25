@@ -165,6 +165,9 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
             <div>
               <h1 className="text-3xl font-bold text-slate-900">{season.name}</h1>
               <p className="text-slate-500 mt-1">{season.organization?.name}</p>
+              {season.description && (
+                <p className="text-slate-600 mt-2 whitespace-pre-wrap">{season.description}</p>
+              )}
             </div>
             <div className="flex flex-col items-end gap-2">
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[season.status] || statusColors.upcoming}`}>
@@ -271,7 +274,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                           <div className="font-medium text-slate-900">{level.name}</div>
                           {level.min_rating !== null && level.max_rating !== null && (
                             <div className="text-sm text-slate-500">
-                              Rating: {level.min_rating} - {level.max_rating}
+                              Rating: {(level.min_rating / 10).toFixed(1)} - {(level.max_rating / 10).toFixed(1)}
                             </div>
                           )}
                         </div>

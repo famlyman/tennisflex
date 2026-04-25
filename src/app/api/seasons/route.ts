@@ -44,6 +44,7 @@ export async function POST(request: Request) {
   if (action === 'create') {
     const organization_id = formData.get('organization_id') as string
     const name = formData.get('name') as string
+    const description = formData.get('description') as string
     const registration_start = formData.get('registration_start') as string
     const registration_end = formData.get('registration_end') as string
     const season_start = formData.get('season_start') as string
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
     const { data: seasonData, error } = await adminSupabase.from('seasons').insert({
       organization_id,
       name,
+      description,
       registration_start: new Date(registration_start).toISOString(),
       registration_end: new Date(registration_end).toISOString(),
       season_start: new Date(season_start).toISOString(),
@@ -89,14 +91,14 @@ export async function POST(request: Request) {
         continue
       }
 
-      // Seed default skill levels (NTRP buckets)
+      // Seed default skill levels (TFR scale: NTRP × 10)
       const skillLevels = [
-        { name: '2.5', min_rating: 2.5, max_rating: 2.99 },
-        { name: '3.0', min_rating: 3.0, max_rating: 3.49 },
-        { name: '3.5', min_rating: 3.5, max_rating: 3.99 },
-        { name: '4.0', min_rating: 4.0, max_rating: 4.49 },
-        { name: '4.5', min_rating: 4.5, max_rating: 4.99 },
-        { name: '5.0+', min_rating: 5.0, max_rating: null }
+        { name: '2.5', min_rating: 25, max_rating: 29 },
+        { name: '3.0', min_rating: 30, max_rating: 34 },
+        { name: '3.5', min_rating: 35, max_rating: 39 },
+        { name: '4.0', min_rating: 40, max_rating: 44 },
+        { name: '4.5', min_rating: 45, max_rating: 49 },
+        { name: '5.0+', min_rating: 50, max_rating: null }
       ]
 
       for (const level of skillLevels) {

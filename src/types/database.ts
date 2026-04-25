@@ -58,6 +58,7 @@ export interface Season {
   id: string
   organization_id: string
   name: string
+  description: string | null
   status: SeasonStatus
   registration_start: string
   registration_end: string
