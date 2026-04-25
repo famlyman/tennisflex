@@ -146,34 +146,15 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
     })
     .filter((d: any) => d.matchingLevel !== null) || []
 
-  // Check if already registered - query ALL registrations for this season
-  console.log('Session user id:', session.user.id)
-  console.log('Querying season_registrations for season:', seasonId)
-  
-  // Use admin client to bypass RLS
+  // Check if already registered - use admin client to bypass RLS
   const adminClient = createAdminClient()
   
-  // First check the season_registrations table directly
-  const { data: allRegs, error: allErr } = await adminClient
-    .from('season_registrations')
-    .select('*')
-    .eq('season_id', seasonId)
-  
-  console.log('Admin query - all regs for season:', allRegs?.length)
-  console.log('Admin query - error:', allErr)
-  console.log('Admin query - sample:', JSON.stringify(allRegs?.[0]))
-  
-  // Now query by profile_id
-  const { data: byProfileId, error: profileError } = await adminClient
+  const { data: byProfileId } = await adminClient
     .from('season_registrations')
     .select('*')
     .eq('profile_id', session.user.id)
     .eq('season_id', seasonId)
 
-  console.log('By profile_id error:', profileError)
-  console.log('By profile_id result count:', byProfileId?.length)
-  console.log('By profile_id sample:', JSON.stringify(byProfileId?.[0]))
-  
   const existingRegistrations = byProfileId || []
   const isRegisteredForSeason = existingRegistrations.length > 0
   const registeredDivisionIds = existingRegistrations.map(r => r.division_id) || []

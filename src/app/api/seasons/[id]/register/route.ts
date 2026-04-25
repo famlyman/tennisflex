@@ -63,42 +63,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const divisionIdsRaw = formData.get('division_ids') as string
   const divisionIdsAll = divisionIdsAllRaw.map((v: any) => String(v))
   
-  console.log('Raw input - division_ids:', divisionIdsRaw)
-  console.log('ALL input - division_ids:', divisionIdsAll)
-  
   let division_ids: string[]
-  // ALWAYS process - log every branch
   if (divisionIdsRaw && divisionIdsRaw.includes(',')) {
     division_ids = divisionIdsRaw.split(',').filter(Boolean)
-    console.log('Path A - comma split')
   } else if (divisionIdsAll.length > 0) {
     division_ids = divisionIdsAll
-    console.log('Path B - getAll found:', division_ids)
   } else if (divisionIdsRaw) {
     division_ids = [divisionIdsRaw]
-    console.log('Path C - single value:', division_ids)
   } else {
     division_ids = []
-    console.log('Path D - empty!')
   }
   
-  console.log('Parsed division_ids:', division_ids)
-  
-  const organization_id = formData.get('organization_id') as string
-  console.log('organization_id:', organization_id)
-
-  // Early validation
-  console.log('Validating:', { division_ids, organization_id })
   if (!division_ids || division_ids.length === 0) {
-    console.log('No divisions - returning error')
     return Response.json({ error: 'No divisions selected' }, { status: 400 })
   }
 
+  const organization_id = formData.get('organization_id') as string
   if (!organization_id) {
     return Response.json({ error: 'Organization not found' }, { status: 400 })
   }
-
-  console.log('=== LOOKING UP USER ===')
   const { data: profile } = await adminClient
     .from('profiles')
     .select('id, full_name')
@@ -126,12 +109,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   let finalNtrpDoubles: number
 
   if (existingPlayer) {
-    console.log('Found existing player:', existingPlayer.id)
     playerId = existingPlayer.id
     finalNtrpSingles = existingPlayer.initial_ntrp_singles || 3.5
     finalNtrpDoubles = existingPlayer.initial_ntrp_doubles || existingPlayer.initial_ntrp_singles || 3.5
   } else {
-    console.log('Creating new player record')
     // New player - need at least one rating, use profile ratings
     const { data: profileData } = await adminClient
       .from('profiles')
@@ -160,11 +141,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }).select('id').single()
 
     if (error) {
-      console.error('Error creating player:', error)
       return Response.json({ error: error.message }, { status: 500 })
     }
 
-playerId = newPlayer.id
+    playerId = newPlayer.id
   }
 
   // Get season info
@@ -181,24 +161,17 @@ playerId = newPlayer.id
     .in('id', division_ids)
 
   if (divError) {
-    console.error('Error fetching divisions:', divError)
-    return Response.json({ error: 'Failed to fetch divisions: ' + divError.message }, { status: 500 })
+    return Response.json({ error: 'Failed to fetch divisions' }, { status: 500 })
   }
 
-  console.log('Found divisions:', divisions?.length)
-
   if (!divisions || divisions.length === 0) {
-    console.error('No divisions found for IDs:', division_ids)
     return Response.json({ error: 'Invalid divisions selected' }, { status: 400 })
   }
 
   // Create registration for each division
   const registrations = []
-  console.log('Processing divisions:', division_ids)
   
   for (const divisionId of division_ids) {
-    console.log('Processing division:', divisionId)
-    
     // Find the division and its matching skill level for this player's rating
     const division = divisions?.find(d => d.id === divisionId)
     if (!division) {
@@ -215,7 +188,7 @@ playerId = newPlayer.id
     )
     
     // Check if already exists first
-    const { data: existingReg, error: checkError } = await adminClient
+    const { data: existingReg } = await adminClient
       .from('season_registrations')
       .select('id')
       .eq('player_id', playerId)
@@ -223,13 +196,7 @@ playerId = newPlayer.id
       .eq('division_id', divisionId)
       .maybeSingle()
 
-    if (checkError) {
-      console.error('Error checking registration:', checkError)
-      continue
-    }
-
     if (existingReg) {
-      console.log('Already registered for division:', divisionId)
       continue
     }
 
@@ -248,20 +215,11 @@ playerId = newPlayer.id
       .single()
 
     if (regError) {
-      console.error('Registration error:', regError)
       continue
     }
 
-    if (regRecord) {
-      console.log('✅ Registration created:', regRecord.id, 'for division:', divisionId)
-      registrations.push(division.type)
-    } else {
-      console.log('⚠️ No record returned but no error')
-    }
+    registrations.push(division.type)
   }
-
-  console.log('=== FINAL RESULT ===')
-  console.log('Registrations to save:', registrations)
 
   // Create notification
   await createNotification(

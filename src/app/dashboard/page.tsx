@@ -114,7 +114,6 @@ async function getDashboardData(userId: string) {
 
   if (playerData) {
     player = playerData
-    console.log('DEBUG: Found player:', player.id, 'org:', player.organization_id)
     
     // Fetch all seasons from player's organization
     const { data: orgSeasons } = await adminClient
@@ -130,8 +129,6 @@ async function getDashboardData(userId: string) {
     
     // Get player's season registrations with joined data
     // Use profile_id since FK relationship is broken
-    console.log('DEBUG: Querying by profile_id:', player.profile_id)
-    
     const { data: registrationsRaw } = await adminClient
       .from('season_registrations')
       .select(`*`)
@@ -175,8 +172,6 @@ async function getDashboardData(userId: string) {
       }
       playerSeasons = Array.from(seasonMap.values())
     }
-    
-    console.log('DEBUG: Final playerSeasons:', playerSeasons)
   }
 
   return {

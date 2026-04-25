@@ -203,6 +203,20 @@ Organization (Flex)
 - Fixed match counts through proper organization→season→division→skill_level chain
 - Quick actions: Create Season, Leaderboards, Manage Divisions
 - Pending matches count now includes all non-completed matches
+- Registration card shows player's season registrations
+- Uses admin client to bypass RLS for reliable queries
+
+### Player Registration System ✅
+- Multi-division registration support ( Men's Singles, Women's Singles, Men's Doubles, Women's Doubles, Mixed Doubles)
+- Registration API uses admin client for reliable queries
+- Dashboard fetches registrations via profile_id (not player_id) due to FK constraints
+- Registration page shows registered divisions + remaining available divisions
+- Fixed unique constraint: `season_registrations(player_id, season_id, division_id)` allows multiple divisions per player per season
+
+### Database Fixes ✅
+- `season_registrations` table now has proper constraint for multi-division registration
+- FK relationships work correctly for dashboard queries
+- RLS policies support both player_id and profile_id queries
 
 ---
 
@@ -339,3 +353,19 @@ When creating a season, 5 divisions + 6 skill levels are automatically created:
 - Email sending via Supabase has rate limits in development
 - Magic link fallback logs to console
 - Production email deliverability depends on Supabase email config
+
+## Database Requirements
+
+### season_registrations Table
+The table must have this unique constraint to allow multiple divisions per player per season:
+
+```sql
+-- Drop old constraint if exists
+ALTER TABLE season_registrations DROP CONSTRAINT IF EXISTS season_registrations_player_id_season_id_key;
+
+-- Add correct 3-column constraint
+ALTER TABLE season_registrations ADD UNIQUE(player_id, season_id, division_id);
+```
+
+### RLS for season_registrations
+Use admin client (service role) for all queries to bypass RLS issues with foreign key relationships.
