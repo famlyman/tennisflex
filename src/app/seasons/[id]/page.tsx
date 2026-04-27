@@ -130,11 +130,11 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     })) || []
   })) || []
 
-  // Attach skill levels to divisions
+  // Attach skill levels to divisions (only show levels with matches)
   const divisionsWithLevels = divisions?.map(div => ({
     ...div,
-    skill_levels: skillLevelsWithMatches.filter(sl => sl.division_id === div.id)
-  })) || []
+    skill_levels: skillLevelsWithMatches.filter(sl => sl.division_id === div.id && sl.matches.length > 0)
+  })).filter(div => div.skill_levels.length > 0) || []
 
   const seasonWithDivisions = { ...season, divisions: divisionsWithLevels }
 
@@ -249,10 +249,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
 
         {divisionsWithLevels.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-            <p className="text-slate-500">No divisions in this season yet.</p>
-            <Link href="/divisions" className="text-indigo-600 hover:underline mt-2 inline-block">
-              Manage Divisions
-            </Link>
+            <p className="text-slate-500">No matches have been generated yet.</p>
           </div>
         ) : (
           <div className="space-y-4">
