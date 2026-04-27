@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 interface CoordinatorActionButtonProps {
   action: string
@@ -8,6 +9,7 @@ interface CoordinatorActionButtonProps {
   children: React.ReactNode
   className?: string
   variant?: 'green' | 'blue' | 'amber' | 'purple' | 'red'
+  successMessage?: string
 }
 
 const variantClasses = {
@@ -24,33 +26,52 @@ export default function CoordinatorActionButton({
   children,
   className = '',
   variant = 'blue',
+  successMessage,
 }: CoordinatorActionButtonProps) {
   const router = useRouter()
+  const [loading, setLoading] = useState(false)
 
   const handleClick = async () => {
-    const res = await fetch(`/api/seasons/${seasonId}/${action}`, {
-      method: 'POST',
-    })
+    if (loading) return
+    setLoading(true)
     
-    if (res.ok) {
-      const data = await res.json()
-      if (data.redirectUrl) {
-        router.push(data.redirectUrl)
+    try {
+      const res = await fetch(`/api/seasons/${seasonId}/${action}`, {
+        method: 'POST',
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        
+        if (data.success && successMessage) {
+          let message = successMessage
+          if (data.matchesCreated !== undefined) {
+            message = `${successMessage}: ${data.matchesCreated} matches created`
+          }
+          alert(message)
+        }
+        
+        if (data.redirectUrl) {
+          router.push(data.redirectUrl)
+        } else {
+          router.refresh()
+        }
       } else {
-        router.refresh()
+        const error = await res.json()
+        alert(`Error: ${error.error || 'Something went wrong'}`)
       }
-    } else {
-      const error = await res.json()
-      alert(`Error: ${error.error || 'Something went wrong'}`)
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <button
       onClick={handleClick}
-      className={`px-3 py-1 text-sm text-white rounded-lg ${variantClasses[variant]} ${className}`}
+      disabled={loading}
+      className={`px-3 py-1 text-sm text-white rounded-lg ${variantClasses[variant]} ${className} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
-      {children}
+      {loading ? 'Loading...' : children}
     </button>
   )
 }

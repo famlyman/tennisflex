@@ -191,7 +191,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
               )}
               {isCoordinator && season.status === 'active' && (
                 <div className="flex gap-2">
-                  <CoordinatorActionButton action="generate-matches" seasonId={seasonId} variant="purple">
+                  <CoordinatorActionButton action="generate-matches" seasonId={seasonId} variant="purple" successMessage="Matches generated successfully">
                     Generate Matches
                   </CoordinatorActionButton>
                   <CoordinatorActionButton action="complete" seasonId={seasonId} variant="red">
