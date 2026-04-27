@@ -142,6 +142,7 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
         rating,
         matchingLevel,
         skillLevelName: matchingLevel?.name || null,
+        skill_level_id: matchingLevel?.id || null,
       }
     })
     .filter((d: any) => d.matchingLevel !== null) || []
@@ -158,6 +159,26 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
   const existingRegistrations = byProfileId || []
   const isRegisteredForSeason = existingRegistrations.length > 0
   const registeredDivisionIds = existingRegistrations.map(r => r.division_id) || []
+  
+  // Get existing registrations with division names and partner info
+  const registeredDivIds = existingRegistrations.map(r => r.division_id)
+  const { data: regDivisions } = await adminClient
+    .from('divisions')
+    .select('id, name, type')
+    .in('id', registeredDivIds)
+
+  const divisionMap = new Map(regDivisions?.map(d => [d.id, d]) || [])
+  
+  const existingRegsWithDetails = existingRegistrations.map(reg => {
+    const div = divisionMap.get(reg.division_id)
+    return {
+      division_id: reg.division_id,
+      division_name: div ? getDivisionLabel(div.type) : 'Unknown',
+      skill_level: 'Registered',
+      partner_name: reg.partner_id ? 'Partner set' : (reg.partner_email ? reg.partner_email : null),
+      partner_status: reg.partner_status
+    }
+  })
   
   // Divisions NOT yet registered for this season
   const unregisteredDivisions = userDivisions
@@ -199,40 +220,25 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
         {isRegisteredForSeason && unregisteredDivisions.length > 0 ? (
           <div className="space-y-6">
             {/* Already registered, show what + form for remaining */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-emerald-800 mb-4">You're Registered!</h2>
-              <div className="space-y-2">
-                {userDivisions
-                  .filter((d: any) => registeredDivisionIds.includes(d.id))
-                  .map((d: any) => (
-                    <div key={d.id} className="flex justify-between text-sm">
-                      <span className="text-emerald-700">{getDivisionLabel(d.type)}</span>
-                      <span className="font-medium text-emerald-800">{d.skillLevelName}</span>
-                    </div>
-                  ))}
-              </div>
-            </div>
-            
             <RegistrationForm 
               divisions={unregisteredDivisions}
               organizationId={seasonData.organization_id}
               seasonId={seasonId}
+              existingRegistrations={existingRegsWithDetails}
             />
           </div>
         ) : isRegisteredForSeason ? (
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-emerald-800 mb-4">You're Registered!</h2>
+            <h2 className="text-lg font-semibold text-emerald-800 mb-4">You&apos;re Registered!</h2>
             <div className="space-y-2">
-              {userDivisions
-                .filter((d: any) => registeredDivisionIds.includes(d.id))
-                .map((d: any) => (
-                  <div key={d.id} className="flex justify-between text-sm">
-                    <span className="text-emerald-700">{getDivisionLabel(d.type)}</span>
-                    <span className="font-medium text-emerald-800">{d.skillLevelName}</span>
-                  </div>
-                ))}
+              {existingRegsWithDetails.map((reg, i) => (
+                <div key={i} className="flex justify-between text-sm">
+                  <span className="text-emerald-700">{reg.division_name}</span>
+                  <span className="font-medium text-emerald-800">{reg.skill_level}</span>
+                </div>
+              ))}
             </div>
-            <p className="text-sm text-emerald-600 mt-4">You're registered for all available divisions!</p>
+            <p className="text-sm text-emerald-600 mt-4">You&apos;re registered for all available divisions!</p>
           </div>
         ) : (
           <RegistrationForm 
