@@ -327,8 +327,10 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
               <div className="font-mono text-sm">
                 <div className="font-bold text-yellow-800 mb-2">Debug Info:</div>
-                <div>Skill Levels: {skillLevelsWithMatches.map(sl => `${sl.name}: ${sl.matches?.length || 0} matches`).join(', ')}</div>
-                <div>Divisions: {divisionsWithLevels.length}</div>
+                <div className="mb-2">First 3 Match skill_level_ids: {matches.slice(0, 3).map(m => m.skill_level_id).join(', ')}</div>
+                <div className="mb-2">First 3 Skill Level IDs: {skillLevels?.slice(0, 3).map(sl => sl.id).join(', ')}</div>
+                <div className="mb-2">Total skill levels from DB: {skillLevels?.length}</div>
+                <div>Total matches from DB: {matches.length}</div>
               </div>
             </div>
           </div>
