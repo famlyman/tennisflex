@@ -149,11 +149,11 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     })
   })) || []
 
-  // Attach skill levels to divisions (only show levels with matches)
+  // Attach skill levels to divisions
   const divisionsWithLevels = divisions?.map(div => ({
     ...div,
-    skill_levels: skillLevelsWithMatches.filter(sl => sl.division_id === div.id && sl.matches.length > 0)
-  })).filter(div => div.skill_levels.length > 0) || []
+    skill_levels: skillLevelsWithMatches.filter(sl => sl.division_id === div.id)
+  })) || []
 
   const seasonWithDivisions = { ...season, divisions: divisionsWithLevels }
 
@@ -268,7 +268,10 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
 
         {divisionsWithLevels.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-            <p className="text-slate-500">No matches have been generated yet.</p>
+            <p className="text-slate-500">No divisions in this season yet.</p>
+            <Link href="/divisions" className="text-indigo-600 hover:underline mt-2 inline-block">
+              Manage Divisions
+            </Link>
           </div>
         ) : (
           <div className="space-y-4">
@@ -291,37 +294,26 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                       <Link
                         key={level.id}
                         href={`/seasons/${seasonId}/skill-level/${level.id}`}
-                        className="flex flex-col p-4 bg-slate-50 rounded-xl hover:bg-indigo-50 transition-colors"
+                        className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-indigo-50 transition-colors"
                       >
-                        <div className="flex items-center justify-between">
+                        <div>
                           <div className="font-medium text-slate-900">{level.name}</div>
+                          {level.min_rating !== null && level.max_rating !== null && (
+                            <div className="text-sm text-slate-500">
+                              Rating: {(level.min_rating / 10).toFixed(1)} - {(level.max_rating / 10).toFixed(1)}
+                            </div>
+                          )}
                           {level.matches?.length > 0 && (
-                            <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                            <div className="text-xs text-blue-600 mt-1">
                               {level.matches.length} match{level.matches.length !== 1 ? 'es' : ''}
-                            </span>
+                            </div>
                           )}
                         </div>
-                        {level.min_rating !== null && level.max_rating !== null && (
-                          <div className="text-sm text-slate-500 mt-1">
-                            Rating: {(level.min_rating / 10).toFixed(1)} - {(level.max_rating / 10).toFixed(1)}
-                          </div>
-                        )}
-                        {level.matches?.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-slate-200">
-                            <div className="text-xs text-slate-500 space-y-1">
-                              {level.matches.slice(0, 3).map((match: any) => (
-                                <div key={match.id} className="flex justify-between">
-                                  <span className="truncate">{match.home_player_name || 'TBD'}</span>
-                                  <span className="text-slate-400 mx-1">vs</span>
-                                  <span className="truncate">{match.away_player_name || 'TBD'}</span>
-                                </div>
-                              ))}
-                              {level.matches.length > 3 && (
-                                <div className="text-indigo-600 text-xs">+{level.matches.length - 3} more</div>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                        <div className="text-indigo-600">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
                       </Link>
                     ))}
                   </div>
