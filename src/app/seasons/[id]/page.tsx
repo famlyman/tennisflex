@@ -339,7 +339,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
               const divTotal = division.skill_levels?.reduce((sum: number, lvl: any) => sum + (lvl.matches?.length || 0), 0)
               
               return (
-                <div key={division.id} className={`bg-white rounded-2xl border p-6 ${totalCount > 0 ? 'border-blue-200 shadow-md' : 'border-slate-200'}`}>
+                <div key={division.id} className={`bg-white rounded-2xl border p-6 ${divTotal > 0 ? 'border-blue-200 shadow-md' : 'border-slate-200'}`}>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <h3 className="font-semibold text-slate-900 text-lg">{division.name}</h3>
