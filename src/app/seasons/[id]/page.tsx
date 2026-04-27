@@ -142,7 +142,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   
   let profileMap = new Map()
   if (playerIds.size > 0) {
-    const { data: playerProfiles } = await supabase
+    const { data: playerProfiles } = await adminClient
       .from('profiles')
       .select('id, full_name')
       .in('id', Array.from(playerIds))
@@ -150,7 +150,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   }
 
   // Get player names from players table
-  const { data: playerData } = await supabase
+  const { data: playerData } = await adminClient
     .from('players')
     .select('id, profile_id')
     .in('id', Array.from(playerIds))
@@ -305,35 +305,22 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
 
         {/* Stats Bar for Active Season */}
         {season.status === 'active' && (
-          <div className="mb-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                <div className="text-2xl font-bold text-slate-900">{totalPlayers}</div>
-                <div className="text-sm text-slate-500">Players Registered</div>
-              </div>
-              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                <div className="text-2xl font-bold text-slate-900">{totalMatches}</div>
-                <div className="text-sm text-slate-500">Total Matches</div>
-              </div>
-              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                <div className="text-2xl font-bold text-emerald-600">{completedMatches}</div>
-                <div className="text-sm text-slate-500">Completed</div>
-              </div>
-              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                <div className="text-2xl font-bold text-amber-600">{pendingMatches}</div>
-                <div className="text-sm text-slate-500">Pending</div>
-              </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+              <div className="text-2xl font-bold text-slate-900">{totalPlayers}</div>
+              <div className="text-sm text-slate-500">Players Registered</div>
             </div>
-            
-            {/* Debug: Show skill levels with match counts */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-              <div className="font-mono text-sm">
-                <div className="font-bold text-yellow-800 mb-2">Debug Info:</div>
-                <div className="mb-2">First 3 Match skill_level_ids: {matches.slice(0, 3).map(m => m.skill_level_id).join(', ')}</div>
-                <div className="mb-2">First 3 Skill Level IDs: {skillLevels?.slice(0, 3).map(sl => sl.id).join(', ')}</div>
-                <div className="mb-2">Total skill levels from DB: {skillLevels?.length}</div>
-                <div>Total matches from DB: {matches.length}</div>
-              </div>
+            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+              <div className="text-2xl font-bold text-slate-900">{totalMatches}</div>
+              <div className="text-sm text-slate-500">Total Matches</div>
+            </div>
+            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+              <div className="text-2xl font-bold text-emerald-600">{completedMatches}</div>
+              <div className="text-sm text-slate-500">Completed</div>
+            </div>
+            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+              <div className="text-2xl font-bold text-amber-600">{pendingMatches}</div>
+              <div className="text-sm text-slate-500">Pending</div>
             </div>
           </div>
         )}
