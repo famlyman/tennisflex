@@ -157,13 +157,10 @@ Organization (Flex)
 <<<<<<< HEAD
 | 12 | Leaderboard | ✅ Complete |
 | 13 | Season registration tracking | ✅ Complete |
-| 14 | Flag review | ⏳ Pending |
-| 15 | TFR algorithm | ⏳ Pending |
-=======
-| 12 | Leaderboard (registered only) | ✅ Complete |
-| 13 | TFR rating display fix | ✅ Complete |
-| 14 | Flag review | ⏳ Pending |
->>>>>>> a22e7e4d73ca7391e0210905b45995b2ca89d4da
+| 14 | Doubles partner selection | ✅ Complete |
+| 15 | Season page UI improvements | ✅ Complete |
+| 16 | Flag review | ⏳ Pending |
+| 17 | TFR algorithm | ⏳ Pending |
 
 ---
 
@@ -395,3 +392,48 @@ ALTER TABLE season_registrations ADD UNIQUE(player_id, season_id, division_id);
 
 ### RLS for season_registrations
 Use admin client (service role) for all queries to bypass RLS issues with foreign key relationships.
+
+---
+
+## April 27, 2026 - Updates
+
+### Season Page UI Redesign
+- Added gradient header for active seasons
+- Stats bar showing: Players Registered, Total Matches, Completed, Pending
+- Progress bar showing season completion percentage and days remaining
+- Division cards now show match counts and completion status per skill level
+- Skill level cards show recent match previews inline
+
+### Match Display Fixes
+- Fixed skill level cards showing "No matches yet" - was RLS issue, resolved by using adminClient
+- Fixed player names showing "Unknown" - properly fetching profile names from players table
+- TFR ratings now display correctly for singles vs doubles (TFR-S vs TFR-D)
+
+### Doubles Partner Selection
+- Added partner selection to registration form for doubles divisions
+- Players can either:
+  - Select an existing player from the organization
+  - Invite a new player by email
+- New columns added to season_registrations:
+  - `partner_id` - UUID to existing player
+  - `partner_email` - for inviting new players
+  - `partner_status` - 'none', 'invited', 'confirmed'
+
+### SQL for Partner Feature
+```sql
+ALTER TABLE season_registrations 
+ADD COLUMN IF NOT EXISTS partner_id uuid REFERENCES players(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS partner_email text,
+ADD COLUMN IF NOT EXISTS partner_status text DEFAULT 'none' CHECK (partner_status IN ('none', 'pending', 'confirmed', 'invited'));
+
+CREATE INDEX IF NOT EXISTS idx_season_registrations_partner ON season_registrations(partner_id);
+```
+
+### New API Endpoint
+- `/api/organizations/[id]/players` - Returns list of players in organization for partner selection
+
+### Phase Status
+- Phase 14 (Doubles Partner Selection): ✅ Complete
+- Phase 15 (Season Page UI): ✅ Complete
+- Phase 16 (Flag Review): ⏳ Pending
+- Phase 17 (TFR Algorithm): ⏳ Pending
