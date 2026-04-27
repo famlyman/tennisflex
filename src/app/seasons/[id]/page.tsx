@@ -369,7 +369,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                       {division.skill_levels.map((level: any) => {
                         const completedCount = level.matches?.filter((m: any) => m.status === 'completed').length || 0
                         const totalCount = level.matches?.length || 0
-                        
+
                         return (
                           <Link
                             key={level.id}
