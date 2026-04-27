@@ -140,22 +140,25 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     if (m.away_player_id) playerIds.add(m.away_player_id)
   })
   
-  let profileMap = new Map()
-  if (playerIds.size > 0) {
-    const { data: playerProfiles } = await adminClient
-      .from('profiles')
-      .select('id, full_name')
-      .in('id', Array.from(playerIds))
-    profileMap = new Map(playerProfiles?.map(p => [p.id, p.full_name]) || [])
-  }
-
-  // Get player names from players table
+  // First get players to map player ID -> profile ID
   const { data: playerData } = await adminClient
     .from('players')
     .select('id, profile_id')
     .in('id', Array.from(playerIds))
   
   const playerToProfile = new Map(playerData?.map(p => [p.id, p.profile_id]) || [])
+  
+  // Then get profiles using the profile IDs
+  const profileIds = new Set(playerData?.map(p => p.profile_id).filter(Boolean) || [])
+  
+  let profileMap = new Map()
+  if (profileIds.size > 0) {
+    const { data: playerProfiles } = await adminClient
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', Array.from(profileIds))
+    profileMap = new Map(playerProfiles?.map(p => [p.id, p.full_name]) || [])
+  }
 
   // Debug player mapping
   const debugPlayerMapping = Array.from(playerIds).slice(0, 3).map(pid => ({
@@ -333,24 +336,6 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
         )}
 
         <h2 className="text-xl font-bold text-slate-900 mb-6">Divisions</h2>
-
-        {/* Debug player mapping */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-          <div className="font-mono text-sm">
-            <div className="font-bold text-yellow-800 mb-2">Player Debug:</div>
-            <div>Total player IDs: {playerIds.size}</div>
-            <div>Profile map entries: {profileMap.size}</div>
-            <div>Player to profile map entries: {playerToProfile.size}</div>
-            {debugPlayerMapping.length > 0 && (
-              <div className="mt-2">
-                Sample mappings:
-                {debugPlayerMapping.map((m, i) => (
-                  <div key={i}>PlayerID: {m.playerId?.slice(0,8)} → ProfileID: {m.profileId?.slice(0,8)} → Name: {m.profileName || 'NOT FOUND'}</div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
 
         {divisionsWithLevels.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
