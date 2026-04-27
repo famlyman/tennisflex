@@ -64,6 +64,13 @@ Tech Stack: Next.js 16, Supabase, TypeScript
 - Can't confirm division placement
 - No audit trail for coordinator
 
+**Resolution**: ✅ RESOLVED
+- Created `season_registrations` table with fields: player_id, profile_id, season_id, division_id, skill_level_id, status, registered_at
+- Added RLS policies for players and coordinators
+- Updated `/api/seasons/[id]/register` route to insert registration records
+- Added check-if-exists before insert to handle duplicates
+- Added comprehensive debug logging for troubleshooting
+
 ### Issue #2: No Notification System
 
 **Problem**: Players have no way to know when:

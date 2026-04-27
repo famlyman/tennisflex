@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import CoordinatorActionButton from '@/components/CoordinatorActionButton'
 
 export default async function SeasonDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: seasonId } = await params
@@ -172,52 +173,27 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
               </span>
               {isCoordinator && season.status === 'upcoming' && (
                 <div className="flex gap-2">
-                  <form action={`/api/seasons/${seasonId}/open-registration`} method="POST">
-                    <button
-                      type="submit"
-                      className="px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-                    >
-                      Open Registration
-                    </button>
-                  </form>
-                  <form action={`/api/seasons/${seasonId}/start`} method="POST">
-                    <button
-                      type="submit"
-                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      Start Season Now
-                    </button>
-                  </form>
+                  <CoordinatorActionButton action="open-registration" seasonId={seasonId} variant="green">
+                    Open Registration
+                  </CoordinatorActionButton>
+                  <CoordinatorActionButton action="start" seasonId={seasonId} variant="blue">
+                    Start Season Now
+                  </CoordinatorActionButton>
                 </div>
               )}
               {isCoordinator && season.status === 'registration_open' && (
-                <form action={`/api/seasons/${seasonId}/close-registration`} method="POST">
-                  <button
-                    type="submit"
-                    className="px-3 py-1 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700"
-                  >
-                    Close Registration & Start
-                  </button>
-                </form>
+                <CoordinatorActionButton action="close-registration" seasonId={seasonId} variant="amber">
+                  Close Registration & Start
+                </CoordinatorActionButton>
               )}
               {isCoordinator && season.status === 'active' && (
                 <div className="flex gap-2">
-                  <form action={`/api/seasons/${seasonId}/generate-matches`} method="POST">
-                    <button
-                      type="submit"
-                      className="px-3 py-1 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                    >
-                      Generate Matches
-                    </button>
-                  </form>
-                  <form action={`/api/seasons/${seasonId}/complete`} method="POST">
-                    <button
-                      type="submit"
-                      className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
-                    >
-                      Complete Season
-                    </button>
-                  </form>
+                  <CoordinatorActionButton action="generate-matches" seasonId={seasonId} variant="purple">
+                    Generate Matches
+                  </CoordinatorActionButton>
+                  <CoordinatorActionButton action="complete" seasonId={seasonId} variant="red">
+                    Complete Season
+                  </CoordinatorActionButton>
                 </div>
               )}
             </div>
