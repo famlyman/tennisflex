@@ -157,6 +157,14 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   
   const playerToProfile = new Map(playerData?.map(p => [p.id, p.profile_id]) || [])
 
+  // Debug player mapping
+  const debugPlayerMapping = Array.from(playerIds).slice(0, 3).map(pid => ({
+    playerId: pid,
+    profileId: playerToProfile.get(pid),
+    profileName: playerToProfile.get(pid) ? profileMap.get(playerToProfile.get(pid)) : null
+  }))
+  console.log('Player debug:', debugPlayerMapping)
+
   // Attach matches to skill levels
   const skillLevelsWithMatches = skillLevels?.map(sl => ({
     ...sl,
