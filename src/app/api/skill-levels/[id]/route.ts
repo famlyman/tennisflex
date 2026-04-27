@@ -67,21 +67,28 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       home_player:players!matches_home_player_id_fkey (
         id,
         tfr_singles,
+        tfr_doubles,
         profile:profiles!players_profile_id_fkey (id, full_name)
       ),
       away_player:players!matches_away_player_id_fkey (
         id,
         tfr_singles,
+        tfr_doubles,
         profile:profiles!players_profile_id_fkey (id, full_name)
       )
     `)
     .eq('skill_level_id', skillLevelId)
     .order('created_at', { ascending: false })
 
-  // Get all players in this skill level (based on their rating and division type)
+  // Determine which rating to use based on division type
+  const divisionName = skillLevel.division?.name || ''
+  const isDoubles = divisionName.includes('Doubles')
+  const ratingField = isDoubles ? 'tfr_doubles' : 'tfr_singles'
+
   const minRating = skillLevel.min_rating
   const maxRating = skillLevel.max_rating
 
+  // Get all players in this organization
   const { data: players } = await adminSupabase
     .from('players')
     .select(`
@@ -91,14 +98,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .eq('organization_id', orgId)
 
   // Filter players by rating range
-  const eligiblePlayers = (players || []).filter((p: any) => {
-    const rating = p.tfr_singles
+  const eligiblePlayers = players?.filter((p: any) => {
+    const rating = p[ratingField]
     return rating >= minRating && rating <= maxRating
-  })
+  }) || []
 
   // Calculate leaderboard data
   const leaderboard = eligiblePlayers.map((player: any) => {
-    const playerMatches = (matches || []).filter((m: any) => 
+    const rating = player[ratingField]
+    
+    const playerMatches = matches?.filter((m: any) => 
       (m.home_player_id === player.id || m.away_player_id === player.id) && m.status === 'completed'
     )
     
@@ -107,7 +116,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     let setsWon = 0
     let setsLost = 0
 
-    playerMatches.forEach((match: any) => {
+    playerMatches?.forEach((match: any) => {
+      const isHome = match.home_player_id === player.id
+      const wonMatch = match.winner_id === player.id
+
+      if (wonMatch) wins++
+      else if (match.winner_id) losses++
       const isHome = match.home_player_id === player.id
       const wonMatch = match.winner_id === player.id
 
@@ -136,7 +150,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       player_id: player.id,
       player_name: player.profile?.full_name || 'Unknown',
       tfr_singles: player.tfr_singles,
-      matches_played: playerMatches.length,
+      tfr_doubles: player.tfr_doubles,
+      matches_played: playerMatches?.length || 0,
       wins,
       losses,
       sets_won: setsWon,

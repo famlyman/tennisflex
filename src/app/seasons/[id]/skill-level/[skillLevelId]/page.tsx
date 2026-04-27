@@ -13,11 +13,13 @@ interface Match {
   home_player: {
     id: string
     tfr_singles: number
+    tfr_doubles: number
     profile: { full_name: string }
   }
   away_player: {
     id: string
     tfr_singles: number
+    tfr_doubles: number
     profile: { full_name: string }
   }
   winner_id: string | null
@@ -27,6 +29,7 @@ interface LeaderboardEntry {
   player_id: string
   player_name: string
   tfr_singles: number
+  tfr_doubles: number
   rank: number
   matches_played: number
   wins: number
@@ -287,7 +290,11 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                         )}
                       </div>
                       <div className="text-sm text-slate-500">
-                        TFR: {(match.home_player?.tfr_singles / 10).toFixed(1)}
+                        {skill_level.division?.name?.includes('Doubles') ? (
+                          <>TFR-D: {(match.home_player?.tfr_doubles / 10).toFixed(1)}</>
+                        ) : (
+                          <>TFR-S: {(match.home_player?.tfr_singles / 10).toFixed(1)}</>
+                        )}
                       </div>
                     </div>
 
@@ -307,7 +314,11 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                         )}
                       </div>
                       <div className="text-sm text-slate-500">
-                        TFR: {(match.away_player?.tfr_singles / 10).toFixed(1)}
+                        {skill_level.division?.name?.includes('Doubles') ? (
+                          <>TFR-D: {(match.away_player?.tfr_doubles / 10).toFixed(1)}</>
+                        ) : (
+                          <>TFR-S: {(match.away_player?.tfr_singles / 10).toFixed(1)}</>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -355,7 +366,11 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                         {entry.player_name}
                       </td>
                       <td className="px-6 py-4 text-slate-600">
-                        {(entry.tfr_singles / 10).toFixed(1)}
+                        {skill_level.division?.name?.includes('Doubles') ? (
+                          (entry.tfr_doubles / 10).toFixed(1)
+                        ) : (
+                          (entry.tfr_singles / 10).toFixed(1)
+                        )}
                       </td>
                       <td className="px-6 py-4 text-center font-medium text-emerald-600">
                         {entry.wins}
@@ -384,12 +399,24 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
               <div className="flex items-center justify-between mb-6 p-4 bg-slate-50 rounded-xl">
                 <div className="text-center">
                   <div className="font-medium text-slate-900">{selectedMatch.home_player?.profile?.full_name}</div>
-                  <div className="text-sm text-slate-500">TFR: {(selectedMatch.home_player?.tfr_singles / 10).toFixed(1)}</div>
+                  <div className="text-sm text-slate-500">
+                    {skill_level.division?.name?.includes('Doubles') ? (
+                      <>TFR-D: {(selectedMatch.home_player?.tfr_doubles / 10).toFixed(1)}</>
+                    ) : (
+                      <>TFR-S: {(selectedMatch.home_player?.tfr_singles / 10).toFixed(1)}</>
+                    )}
+                  </div>
                 </div>
                 <div className="text-slate-400">vs</div>
                 <div className="text-center">
                   <div className="font-medium text-slate-900">{selectedMatch.away_player?.profile?.full_name}</div>
-                  <div className="text-sm text-slate-500">TFR: {(selectedMatch.away_player?.tfr_singles / 10).toFixed(1)}</div>
+                  <div className="text-sm text-slate-500">
+                    {skill_level.division?.name?.includes('Doubles') ? (
+                      <>TFR-D: {(selectedMatch.away_player?.tfr_doubles / 10).toFixed(1)}</>
+                    ) : (
+                      <>TFR-S: {(selectedMatch.away_player?.tfr_singles / 10).toFixed(1)}</>
+                    )}
+                  </div>
                 </div>
               </div>
 
