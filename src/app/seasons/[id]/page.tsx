@@ -101,33 +101,52 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
 
   // Get matches for all skill levels in this season
   const skillLevelIds = skillLevels?.map(sl => sl.id) || []
-  const { data: matches } = await supabase
-    .from('matches')
-    .select('*, home_player:players!matches_home_player_id_fkey(id, profile_id, tfr_singles, tfr_doubles), away_player:players!matches_away_player_id_fkey(id, profile_id, tfr_singles, tfr_doubles)')
-    .in('skill_level_id', skillLevelIds)
+  
+  let matches: any[] = []
+  if (skillLevelIds.length > 0) {
+    const { data: matchesData } = await supabase
+      .from('matches')
+      .select('id, skill_level_id, home_player_id, away_player_id, status, score, winner_id')
+      .in('skill_level_id', skillLevelIds)
+    matches = matchesData || []
+  }
 
   // Get player profile names
   const playerIds = new Set<string>()
-  matches?.forEach(m => {
-    if (m.home_player?.profile_id) playerIds.add(m.home_player.profile_id)
-    if (m.away_player?.profile_id) playerIds.add(m.away_player.profile_id)
+  matches.forEach(m => {
+    if (m.home_player_id) playerIds.add(m.home_player_id)
+    if (m.away_player_id) playerIds.add(m.away_player_id)
   })
   
-  const { data: playerProfiles } = await supabase
-    .from('profiles')
-    .select('id, full_name')
-    .in('id', Array.from(playerIds))
+  let profileMap = new Map()
+  if (playerIds.size > 0) {
+    const { data: playerProfiles } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', Array.from(playerIds))
+    profileMap = new Map(playerProfiles?.map(p => [p.id, p.full_name]) || [])
+  }
 
-  const profileMap = new Map(playerProfiles?.map(p => [p.id, p.full_name]) || [])
+  // Get player names from players table
+  const { data: playerData } = await supabase
+    .from('players')
+    .select('id, profile_id')
+    .in('id', Array.from(playerIds))
+  
+  const playerToProfile = new Map(playerData?.map(p => [p.id, p.profile_id]) || [])
 
   // Attach matches to skill levels
   const skillLevelsWithMatches = skillLevels?.map(sl => ({
     ...sl,
-    matches: matches?.filter(m => m.skill_level_id === sl.id).map(m => ({
-      ...m,
-      home_player_name: m.home_player?.profile_id ? profileMap.get(m.home_player.profile_id) : 'Unknown',
-      away_player_name: m.away_player?.profile_id ? profileMap.get(m.away_player.profile_id) : 'Unknown',
-    })) || []
+    matches: matches.filter(m => m.skill_level_id === sl.id).map(m => {
+      const homeProfileId = playerToProfile.get(m.home_player_id)
+      const awayProfileId = playerToProfile.get(m.away_player_id)
+      return {
+        ...m,
+        home_player_name: homeProfileId ? profileMap.get(homeProfileId) || 'Unknown' : 'TBD',
+        away_player_name: awayProfileId ? profileMap.get(awayProfileId) || 'Unknown' : 'TBD',
+      }
+    })
   })) || []
 
   // Attach skill levels to divisions (only show levels with matches)
