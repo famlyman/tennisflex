@@ -339,7 +339,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
               const divTotal = division.skill_levels?.reduce((sum: number, lvl: any) => sum + (lvl.matches?.length || 0), 0)
               
               return (
-                <div key={division.id} className={`bg-white rounded-2xl border p-6 ${season.status === 'active' && divTotal > 0 ? 'border-blue-200 shadow-md' : 'border-slate-200'}`}>
+                <div key={division.id} className={`bg-white rounded-2xl border p-6 ${totalCount > 0 ? 'border-blue-200 shadow-md' : 'border-slate-200'}`}>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <h3 className="font-semibold text-slate-900 text-lg">{division.name}</h3>
@@ -349,7 +349,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                         </span>
                       )}
                     </div>
-                    {season.status === 'active' && divTotal > 0 && (
+                    {divTotal > 0 && (
                       <div className="flex items-center gap-2">
                         <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
                           <div 
@@ -374,7 +374,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                           <Link
                             key={level.id}
                             href={`/seasons/${seasonId}/skill-level/${level.id}`}
-                            className={`block p-4 rounded-xl hover:bg-indigo-50 transition-all ${season.status === 'active' && totalCount > 0 ? 'bg-blue-50 border border-blue-100' : 'bg-slate-50'}`}
+                            className={`block p-4 rounded-xl hover:bg-indigo-50 transition-all ${totalCount > 0 ? 'bg-blue-50 border border-blue-100' : 'bg-slate-50'}`}
                           >
                             <div className="flex items-center justify-between mb-2">
                               <div className="font-medium text-slate-900">{level.name}</div>
@@ -395,8 +395,8 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                                 Rating: {(level.min_rating / 10).toFixed(1)} - {(level.max_rating / 10).toFixed(1)}
                               </div>
                             )}
-                            {season.status === 'active' && level.matches?.length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-blue-100">
+                            {totalCount > 0 && (
+                              <div className="mt-3 pt-3 border-t border-slate-200">
                                 <div className="text-xs text-slate-500 mb-1">Recent Matches:</div>
                                 {level.matches.slice(0, 2).map((match: any) => (
                                   <div key={match.id} className="flex items-center justify-between text-xs py-1">
