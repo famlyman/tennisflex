@@ -99,10 +99,41 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     .select('*')
     .in('division_id', divisionIds)
 
+  // Get matches for all skill levels in this season
+  const skillLevelIds = skillLevels?.map(sl => sl.id) || []
+  const { data: matches } = await supabase
+    .from('matches')
+    .select('*, home_player:players!matches_home_player_id_fkey(id, profile_id, tfr_singles, tfr_doubles), away_player:players!matches_away_player_id_fkey(id, profile_id, tfr_singles, tfr_doubles)')
+    .in('skill_level_id', skillLevelIds)
+
+  // Get player profile names
+  const playerIds = new Set<string>()
+  matches?.forEach(m => {
+    if (m.home_player?.profile_id) playerIds.add(m.home_player.profile_id)
+    if (m.away_player?.profile_id) playerIds.add(m.away_player.profile_id)
+  })
+  
+  const { data: playerProfiles } = await supabase
+    .from('profiles')
+    .select('id, full_name')
+    .in('id', Array.from(playerIds))
+
+  const profileMap = new Map(playerProfiles?.map(p => [p.id, p.full_name]) || [])
+
+  // Attach matches to skill levels
+  const skillLevelsWithMatches = skillLevels?.map(sl => ({
+    ...sl,
+    matches: matches?.filter(m => m.skill_level_id === sl.id).map(m => ({
+      ...m,
+      home_player_name: m.home_player?.profile_id ? profileMap.get(m.home_player.profile_id) : 'Unknown',
+      away_player_name: m.away_player?.profile_id ? profileMap.get(m.away_player.profile_id) : 'Unknown',
+    })) || []
+  })) || []
+
   // Attach skill levels to divisions
   const divisionsWithLevels = divisions?.map(div => ({
     ...div,
-    skill_levels: skillLevels?.filter(sl => sl.division_id === div.id) || []
+    skill_levels: skillLevelsWithMatches.filter(sl => sl.division_id === div.id)
   })) || []
 
   const seasonWithDivisions = { ...season, divisions: divisionsWithLevels }
@@ -244,21 +275,37 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                       <Link
                         key={level.id}
                         href={`/seasons/${seasonId}/skill-level/${level.id}`}
-                        className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-indigo-50 transition-colors"
+                        className="flex flex-col p-4 bg-slate-50 rounded-xl hover:bg-indigo-50 transition-colors"
                       >
-                        <div>
+                        <div className="flex items-center justify-between">
                           <div className="font-medium text-slate-900">{level.name}</div>
-                          {level.min_rating !== null && level.max_rating !== null && (
-                            <div className="text-sm text-slate-500">
-                              Rating: {(level.min_rating / 10).toFixed(1)} - {(level.max_rating / 10).toFixed(1)}
-                            </div>
+                          {level.matches?.length > 0 && (
+                            <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                              {level.matches.length} match{level.matches.length !== 1 ? 'es' : ''}
+                            </span>
                           )}
                         </div>
-                        <div className="text-indigo-600">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
+                        {level.min_rating !== null && level.max_rating !== null && (
+                          <div className="text-sm text-slate-500 mt-1">
+                            Rating: {(level.min_rating / 10).toFixed(1)} - {(level.max_rating / 10).toFixed(1)}
+                          </div>
+                        )}
+                        {level.matches?.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-slate-200">
+                            <div className="text-xs text-slate-500 space-y-1">
+                              {level.matches.slice(0, 3).map((match: any) => (
+                                <div key={match.id} className="flex justify-between">
+                                  <span className="truncate">{match.home_player_name || 'TBD'}</span>
+                                  <span className="text-slate-400 mx-1">vs</span>
+                                  <span className="truncate">{match.away_player_name || 'TBD'}</span>
+                                </div>
+                              ))}
+                              {level.matches.length > 3 && (
+                                <div className="text-indigo-600 text-xs">+{level.matches.length - 3} more</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </Link>
                     ))}
                   </div>
