@@ -163,7 +163,6 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     profileId: playerToProfile.get(pid),
     profileName: playerToProfile.get(pid) ? profileMap.get(playerToProfile.get(pid)) : null
   }))
-  console.log('Player debug:', debugPlayerMapping)
 
   // Attach matches to skill levels
   const skillLevelsWithMatches = skillLevels?.map(sl => ({
@@ -334,6 +333,24 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
         )}
 
         <h2 className="text-xl font-bold text-slate-900 mb-6">Divisions</h2>
+
+        {/* Debug player mapping */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+          <div className="font-mono text-sm">
+            <div className="font-bold text-yellow-800 mb-2">Player Debug:</div>
+            <div>Total player IDs: {playerIds.size}</div>
+            <div>Profile map entries: {profileMap.size}</div>
+            <div>Player to profile map entries: {playerToProfile.size}</div>
+            {debugPlayerMapping.length > 0 && (
+              <div className="mt-2">
+                Sample mappings:
+                {debugPlayerMapping.map((m, i) => (
+                  <div key={i}>PlayerID: {m.playerId?.slice(0,8)} → ProfileID: {m.profileId?.slice(0,8)} → Name: {m.profileName || 'NOT FOUND'}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
         {divisionsWithLevels.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
