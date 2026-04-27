@@ -650,6 +650,15 @@ export default async function Dashboard() {
                   <p className="font-semibold text-slate-900">Manage Divisions</p>
                   <p className="text-sm text-slate-500">Setup divisions</p>
                 </Link>
+                <Link href="/flags" className="p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
+                  <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21a2 2 0 012 2v16m-13 0h6m-6 0a1 1 0 001 1h4a1 1 0 001-1m-7 0a1 1 0 011-1h2a1 1 0 011 1m-7 0h6M5 5v4h4V5H5z" />
+                    </svg>
+                  </div>
+                  <p className="font-semibold text-slate-900">Review Flags</p>
+                  <p className="text-sm text-slate-500">Anti-sandbagging reports</p>
+                </Link>
               </>
             ) : (
               <>

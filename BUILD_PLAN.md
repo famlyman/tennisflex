@@ -159,7 +159,7 @@ Organization (Flex)
 | 13 | Season registration tracking | ✅ Complete |
 | 14 | Doubles partner selection | ✅ Complete |
 | 15 | Season page UI improvements | ✅ Complete |
-| 16 | Flag review | ⏳ Pending |
+| 16 | Flag review | ✅ Complete |
 | 17 | TFR algorithm | ⏳ Pending |
 
 ---
@@ -435,5 +435,5 @@ CREATE INDEX IF NOT EXISTS idx_season_registrations_partner ON season_registrati
 ### Phase Status
 - Phase 14 (Doubles Partner Selection): ✅ Complete
 - Phase 15 (Season Page UI): ✅ Complete
-- Phase 16 (Flag Review): ⏳ Pending
+- Phase 16 (Flag Review): ✅ Complete
 - Phase 17 (TFR Algorithm): ⏳ Pending

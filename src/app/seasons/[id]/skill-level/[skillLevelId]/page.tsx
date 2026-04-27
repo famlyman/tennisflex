@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import FlagPlayerButton from '@/components/FlagPlayerButton'
 
 interface Match {
   id: string
@@ -281,22 +282,29 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 text-right">
-                      <div className={`font-medium ${match.winner_id === match.home_player?.id ? 'text-emerald-600 font-bold' : 'text-slate-900'}`}>
-                        {match.home_player?.profile?.full_name}
-                        {match.winner_id === match.home_player?.id && (
-                          <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Winner</span>
-                        )}
-                      </div>
-                      <div className="text-sm text-slate-500">
-                        {skill_level.division?.name?.includes('Doubles') ? (
-                          <>TFR-D: {(match.home_player?.tfr_doubles / 10).toFixed(1)}</>
-                        ) : (
-                          <>TFR-S: {(match.home_player?.tfr_singles / 10).toFixed(1)}</>
-                        )}
-                      </div>
-                    </div>
+                   <div className="flex items-center gap-4">
+                     <div className="flex-1 text-right">
+                       <div className={`font-medium ${match.winner_id === match.home_player?.id ? 'text-emerald-600 font-bold' : 'text-slate-900'}`}>
+                         {match.home_player?.profile?.full_name}
+                         {match.winner_id === match.home_player?.id && (
+                           <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Winner</span>
+                         )}
+                       </div>
+                       <div className="text-sm text-slate-500">
+                         {skill_level.division?.name?.includes('Doubles') ? (
+                           <>TFR-D: {(match.home_player?.tfr_doubles / 10).toFixed(1)}</>
+                         ) : (
+                           <>TFR-S: {(match.home_player?.tfr_singles / 10).toFixed(1)}</>
+                         )}
+                       </div>
+                       {match.home_player?.id && (
+                         <FlagPlayerButton
+                           playerId={match.home_player.id}
+                           playerName={match.home_player?.profile?.full_name || 'Unknown'}
+                           variant="icon"
+                         />
+                       )}
+                     </div>
 
                     <div className="px-6 py-3 bg-slate-100 rounded-xl text-center">
                       {match.status === 'completed' && match.score ? (
@@ -306,21 +314,28 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                       )}
                     </div>
 
-                    <div className="flex-1 text-left">
-                      <div className={`font-medium ${match.winner_id === match.away_player?.id ? 'text-emerald-600 font-bold' : 'text-slate-900'}`}>
-                        {match.away_player?.profile?.full_name}
-                        {match.winner_id === match.away_player?.id && (
-                          <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Winner</span>
-                        )}
-                      </div>
-                      <div className="text-sm text-slate-500">
-                        {skill_level.division?.name?.includes('Doubles') ? (
-                          <>TFR-D: {(match.away_player?.tfr_doubles / 10).toFixed(1)}</>
-                        ) : (
-                          <>TFR-S: {(match.away_player?.tfr_singles / 10).toFixed(1)}</>
-                        )}
-                      </div>
-                    </div>
+                     <div className="flex-1 text-left">
+                       <div className={`font-medium ${match.winner_id === match.away_player?.id ? 'text-emerald-600 font-bold' : 'text-slate-900'}`}>
+                         {match.away_player?.profile?.full_name}
+                         {match.winner_id === match.away_player?.id && (
+                           <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Winner</span>
+                         )}
+                       </div>
+                       <div className="text-sm text-slate-500">
+                         {skill_level.division?.name?.includes('Doubles') ? (
+                           <>TFR-D: {(match.away_player?.tfr_doubles / 10).toFixed(1)}</>
+                         ) : (
+                           <>TFR-S: {(match.away_player?.tfr_singles / 10).toFixed(1)}</>
+                         )}
+                       </div>
+                       {match.away_player?.id && (
+                         <FlagPlayerButton
+                           playerId={match.away_player.id}
+                           playerName={match.away_player?.profile?.full_name || 'Unknown'}
+                           variant="icon"
+                         />
+                       )}
+                     </div>
                   </div>
                 </div>
               ))
