@@ -122,11 +122,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
       if (wonMatch) wins++
       else if (match.winner_id) losses++
-      const isHome = match.home_player_id === player.id
-      const wonMatch = match.winner_id === player.id
-
-      if (wonMatch) wins++
-      else if (match.winner_id) losses++
 
       // Parse score for sets
       if (match.score) {
