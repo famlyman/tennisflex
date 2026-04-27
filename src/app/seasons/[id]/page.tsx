@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import CoordinatorActionButton from '@/components/CoordinatorActionButton'
+import { createAdminClient } from '@/utils/supabase'
 
 export default async function SeasonDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: seasonId } = await params
@@ -87,24 +88,25 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   }
 
   // Get divisions separately
-  const { data: divisions } = await supabase
+  const adminClient = createAdminClient()
+  const { data: divisions } = await adminClient
     .from('divisions')
     .select('*')
     .eq('season_id', seasonId)
 
   // Get skill levels for all divisions
   const divisionIds = divisions?.map(d => d.id) || []
-  const { data: skillLevels } = await supabase
+  const { data: skillLevels } = await adminClient
     .from('skill_levels')
     .select('*')
     .in('division_id', divisionIds)
 
   // Get matches for all skill levels in this season
   const skillLevelIds = skillLevels?.map(sl => sl.id) || []
-  
+
   let matches: any[] = []
   if (skillLevelIds.length > 0) {
-    const { data: matchesData } = await supabase
+    const { data: matchesData } = await adminClient
       .from('matches')
       .select('id, skill_level_id, home_player_id, away_player_id, status, score, winner_id')
       .in('skill_level_id', skillLevelIds)
@@ -112,7 +114,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   }
 
   // Get season stats
-  const { data: registrationsData } = await supabase
+  const { data: registrationsData } = await adminClient
     .from('season_registrations')
     .select('id')
     .eq('season_id', seasonId)
