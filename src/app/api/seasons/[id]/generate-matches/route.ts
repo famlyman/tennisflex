@@ -29,21 +29,22 @@ function shuffle<T>(array: T[], seed: number): T[] {
   return result
 }
 
-function pairPlayersRoundRobin(players: string[]): [string, string][] {
-  const pairs: [string, string][] = []
+// Generate matches where each player plays 4 matches total
+// Implementation: 4 rounds, random pairing each round within the skill level
+function generateMatchesRoundRobin(players: string[], seed: number): [string, string][] {
+  const allPairs: [string, string][] = []
+  const rounds = 4
   
-  // Simple round-robin: pair player i with player i+1
-  for (let i = 0; i + 1 < players.length; i += 2) {
-    pairs.push([players[i], players[i + 1]])
+  for (let round = 0; round < rounds; round++) {
+    const shuffled = shuffle(players, seed + round * 1000)
+    
+    for (let i = 0; i + 1 < shuffled.length; i += 2) {
+      allPairs.push([shuffled[i], shuffled[i + 1]])
+    }
+    // If odd number of players, last player gets a bye (no match this round)
   }
   
-  // If odd number, last player is unpaired (gets bye)
-  return pairs
-}
-
-function pairPlayersRandom(players: string[], seed: number): [string, string][] {
-  const shuffled = shuffle(players, seed)
-  return pairPlayersRoundRobin(shuffled)
+  return allPairs
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -126,25 +127,40 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const matchesBySkillLevel: Record<string, number> = {}
 
   // Seed from season ID for reproducibility
-  const seed = hashString(seasonId)
-
+  const baseSeed = hashString(seasonId)
+  
+  // Check for existing matches in this season
+  const skillLevelIds = (skillLevels || []).map(sl => sl.id)
+  if (skillLevelIds.length > 0) {
+    const { count: existingMatches } = await adminClient
+      .from('matches')
+      .select('*', { count: 'exact', head: true })
+      .in('skill_level_id', skillLevelIds)
+    
+    if (existingMatches && existingMatches > 0) {
+      return NextResponse.json({ 
+        error: `Season already has ${existingMatches} matches. Complete or delete existing matches first.` 
+      }, { status: 400 })
+    }
+  }
+  
   // Process each skill level
   for (const skillLevel of skillLevels || []) {
     // Get players registered for this skill level
     const playersInLevel = registrations
       .filter(r => r.skill_level_id === skillLevel.id)
       .map(r => r.player_id)
-
+    
     if (playersInLevel.length < 2) {
       matchesBySkillLevel[skillLevel.id] = 0
       continue
     }
-
-    // Pair players
-    const pairs = pairPlayersRandom(playersInLevel, seed + matchesCreated)
-
+    
+    // Generate 4 matches per player (1 per round, 4 rounds total)
+    const allPairs = generateMatchesRoundRobin(playersInLevel, baseSeed)
+    
     // Create matches
-    for (const [homePlayer, awayPlayer] of pairs) {
+    for (const [homePlayer, awayPlayer] of allPairs) {
       const { error: matchError } = await adminClient
         .from('matches')
         .insert({
@@ -153,33 +169,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           away_player_id: awayPlayer,
           status: 'scheduled'
         })
-
+      
       if (!matchError) {
         matchesCreated++
       }
     }
-
-    matchesBySkillLevel[skillLevel.id] = pairs.length
-
-    // Notify players
-    const uniquePlayers = [...new Set(playersInLevel)]
-    for (const playerId of uniquePlayers) {
-      const { data: player } = await adminClient
-        .from('players')
-        .select('profile_id')
-        .eq('id', playerId)
-        .single()
-
-      if (player) {
-        await adminClient.from('notifications').insert({
-          user_id: player.profile_id,
-          type: 'match_scheduled',
-          title: 'New Match Scheduled',
-          message: `Your matches for ${season.name} have been scheduled. Check your dashboard for details!`,
-          link: `/seasons/${seasonId}`
-        })
-      }
-    }
+    
+    matchesBySkillLevel[skillLevel.id] = allPairs.length
   }
 
   // Update season status if still upcoming/registration_open
@@ -190,10 +186,34 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .eq('id', seasonId)
   }
 
+  // Notify all registered players once
+  const uniquePlayerProfiles = new Set<string>()
+  registrations?.forEach(r => {
+    if (r.player_id) uniquePlayerProfiles.add(r.player_id)
+  })
+  
+  for (const playerId of Array.from(uniquePlayerProfiles)) {
+    const { data: player } = await adminClient
+      .from('players')
+      .select('profile_id')
+      .eq('id', playerId)
+      .single()
+    
+    if (player?.profile_id) {
+      await adminClient.from('notifications').insert({
+        user_id: player.profile_id,
+        type: 'matches_generated',
+        title: 'New Matches Scheduled',
+        message: `${matchesCreated} matches have been generated for ${season.name}. Check your season page!`,
+        link: `/seasons/${seasonId}`
+      })
+    }
+  }
+
   return NextResponse.json({
     success: true,
     matchesCreated,
     matchesBySkillLevel,
-    playersRegistered: registrations.length
+    playersRegistered: registrations?.length || 0
   })
 }
