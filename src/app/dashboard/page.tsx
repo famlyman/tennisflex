@@ -68,10 +68,10 @@ async function getDashboardData(userId: string) {
       : { data: [] }
     const skillLevelIds = (skillLevelRes.data || []).map(s => s.id)
 
-    // Get total matches
+    // Get completed matches only (matches played)
     let totalMatches = 0
     if (skillLevelIds.length > 0) {
-      const matchRes = await adminClient.from('matches').select('*', { count: 'exact', head: true }).in('skill_level_id', skillLevelIds)
+      const matchRes = await adminClient.from('matches').select('*', { count: 'exact', head: true }).in('skill_level_id', skillLevelIds).eq('status', 'completed')
       totalMatches = matchRes.count || 0
     }
 
