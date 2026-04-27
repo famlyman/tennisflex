@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import FlagPlayerButton from '@/components/FlagPlayerButton'
+import { getConfidenceDisplay } from '@/utils/rating'
 
 interface Match {
   id: string
@@ -382,9 +383,9 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                       </td>
                       <td className="px-6 py-4 text-slate-600">
                         {skill_level.division?.name?.includes('Doubles') ? (
-                          (entry.tfr_doubles / 10).toFixed(1)
+                          <span>{getConfidenceDisplay(entry.tfr_doubles, entry.matches_played)}</span>
                         ) : (
-                          (entry.tfr_singles / 10).toFixed(1)
+                          <span>{getConfidenceDisplay(entry.tfr_singles, entry.matches_played)}</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-center font-medium text-emerald-600">

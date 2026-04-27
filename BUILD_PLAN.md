@@ -124,8 +124,8 @@ Organization (Flex)
 | Matches | Badge | Display |
 |---------|-------|---------|
 | 0-4 | Projected | 3.5(P) |
-| 5-19 | Developing | 3.5 |
-| 20+ | Established | 3.5★ |
+| 5-9 | Developing | 3.5 |
+| 10+ | Established | 3.5★ |
 
 ---
 

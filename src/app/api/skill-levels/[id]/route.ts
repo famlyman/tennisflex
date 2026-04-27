@@ -103,56 +103,57 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return rating >= minRating && rating <= maxRating
   }) || []
 
-  // Calculate leaderboard data
-  const leaderboard = eligiblePlayers.map((player: any) => {
-    const rating = player[ratingField]
-    
-    const playerMatches = matches?.filter((m: any) => 
-      (m.home_player_id === player.id || m.away_player_id === player.id) && m.status === 'completed'
-    )
-    
-    let wins = 0
-    let losses = 0
-    let setsWon = 0
-    let setsLost = 0
-
-    playerMatches?.forEach((match: any) => {
-      const isHome = match.home_player_id === player.id
-      const wonMatch = match.winner_id === player.id
-
-      if (wonMatch) wins++
-      else if (match.winner_id) losses++
-
-      // Parse score for sets
-      if (match.score) {
-        const sets = match.score.split(' ')
-        sets.forEach((set: string) => {
-          const parts = set.includes('(') ? set.split('(')[0] : set
-          const [p1Score, p2Score] = parts.split('-').map(Number)
-          
-          if (isHome) {
-            setsWon += p1Score > p2Score ? 1 : 0
-            setsLost += p1Score < p2Score ? 1 : 0
-          } else {
-            setsWon += p2Score > p1Score ? 1 : 0
-            setsLost += p2Score < p1Score ? 1 : 0
-          }
-        })
-      }
-    })
-
-    return {
-      player_id: player.id,
-      player_name: player.profile?.full_name || 'Unknown',
-      tfr_singles: player.tfr_singles,
-      tfr_doubles: player.tfr_doubles,
-      matches_played: playerMatches?.length || 0,
-      wins,
-      losses,
-      sets_won: setsWon,
-      sets_lost: setsLost,
-    }
-  })
+   // Calculate leaderboard data
+   const leaderboard = eligiblePlayers.map((player: any) => {
+     const isDoubles = divisionName.includes('Doubles')
+     const ratingField = isDoubles ? 'tfr_doubles' : 'tfr_singles'
+     const matchCountField = isDoubles ? 'match_count_doubles' : 'match_count_singles'
+     
+     const playerMatches = matches?.filter((m: any) => 
+       (m.home_player_id === player.id || m.away_player_id === player.id) && m.status === 'completed'
+     )
+     
+     let wins = 0
+     let losses = 0
+     let setsWon = 0
+     let setsLost = 0
+     
+     playerMatches?.forEach((match: any) => {
+       const isHome = match.home_player_id === player.id
+       const wonMatch = match.winner_id === player.id
+       
+       if (wonMatch) wins++
+       else if (match.winner_id) losses++
+       
+       // Parse score for sets
+       if (match.score) {
+         const sets = match.score.split(' ')
+         sets.forEach((set: string) => {
+           const parts = set.includes('(') ? set.split('(')[0] : set
+           const [p1Score, p2Score] = parts.split('-').map(Number)
+           
+           if (isHome) {
+             setsWon += p1Score > p2Score ? 1 : 0
+             setsLost += p1Score < p2Score ? 1 : 0
+           } else {
+             setsWon += p2Score > p1Score ? 1 : 0
+             setsLost += p2Score < p1Score ? 1 : 0
+           }
+         })
+       }
+     })
+     
+     return {
+       player_id: player.id,
+       player_name: player.profile?.full_name || 'Unknown',
+       [ratingField]: player[ratingField],
+       matches_played: player[matchCountField] || 0,
+       wins,
+       losses,
+       sets_won: setsWon,
+       sets_lost: setsLost,
+     }
+   })
 
   // Sort by wins (desc), then sets difference (desc)
   leaderboard.sort((a: any, b: any) => {

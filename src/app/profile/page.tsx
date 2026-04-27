@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabaseClient } from '@/utils/client'
+import { getConfidenceDisplay, getConfidenceBadge } from '@/utils/rating'
 
 interface PlayerData {
   id: string
@@ -267,7 +268,9 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-slate-700">Singles</span>
                   {playerData?.tfr_singles && (
-                    <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">TFR: {(playerData.tfr_singles / 10).toFixed(1)}</span>
+                    <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                      {getConfidenceDisplay(playerData.tfr_singles, playerData.match_count_singles)}
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center gap-4">
@@ -298,7 +301,9 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-slate-700">Doubles</span>
                   {playerData?.tfr_doubles && (
-                    <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">TFR: {(playerData.tfr_doubles / 10).toFixed(1)}</span>
+                    <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                      {getConfidenceDisplay(playerData.tfr_doubles, playerData.match_count_doubles)}
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center gap-4">
