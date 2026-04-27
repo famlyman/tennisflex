@@ -58,6 +58,7 @@ export interface Season {
   id: string
   organization_id: string
   name: string
+  description: string | null
   status: SeasonStatus
   registration_start: string
   registration_end: string
@@ -158,8 +159,7 @@ export interface SeasonRegistration {
   division_id: string | null
   skill_level_id: string | null
   status: 'active' | 'withdrawn' | 'completed'
-  registered_at: string
-  updated_at: string
+  created_at: string
   // Joined fields
   player?: Player
   season?: Season

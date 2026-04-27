@@ -6,6 +6,7 @@ import { createAdminClient } from '@/utils/supabase'
 import NotificationBell from '@/components/NotificationBell'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 async function getDashboardData(userId: string) {
   const adminClient = createAdminClient()
@@ -89,6 +90,7 @@ async function getDashboardData(userId: string) {
       profile,
       isCoordinator,
       player: null,
+      playerRegistrations: [],
       activeMatchCount: 0,
       organizations,
       seasons: seasonsData || [],
@@ -99,73 +101,181 @@ async function getDashboardData(userId: string) {
     }
   }
 
-  // Player - get their full record including ratings and registered divisions
+  // Player data - fetch player's registrations
+  let playerRegistrations: any[] = []
+  let playerSeasons: any[] = []
+  let allOrgSeasons: any[] = []
+  let player: any = null
+  let leaderboardData: any = null
+  
   const { data: playerData } = await adminClient
     .from('players')
-    .select('*, organization:organizations!players_organization_id_fkey (name)')
+    .select('*')
     .eq('profile_id', userId)
-    .single()
+    .maybeSingle()
 
   if (playerData) {
-    const playerOrgId = playerData.organization_id
-
-    const { data: playerSeasons } = await adminClient
+    player = playerData
+    
+    // Fetch all seasons from player's organization
+    const { data: orgSeasons } = await adminClient
       .from('seasons')
       .select(`
         *,
-        divisions (id),
-        organization:organizations!seasons_organization_id_fkey (name)
+        organization:organizations!seasons_organization_id_fkey (id, name)
       `)
-      .eq('organization_id', playerOrgId)
+      .eq('organization_id', player.organization_id)
       .order('created_at', { ascending: false })
-
-    // Get player's registered divisions (from season_registrations)
-    const { data: registrations } = await adminClient
+    
+    allOrgSeasons = orgSeasons || []
+    
+    // Get player's season registrations with joined data
+    // Use profile_id since FK relationship is broken
+    const { data: registrationsRaw } = await adminClient
       .from('season_registrations')
-      .select(`
-        id,
-        status,
-        profile_id,
-        division:divisions!season_registrations_division_id_fkey (
-          id,
-          name,
-          type,
-          skill_levels!divisions_skill_levels_fkey (id, name)
-        ),
-        season:seasons!season_registrations_season_id_fkey (id, name, status)
-      `)
-      .eq('profile_id', userId)
-      .eq('status', 'active')
+      .select(`*`)
+      .eq('profile_id', player.profile_id)
 
-    return {
-      profile,
-      isCoordinator,
-      player: playerData,
-      registrations: registrations || [],
-      activeMatchCount: 0,
-      organizations: [],
-      seasons: playerSeasons || [],
-      playerCount: 0,
-      activeSeasonCount: (playerSeasons || []).filter(
-        s => s.status === 'active' || s.status === 'registration_open'
-      ).length,
-      totalMatches: 0,
-      pendingMatches: 0,
+    console.log('DEBUG: Raw registrations:', registrationsRaw?.length)
+    
+    if (registrationsRaw && registrationsRaw.length > 0) {
+      // Get unique season IDs
+      const seasonIds = [...new Set(registrationsRaw.map(r => r.season_id))]
+      const divisionIds = [...new Set(registrationsRaw.map(r => r.division_id).filter(Boolean))]
+      
+      // Fetch season details
+      const { data: seasonsData } = await adminClient
+        .from('seasons')
+        .select(`*, organization:organizations!seasons_organization_id_fkey (name)`)
+        .in('id', seasonIds)
+      
+      // Fetch division details
+      const { data: divisionsData } = await adminClient
+        .from('divisions')
+        .select(`*`)
+        .in('id', divisionIds)
+      
+      // Map data to registrations
+      playerRegistrations = registrationsRaw.map(reg => ({
+        ...reg,
+        season: seasonsData?.find(s => s.id === reg.season_id),
+        division: divisionsData?.find(d => d.id === reg.division_id)
+      }))
+      
+      // Extract unique seasons
+      const seasonMap = new Map<string, any>()
+      for (const reg of playerRegistrations) {
+        if (reg.season && !seasonMap.has(reg.season.id)) {
+          seasonMap.set(reg.season.id, {
+            ...reg.season,
+            organization: reg.season.organization
+          })
+        }
+      }
+      playerSeasons = Array.from(seasonMap.values())
+
+      // Fetch leaderboard for player's registered skill level
+      if (playerRegistrations.length > 0) {
+        const primaryReg = playerRegistrations[0]
+        if (primaryReg.division && primaryReg.season) {
+          // Get skill levels for this division
+          const { data: skillLevels } = await adminClient
+            .from('skill_levels')
+            .select('id, name, min_rating, max_rating')
+            .eq('division_id', primaryReg.division.id)
+            .order('min_rating', { ascending: true })
+          
+          if (skillLevels && skillLevels.length > 0) {
+            // Determine which rating to use based on division type (singles vs doubles)
+            const isDoubles = primaryReg.division.type?.includes('doubles') || primaryReg.division.name?.toLowerCase().includes('doubles')
+            const playerRating = isDoubles 
+              ? (player.initial_ntrp_doubles || player.tfr_doubles / 10 || 0)
+              : (player.initial_ntrp_singles || player.tfr_singles / 10 || 0)
+            
+            console.log('DEBUG: Player rating:', playerRating, 'isDoubles:', isDoubles, 'skillLevels:', skillLevels.map(sl => ({ name: sl.name, min: sl.min_rating, max: sl.max_rating })))
+            
+            // Find the player's skill level based on their rating
+            // Note: skill_levels store ratings as TFR (e.g., 35 for 3.5), so we need to multiply
+            const playerTfr = playerRating * 10
+            const playerSkillLevel = skillLevels.find((sl: any) => {
+              if (!sl.min_rating || !sl.max_rating) return false
+              return playerTfr >= sl.min_rating && playerTfr <= sl.max_rating
+            })
+
+            const targetSkillLevel = playerSkillLevel || skillLevels[0]
+            console.log('DEBUG: Selected skill level:', targetSkillLevel?.name, 'playerTfr:', playerTfr)
+
+            // Get matches for this skill level
+            const { data: matches } = await adminClient
+              .from('matches')
+              .select('id, home_player_id, away_player_id, winner_id, status, skill_level_id')
+              .eq('skill_level_id', targetSkillLevel.id)
+              .eq('status', 'completed')
+
+            // Get all players in organization with their TFR
+            const { data: players } = await adminClient
+              .from('players')
+              .select('id, tfr_singles, profile:profiles (full_name)')
+              .eq('organization_id', player.organization_id)
+
+            // Filter eligible players for this skill level
+            const eligiblePlayers = (players || []).filter((p: any) => {
+              if (!targetSkillLevel.min_rating || !targetSkillLevel.max_rating) return true
+              return p.tfr_singles >= targetSkillLevel.min_rating && p.tfr_singles <= targetSkillLevel.max_rating
+            })
+
+            // Build leaderboard for this skill level
+            const leaderboard = eligiblePlayers.map((p: any) => {
+              const playerMatches = (matches || []).filter((m: any) => 
+                m.home_player_id === p.id || m.away_player_id === p.id
+              )
+              
+              let wins = 0
+              let losses = 0
+              playerMatches.forEach((m: any) => {
+                if (m.winner_id === p.id) wins++
+                else if (m.winner_id) losses++
+              })
+
+              return {
+                player_id: p.id,
+                player_name: p.profile?.full_name || 'Unknown',
+                wins,
+                losses,
+                matches: playerMatches.length,
+              }
+            })
+
+            leaderboard.sort((a: any, b: any) => {
+              if (b.wins !== a.wins) return b.wins - a.wins
+              return b.matches - a.matches
+            })
+
+            leaderboardData = {
+              division: primaryReg.division,
+              season: primaryReg.season,
+              skillLevel: targetSkillLevel,
+              leaderboard: leaderboard.slice(0, 10),
+            }
+          }
+        }
+      }
     }
   }
 
   return {
     profile,
     isCoordinator,
-    player: null,
-    registrations: [],
+    player,
+    playerRegistrations,
     activeMatchCount: 0,
     organizations: [],
-    seasons: [],
+    seasons: playerSeasons.length > 0 ? playerSeasons : allOrgSeasons,
     playerCount: 0,
     activeSeasonCount: 0,
     totalMatches: 0,
     pendingMatches: 0,
+    leaderboardData,
   }
 }
 
@@ -244,7 +354,7 @@ export default async function Dashboard() {
           </p>
         </div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div className="grid md:grid-cols-3 gap-6 mb-8">
           {isCoordinator ? (
             <>
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -277,7 +387,9 @@ export default async function Dashboard() {
                 <div className="flex gap-8">
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
-                      {dashboardData.player?.tfr_singles ? (parseFloat(dashboardData.player.tfr_singles) / 10).toFixed(1) : '--'}
+                      {dashboardData.player?.tfr_singles 
+                        ? (dashboardData.player.tfr_singles / 10).toFixed(1) 
+                        : '--'}
                     </p>
                     <p className="text-xs text-slate-500">Singles</p>
                     <p className="text-xs text-slate-400">
@@ -286,7 +398,9 @@ export default async function Dashboard() {
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
-                      {dashboardData.player?.tfr_doubles ? (parseFloat(dashboardData.player.tfr_doubles) / 10).toFixed(1) : '--'}
+                      {dashboardData.player?.tfr_doubles 
+                        ? (dashboardData.player.tfr_doubles / 10).toFixed(1) 
+                        : '--'}
                     </p>
                     <p className="text-xs text-slate-500">Doubles</p>
                     <p className="text-xs text-slate-400">
@@ -298,16 +412,72 @@ export default async function Dashboard() {
                   {dashboardData.player?.match_count_singles || 0} matches played
                 </p>
               </div>
-              
+
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-slate-900">Leaderboard</h3>
                   <Link href="/leaderboard" className="text-sm text-indigo-600 hover:underline">
-                    View Full →
+                    Full →
                   </Link>
                 </div>
-                <p className="text-slate-500 text-sm">Join a season to appear on the leaderboard!</p>
+                {dashboardData.leaderboardData ? (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2">
+                      {dashboardData.leaderboardData.season?.name} • {dashboardData.leaderboardData.division?.name || dashboardData.leaderboardData.division?.type?.replace('_', ' ')}
+                    </p>
+                    <p className="text-sm font-medium text-indigo-600 mb-3">
+                      {dashboardData.leaderboardData.skillLevel?.name}
+                    </p>
+                    <div className="space-y-1">
+                      {dashboardData.leaderboardData.leaderboard?.slice(0, 5).map((entry: any, idx: number) => (
+                        <div key={entry.player_id} className="flex items-center gap-2 text-sm">
+                          <span className={`w-5 text-center font-medium ${
+                            idx === 0 ? 'text-amber-500' : idx === 1 ? 'text-slate-400' : idx === 2 ? 'text-orange-400' : 'text-slate-400'
+                          }`}>
+                            {idx + 1}
+                          </span>
+                          <span className="flex-1 truncate">{entry.player_name}</span>
+                          <span className="text-slate-500">{entry.wins}W-{entry.losses}L</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm">Join a season to appear on the leaderboard!</p>
+                )}
               </div>
+
+              {dashboardData.playerRegistrations.length > 0 && (
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900">Your Registrations</h3>
+                    <Link href="/seasons" className="text-sm text-indigo-600 hover:underline">
+                      More →
+                    </Link>
+                  </div>
+                  <div className="space-y-3">
+                    {dashboardData.playerRegistrations.map((reg: any) => (
+                      <div key={reg.id} className="p-3 bg-slate-50 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-slate-900 text-sm">{reg.season?.name}</p>
+                            <p className="text-xs text-slate-500">
+                              {reg.division?.name || reg.division?.type?.replace('_', ' ')}
+                            </p>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            reg.season?.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                            reg.season?.status === 'registration_open' ? 'bg-emerald-100 text-emerald-700' :
+                            'bg-slate-100 text-slate-500'
+                          }`}>
+                            {reg.season?.status?.replace('_', ' ')}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -362,71 +532,7 @@ export default async function Dashboard() {
 
         {/* Seasons List for Players (show seasons available for registration) */}
         {!isCoordinator && dashboardData.player && (
-          <div className="space-y-6">
-            {/* Active/Registered Season */}
-            {dashboardData.seasons.find(s => s.status === 'active' || s.status === 'registration_open') && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold">Your Season</h2>
-                </div>
-                
-                {dashboardData.seasons
-                  .filter(s => s.status === 'active' || s.status === 'registration_open')
-                  .map((season: any) => (
-                    <div key={season.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-slate-50 rounded-xl border border-indigo-100">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <p className="font-medium text-slate-900 text-lg">{season.name}</p>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            season.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
-                          }`}>
-                            {season.status === 'registration_open' ? 'Registration Open' : 'Active'}
-                          </span>
-                        </div>
-                        <p className="text-sm text-slate-500">
-                          {season.organization?.name || 'Unknown'}
-                        </p>
-                        <p className="text-sm text-slate-400">
-                          {new Date(season.season_start).toLocaleDateString()} - {new Date(season.season_end).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-
-                {/* Your Registered Divisions */}
-                {dashboardData.registrations && dashboardData.registrations.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-3">Your Divisions</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {dashboardData.registrations.map((reg: any) => {
-                        const division = reg.division
-                        const skillLevel = division?.skill_levels?.[0]
-                        return (
-                          <div key={reg.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-medium text-slate-900">
-                                  {division?.type === 'mens_singles' ? "Men's Singles" :
-                                   division?.type === 'womens_singles' ? "Women's Singles" :
-                                   division?.type === 'mens_doubles' ? "Men's Doubles" :
-                                   division?.type === 'womens_doubles' ? "Women's Doubles" :
-                                   division?.type === 'mixed_doubles' ? "Mixed Doubles" : division?.name}
-                                </p>
-                                <p className="text-sm text-slate-500">{reg.season?.name}</p>
-                              </div>
-                              <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
-                                {skillLevel?.name || 'N/A'}
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
+          <div className="space-y-6 mb-8">
             {/* All Organization Seasons */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4">

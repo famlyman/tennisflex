@@ -2,6 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/utils/supabase'
+<<<<<<< HEAD
+=======
+
+>>>>>>> a22e7e4d73ca7391e0210905b45995b2ca89d4da
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -62,7 +66,11 @@ export async function POST(
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
+<<<<<<< HEAD
     return NextResponse.json({ success: true, redirectUrl: `/seasons/${id}` })
+=======
+    return NextResponse.redirect(`/seasons/${id}`)
+>>>>>>> a22e7e4d73ca7391e0210905b45995b2ca89d4da
   } catch (error) {
     console.error('Error closing registration:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

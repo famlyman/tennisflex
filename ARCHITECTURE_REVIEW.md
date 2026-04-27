@@ -30,7 +30,7 @@ Tech Stack: Next.js 16, Supabase, TypeScript
 - ✅ coordinators (Flex admins)
 - ✅ seasons (Season configs)
 - ✅ divisions (Singles/Doubles types)
-- ✅ skill_levels (NTRP buckets)
+- ✅ skill_levels (TFR rating buckets - stored as NTRP × 10)
 - ✅ players (TFR ratings)
 - ✅ matches (Match scheduling)
 - ⚠️ messages (In-app chat - defined but unused)
@@ -39,14 +39,12 @@ Tech Stack: Next.js 16, Supabase, TypeScript
 
 ### Features Not Yet Implemented
 
-1. **Season Registration Tracking** - No table linking players to specific seasons
-2. **Notifications** - No notification system
-3. **In-app Messaging UI** - Table exists but no UI
-4. **Rating Flag Review UI** - Table exists but no UI
-5. **Match Extension UI** - Table exists but no UI
-6. **UTR Integration** - Column exists but unused
-7. **Automatic Match Pairing** - Manual creation only
-8. **Season Completion/Standings** - No automated workflow
+1. **Notifications** - No notification system
+2. **In-app Messaging UI** - Table exists but no UI
+3. **Rating Flag Review UI** - Table exists but no UI
+4. **Match Extension UI** - Table exists but no UI
+5. **UTR Integration** - Column exists but unused
+6. **Season Completion/Standings** - No automated workflow
 
 ---
 

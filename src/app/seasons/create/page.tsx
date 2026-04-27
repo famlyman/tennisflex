@@ -192,6 +192,19 @@ export default function CreateSeasonPage() {
             />
           </div>
 
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-2">
+              Description (optional)
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              rows={3}
+              placeholder="Season details, rules, scheduling information..."
+              className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:ring-indigo-500"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="registration_start" className="block text-sm font-medium text-slate-700 mb-2">

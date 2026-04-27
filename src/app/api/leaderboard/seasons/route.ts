@@ -50,13 +50,13 @@ export async function GET() {
         organization:organizations!seasons_organization_id_fkey (name)
       `)
       .in('organization_id', orgIds)
-      .eq('status', 'active')
+      .in('status', ['active', 'registration_open'])
       .order('name', { ascending: true })
 
     return NextResponse.json({ seasons: seasons || [] })
   }
 
-  // Player - get their organization and show only seasons for that org
+  // Player - get their organization and show only active seasons for that org
   const { data: playerData } = await adminClient
     .from('players')
     .select('organization_id')

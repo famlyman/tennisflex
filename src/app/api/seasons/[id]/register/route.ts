@@ -58,31 +58,30 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const formData = await request.formData()
   
-  // Handle division_ids - can be comma-separated or multiple
+  // Handle division_ids - can be multiple form fields OR comma-separated
+  const divisionIdsAllRaw = formData.getAll('division_ids')
   const divisionIdsRaw = formData.get('division_ids') as string
-  console.log('Raw division_ids:', divisionIdsRaw)
-  console.log('All form keys:', Array.from(formData.keys()))
+  const divisionIdsAll = divisionIdsAllRaw.map((v: any) => String(v))
   
-  const division_ids = divisionIdsRaw 
-    ? divisionIdsRaw.split(',').filter(Boolean)
-    : formData.getAll('division_ids')
+  let division_ids: string[]
+  if (divisionIdsRaw && divisionIdsRaw.includes(',')) {
+    division_ids = divisionIdsRaw.split(',').filter(Boolean)
+  } else if (divisionIdsAll.length > 0) {
+    division_ids = divisionIdsAll
+  } else if (divisionIdsRaw) {
+    division_ids = [divisionIdsRaw]
+  } else {
+    division_ids = []
+  }
   
-  console.log('Parsed division_ids:', division_ids)
-  
-  const organization_id = formData.get('organization_id') as string
-  console.log('organization_id:', organization_id)
-
-  // Early validation
   if (!division_ids || division_ids.length === 0) {
-    console.log('No divisions selected, skipping registration')
     return Response.json({ error: 'No divisions selected' }, { status: 400 })
   }
 
+  const organization_id = formData.get('organization_id') as string
   if (!organization_id) {
     return Response.json({ error: 'Organization not found' }, { status: 400 })
   }
-
-  // Get user's profile
   const { data: profile } = await adminClient
     .from('profiles')
     .select('id, full_name')
@@ -94,12 +93,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   // Check for existing player record
-  const { data: existingPlayer } = await adminClient
+  const { data: existingPlayer, error: playerError } = await adminClient
     .from('players')
     .select('id, initial_ntrp_singles, initial_ntrp_doubles')
     .eq('profile_id', profile.id)
     .eq('organization_id', organization_id)
-    .single()
+    .maybeSingle()
+
+  if (playerError) {
+    console.error('Error finding player:', playerError)
+  }
 
   let playerId: string
   let finalNtrpSingles: number
@@ -107,7 +110,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (existingPlayer) {
     playerId = existingPlayer.id
-    // Use existing player record ratings
     finalNtrpSingles = existingPlayer.initial_ntrp_singles || 3.5
     finalNtrpDoubles = existingPlayer.initial_ntrp_doubles || existingPlayer.initial_ntrp_singles || 3.5
   } else {
@@ -116,7 +118,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .from('profiles')
       .select('initial_ntrp_singles, initial_ntrp_doubles')
       .eq('id', profile.id)
-      .single()
+      .maybeSingle()
     
     finalNtrpSingles = profileData?.initial_ntrp_singles || 3.5
     finalNtrpDoubles = profileData?.initial_ntrp_doubles || profileData?.initial_ntrp_singles || 3.5
@@ -139,7 +141,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }).select('id').single()
 
     if (error) {
-      console.error('Error creating player:', error)
       return Response.json({ error: error.message }, { status: 500 })
     }
 
@@ -151,7 +152,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .from('seasons')
     .select('name')
     .eq('id', seasonId)
-    .single()
+    .maybeSingle()
 
   // Get divisions info to find skill_level_id for each
   const { data: divisions, error: divError } = await adminClient
@@ -160,14 +161,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .in('id', division_ids)
 
   if (divError) {
-    console.error('Error fetching divisions:', divError)
-    return Response.json({ error: 'Failed to fetch divisions: ' + divError.message }, { status: 500 })
+    return Response.json({ error: 'Failed to fetch divisions' }, { status: 500 })
   }
 
-  console.log('Found divisions:', divisions?.length)
-
   if (!divisions || divisions.length === 0) {
-    console.error('No divisions found for IDs:', division_ids)
     return Response.json({ error: 'Invalid divisions selected' }, { status: 400 })
   }
 
@@ -177,7 +174,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   for (const divisionId of division_ids) {
     // Find the division and its matching skill level for this player's rating
     const division = divisions?.find(d => d.id === divisionId)
-    if (!division) continue
+    if (!division) {
+      console.log('Division not found:', divisionId)
+      continue
+    }
     
     const isSingles = division.type.includes('singles')
     const playerRating = isSingles ? finalNtrpSingles : finalNtrpDoubles
@@ -187,7 +187,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       playerRating >= sl.min_rating && playerRating <= sl.max_rating
     )
     
-    // Always create registration (even without skill level match, let coordinator fix it)
     // Check if already exists first
     const { data: existingReg } = await adminClient
       .from('season_registrations')
@@ -195,13 +194,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .eq('player_id', playerId)
       .eq('season_id', seasonId)
       .eq('division_id', divisionId)
-      .single()
+      .maybeSingle()
 
     if (existingReg) {
-      console.log('Already registered, skipping:', divisionId)
       continue
     }
 
+    // Insert new registration
     const { data: regRecord, error: regError } = await adminClient
       .from('season_registrations')
       .insert({
@@ -216,12 +215,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .single()
 
     if (regError) {
-      console.error('Registration error:', regError)
-      return Response.json({ error: regError.message }, { status: 500 })
-    } else {
-      console.log('Registration created:', regRecord)
-      registrations.push(division.type)
+      continue
     }
+
+    registrations.push(division.type)
   }
 
   // Create notification
