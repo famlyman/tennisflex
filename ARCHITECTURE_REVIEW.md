@@ -123,6 +123,26 @@ Tech Stack: Next.js 16, Supabase, TypeScript
 | Hardcoded TFR K-factors | Low | Move to season config |
 | No API rate limiting | Low | Add Vercel Edge |
 
+### SQL to Fix Technical Debt
+
+```sql
+-- Add UNIQUE constraint to prevent duplicate skill levels
+ALTER TABLE skill_levels 
+ADD CONSTRAINT skill_levels_division_id_name_key UNIQUE(division_id, name);
+
+-- Add index for matches lookup by skill_level_id
+CREATE INDEX IF NOT EXISTS idx_matches_skill_level_id 
+ON matches(skill_level_id);
+
+-- Add index for season_registrations lookups
+CREATE INDEX IF NOT EXISTS idx_season_registrations_player_season 
+ON season_registrations(player_id, season_id);
+
+-- Add index for notifications by user
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread 
+ON notifications(user_id, read);
+```
+
 ---
 
 ## Part 5: Database Schema Changes

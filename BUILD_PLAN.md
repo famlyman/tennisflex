@@ -414,6 +414,31 @@ Use admin client (service role) for all queries to bypass RLS issues with foreig
 
 ---
 
+## Database Technical Debt - SQL Fixes
+
+Run these SQL commands in your Supabase SQL Editor to fix technical debt issues:
+
+```sql
+-- Add UNIQUE constraint to prevent duplicate skill levels per division
+ALTER TABLE skill_levels 
+ADD CONSTRAINT IF NOT EXISTS skill_levels_division_id_name_key UNIQUE(division_id, name);
+
+-- Add index for matches lookup by skill_level_id (improves query performance)
+CREATE INDEX IF NOT EXISTS idx_matches_skill_level_id ON matches(skill_level_id);
+
+-- Add index for season_registrations lookups
+CREATE INDEX IF NOT EXISTS idx_season_registrations_player_season ON season_registrations(player_id, season_id);
+
+-- Add index for notifications by user and read status
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, read);
+
+-- Verify season_registrations has correct unique constraint
+ALTER TABLE season_registrations DROP CONSTRAINT IF EXISTS season_registrations_player_id_season_id_key;
+ALTER TABLE season_registrations ADD CONSTRAINT IF NOT EXISTS season_registrations_unique UNIQUE(player_id, season_id, division_id);
+```
+
+---
+
 ## April 27, 2026 - Updates
 
 ### Season Page UI Redesign

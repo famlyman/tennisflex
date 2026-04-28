@@ -490,7 +490,7 @@ export default function ProfilePage() {
                         <input
                           type="checkbox"
                           checked={playPrefs[key as keyof typeof playPrefs]}
-                          onChange={(e) => setPlayPrefs({ ...playPrefs, [key]: e.target.checked })}
+                          onChange={(e) => setPlayPrefs({ ...playPrefs, [key as string]: e.target.checked })}
                           className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                         />
                         <span className="text-sm text-slate-700">{label}</span>
