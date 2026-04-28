@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase'
 import NotificationBell from '@/components/NotificationBell'
+import MatchesCard from '@/components/MatchesCard'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -521,58 +522,10 @@ export default async function Dashboard() {
 
               {/* Player Matches Card */}
               {dashboardData.playerMatches && dashboardData.playerMatches.length > 0 && (
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-slate-900">Your Matches</h3>
-                    <span className="text-sm text-slate-500">
-                      {dashboardData.playerMatches.filter((m: any) => m.status === 'completed').length} completed, {' '}
-                      {dashboardData.playerMatches.filter((m: any) => m.status !== 'completed').length} scheduled
-                    </span>
-                  </div>
-                  <div className="space-y-3 max-h-80 overflow-y-auto">
-                    {dashboardData.playerMatches.map((match: any) => {
-                      const isHome = match.home_player_id === dashboardData.player?.id
-                      const opponentId = isHome ? match.away_player_id : match.home_player_id
-                      const isWinner = match.winner_id === dashboardData.player?.id
-                      const isCompleted = match.status === 'completed'
-                      
-                      return (
-                        <div key={match.id} className={`p-3 rounded-lg border ${isCompleted ? 'bg-slate-50 border-slate-200' : 'bg-blue-50 border-blue-200'}`}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${isCompleted ? (isWinner ? 'bg-emerald-500' : 'bg-red-500') : 'bg-blue-500'}`}></span>
-                                <p className="text-sm font-medium text-slate-900">
-                                  vs {match.opponent_name || 'Unknown'}
-                                </p>
-                              </div>
-                              <p className="text-xs text-slate-500 mt-0.5">
-                                {match.skill_level?.division?.name || 'Unknown division'} • {' '}
-                                {isCompleted ? 'Completed' : 'Scheduled'}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              {isCompleted && match.score ? (
-                                <div>
-                                  <p className={`text-sm font-bold ${isWinner ? 'text-emerald-600' : 'text-red-600'}`}>
-                                    {match.score}
-                                  </p>
-                                  <p className="text-xs text-slate-500">
-                                    {isWinner ? 'Won' : 'Lost'}
-                                  </p>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                                  Scheduled
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
+                <MatchesCard 
+                  matches={dashboardData.playerMatches} 
+                  playerId={dashboardData.player?.id} 
+                />
               )}
             </>
           )}
