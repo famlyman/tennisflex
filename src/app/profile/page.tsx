@@ -31,7 +31,6 @@ export default function ProfilePage() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [location, setLocation] = useState('')
-  const [ustaNumber, setUstaNumber] = useState('')
   const [playPrefs, setPlayPrefs] = useState({
     weekdays: false,
     weekends: false,
@@ -60,17 +59,29 @@ export default function ProfilePage() {
 
       setEmail(session.user.email || '')
 
-      const { data: profile } = await supabase
+       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('full_name, phone, location, usta_number, play_preferences, gender, initial_ntrp_singles, initial_ntrp_doubles, avatar_url')
+        .select('full_name, phone, location, play_preferences, gender, initial_ntrp_singles, initial_ntrp_doubles, avatar_url')
         .eq('id', session.user.id)
         .single()
+      
+      if (profileError) {
+        console.error('Profile fetch error:', profileError.message)
+        // Try again with fewer columns if location column doesn't exist
+        if (profileError.message.includes('location')) {
+          const { data: p2 } = await supabase
+            .from('profiles')
+            .select('full_name, phone, usta_number, play_preferences, gender, initial_ntrp_singles, initial_ntrp_doubles, avatar_url')
+            .eq('id', session.user.id)
+            .single()
+          if (p2) Object.assign(profile || {}, p2, { location: '' })
+        }
+      }
 
       if (profile) {
-        setFullName(profile.full_name || '')
-        setPhone(profile.phone || '')
-        setLocation(profile.location || '')
-        setUstaNumber(profile.usta_number || '')
+         setFullName(profile.full_name || '')
+         setPhone(profile.phone || '')
+         setLocation(profile.location || '')
         setPlayPrefs(profile.play_preferences || {
           weekdays: false,
           weekends: false,
@@ -149,17 +160,16 @@ export default function ProfilePage() {
         }
       }
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ 
-          full_name: fullName,
-          phone: phone || null,
-          location: location || null,
-          usta_number: ustaNumber || null,
-          play_preferences: playPrefs,
-          gender: gender || null,
-          avatar_url: avatarUrl
-        })
+       const { error: profileError } = await supabase
+         .from('profiles')
+         .update({ 
+           full_name: fullName,
+           phone: phone || null,
+           location: location || null,
+           play_preferences: playPrefs,
+           gender: gender || null,
+           avatar_url: avatarUrl
+         })
         .eq('id', session.user.id)
 
       if (profileError) {
@@ -202,7 +212,7 @@ export default function ProfilePage() {
     } finally {
       setSaving(false)
     }
-  }, [supabase, fullName, phone, location, ustaNumber, playPrefs, initialNtrpSingles, initialNtrpDoubles, playerData, gender, avatarFile, avatarPreview])
+  }, [supabase, fullName, phone, location, playPrefs, initialNtrpSingles, initialNtrpDoubles, playerData, gender, avatarFile, avatarPreview])
 
   const getInitials = (name: string) => {
     return name
@@ -446,33 +456,19 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="location" className="block text-sm font-medium text-slate-700 mb-1">
-                    Location / Home Court
-                  </label>
-                  <input
-                    id="location"
-                    type="text"
-                    className="block w-full rounded-lg border border-slate-200 px-3 py-2.5 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="City, State or Court Name"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="usta" className="block text-sm font-medium text-slate-700 mb-1">
-                    USTA Number
-                  </label>
-                  <input
-                    id="usta"
-                    type="text"
-                    className="block w-full rounded-lg border border-slate-200 px-3 py-2.5 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    value={ustaNumber}
-                    onChange={(e) => setUstaNumber(e.target.value)}
-                    placeholder="e.g., 123456789"
-                  />
-                </div>
+                 <div>
+                   <label htmlFor="location" className="block text-sm font-medium text-slate-700 mb-1">
+                     Location / Home Court
+                   </label>
+                   <input
+                     id="location"
+                     type="text"
+                     className="block w-full rounded-lg border border-slate-200 px-3 py-2.5 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                     value={location}
+                     onChange={(e) => setLocation(e.target.value)}
+                     placeholder="City, State or Court Name"
+                   />
+                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
