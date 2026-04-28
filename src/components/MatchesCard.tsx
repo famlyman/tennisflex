@@ -102,18 +102,18 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
                       return (
                         <div 
                           key={match.id} 
-                          className={`p-3 rounded-lg border cursor-pointer hover:shadow-md transition-shadow ${isCompleted ? 'bg-white border-slate-300' : 'bg-blue-50 border-blue-200'}`}
+                          className={`p-3 rounded-lg border cursor-pointer hover:shadow-md transition-shadow ${isCompleted ? 'bg-white border-gray-300' : 'bg-blue-50 border-blue-200'}`}
                           onClick={() => openMatchModal(match)}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${isCompleted ? (isWinner ? 'bg-emerald-600' : 'bg-red-600') : 'bg-blue-600'}`}></span>
-                                <p className="text-sm font-semibold text-gray-900">
+                                <span className={`w-2 h-2 rounded-full ${isCompleted ? (isWinner ? 'bg-emerald-700' : 'bg-red-700') : 'bg-blue-700'}`}></span>
+                                <p className="text-sm font-bold text-gray-900">
                                   vs {match.opponent_name || 'Unknown'}
                                 </p>
                               </div>
-                              <p className="text-xs text-gray-600 mt-0.5">
+                              <p className="text-sm text-gray-700 mt-0.5">
                                 {match.skill_level?.division?.name || 'Unknown division'} • {' '}
                                 {isCompleted ? 'Completed' : 'Scheduled'}
                               </p>
@@ -121,15 +121,15 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
                             <div className="text-right">
                               {isCompleted && match.score ? (
                                 <div>
-                                  <p className={`text-sm font-bold ${isWinner ? 'text-emerald-700' : 'text-red-700'}`}>
+                                  <p className={`text-base font-bold ${isWinner ? 'text-emerald-800' : 'text-red-800'}`}>
                                     {match.score}
                                   </p>
-                                  <p className="text-xs text-gray-600">
+                                  <p className="text-sm font-medium text-gray-700">
                                     {isWinner ? 'Won' : 'Lost'}
                                   </p>
                                 </div>
                               ) : (
-                                <span className="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-1 rounded">
+                                <span className="text-sm font-bold text-blue-800 bg-blue-100 px-3 py-1 rounded">
                                   Scheduled
                                 </span>
                               )}
@@ -168,31 +168,32 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
               </div>
             ) : (
               <>
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-slate-700 mb-2">Select dates you're available:</p>
-                  <div className="react-calendar-wrapper">
-                    <Calendar
-                      onClickDay={handleDateClick}
-                      tileClassName={({ date }) => {
-                        const dateStr = date.toISOString().split('T')[0]
-                        if (matchAvailability.includes(dateStr)) {
-                          return 'bg-indigo-100 text-indigo-800 font-bold rounded'
-                        }
-                        if (opponentAvailability.some((a: any) => a.date === dateStr)) {
-                          return 'bg-emerald-100 text-emerald-800 font-bold rounded'
-                        }
-                        return null
-                      }}
-                    />
-                  </div>
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-900 mb-2">Select dates you're available:</p>
+                      <div className="react-calendar-wrapper">
+                        <Calendar
+                          onClickDay={handleDateClick}
+                          className="dark-calendar"
+                          tileClassName={({ date }) => {
+                            const dateStr = date.toISOString().split('T')[0]
+                            if (matchAvailability.includes(dateStr)) {
+                              return 'bg-indigo-200 text-indigo-900 font-bold rounded'
+                            }
+                            if (opponentAvailability.some((a: any) => a.date === dateStr)) {
+                              return 'bg-emerald-200 text-emerald-900 font-bold rounded'
+                            }
+                            return 'text-gray-900'
+                          }}
+                        />
+                      </div>
                   <div className="flex gap-4 mt-3 text-xs">
                     <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 bg-indigo-500 rounded"></div>
-                      <span className="text-slate-600">Your availability</span>
+                      <div className="w-3 h-3 bg-indigo-600 rounded"></div>
+                      <span className="text-gray-800">Your availability</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 bg-emerald-500 rounded"></div>
-                      <span className="text-slate-600">{opponentAvailability[0]?.player_name || 'Opponent'}'s availability</span>
+                      <div className="w-3 h-3 bg-emerald-600 rounded"></div>
+                      <span className="text-gray-800">{opponentAvailability[0]?.player_name || 'Opponent'}'s availability</span>
                     </div>
                   </div>
                 </div>
