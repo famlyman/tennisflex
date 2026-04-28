@@ -93,51 +93,51 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
             {completedMatches} completed, {scheduledMatches} scheduled
           </span>
         </div>
-        <div className="space-y-3 max-h-80 overflow-y-auto">
-          {matches.map((match) => {
-            const isHome = match.home_player_id === playerId
-            const isWinner = match.winner_id === playerId
-            const isCompleted = match.status === 'completed'
-            
-            return (
-              <div 
-                key={match.id} 
-                className={`p-3 rounded-lg border cursor-pointer hover:shadow-md transition-shadow ${isCompleted ? 'bg-slate-50 border-slate-200' : 'bg-blue-50 border-blue-200'}`}
-                onClick={() => openMatchModal(match)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${isCompleted ? (isWinner ? 'bg-emerald-500' : 'bg-red-500') : 'bg-blue-500'}`}></span>
-                      <p className="text-sm font-medium text-slate-900">
-                        vs {match.opponent_name || 'Unknown'}
-                      </p>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {match.skill_level?.division?.name || 'Unknown division'} • {' '}
-                      {isCompleted ? 'Completed' : 'Scheduled'}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    {isCompleted && match.score ? (
-                      <div>
-                        <p className={`text-sm font-bold ${isWinner ? 'text-emerald-600' : 'text-red-600'}`}>
-                          {match.score}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {isWinner ? 'Won' : 'Lost'}
-                        </p>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                        Scheduled
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {matches.map((match) => {
+                      const isHome = match.home_player_id === playerId
+                      const isWinner = match.winner_id === playerId
+                      const isCompleted = match.status === 'completed'
+                      
+                      return (
+                        <div 
+                          key={match.id} 
+                          className={`p-3 rounded-lg border cursor-pointer hover:shadow-md transition-shadow ${isCompleted ? 'bg-white border-slate-300' : 'bg-blue-50 border-blue-200'}`}
+                          onClick={() => openMatchModal(match)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${isCompleted ? (isWinner ? 'bg-emerald-600' : 'bg-red-600') : 'bg-blue-600'}`}></span>
+                                <p className="text-sm font-semibold text-gray-900">
+                                  vs {match.opponent_name || 'Unknown'}
+                                </p>
+                              </div>
+                              <p className="text-xs text-gray-600 mt-0.5">
+                                {match.skill_level?.division?.name || 'Unknown division'} • {' '}
+                                {isCompleted ? 'Completed' : 'Scheduled'}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              {isCompleted && match.score ? (
+                                <div>
+                                  <p className={`text-sm font-bold ${isWinner ? 'text-emerald-700' : 'text-red-700'}`}>
+                                    {match.score}
+                                  </p>
+                                  <p className="text-xs text-gray-600">
+                                    {isWinner ? 'Won' : 'Lost'}
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-1 rounded">
+                                  Scheduled
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
         </div>
       </div>
 
