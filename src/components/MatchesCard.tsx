@@ -6,6 +6,50 @@ import 'react-calendar/dist/Calendar.css'
 import Link from 'next/link'
 import { getSupabaseClient } from '@/utils/client'
 
+const calendarStyles = `
+  .dark-calendar .react-calendar {
+    width: 100%;
+    border: none;
+    font-family: inherit;
+  }
+  .dark-calendar .react-calendar__navigation {
+    margin-bottom: 1rem;
+  }
+  .dark-calendar .react-calendar__navigation button {
+    color: #1f2937;
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+  .dark-calendar .react-calendar__navigation button:enabled:hover,
+  .dark-calendar .react-calendar__navigation button:enabled:focus {
+    background-color: #f3f4f6;
+    border-radius: 0.375rem;
+  }
+  .dark-calendar .react-calendar__navigation__arrow {
+    font-size: 1.5rem;
+    color: #4b5563;
+  }
+  .dark-calendar .react-calendar__month-view__weekdays {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #374151;
+    text-transform: uppercase;
+  }
+  .dark-calendar .react-calendar__tile {
+    color: #111827;
+    font-weight: 500;
+  }
+  .dark-calendar .react-calendar__tile:enabled:hover,
+  .dark-calendar .react-calendar__tile:enabled:focus {
+    background-color: #e0e7ff;
+    border-radius: 0.375rem;
+  }
+  .dark-calendar .react-calendar__tile--now {
+    font-weight: 700;
+    color: #4338ca;
+  }
+`
+
 interface Match {
   id: string
   opponent_name: string
@@ -86,6 +130,7 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
 
   return (
     <>
+      <style>{calendarStyles}</style>
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-slate-900">Your Matches</h3>
@@ -93,7 +138,7 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
             {completedMatches} completed, {scheduledMatches} scheduled
           </span>
         </div>
-                  <div className="space-y-3 max-h-80 overflow-y-auto">
+        <div className="space-y-3 max-h-80 overflow-y-auto">
                     {matches.map((match) => {
                       const isHome = match.home_player_id === playerId
                       const isWinner = match.winner_id === playerId
@@ -170,7 +215,7 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
               <>
                     <div className="mb-4">
                       <p className="text-sm font-medium text-gray-900 mb-2">Select dates you're available:</p>
-                      <div className="react-calendar-wrapper">
+                      <div className="dark-calendar">
                         <Calendar
                           onClickDay={handleDateClick}
                           className="dark-calendar"
