@@ -90,7 +90,7 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
     setLoadingAvailability(true)
     
     try {
-      const res = await fetch(`/api/matches/${match.id}/availability`)
+      const res = await fetch(`/api/matches/${encodeURIComponent(match.id)}/availability`)
       const data = await res.json()
       setMatchAvailability(data.myAvailability || [])
       setOpponentAvailability(data.opponentAvailability || [])
@@ -105,7 +105,7 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
     if (!selectedMatch) return
     
     try {
-      await fetch(`/api/matches/${selectedMatch.id}/availability}`, {
+      await fetch(`/api/matches/${encodeURIComponent(selectedMatch.id)}/availability}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dates })
