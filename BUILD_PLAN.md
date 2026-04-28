@@ -97,6 +97,7 @@ Organization (Flex)
 ### Foundation
 - **Initial Rating:** Self-reported NTRP × 10
 - **Scale:** 10-165 (mirrors NTRP)
+- **Conservative Progression:** ~2-2.5 years (2-3 seasons/year) to move up full point with consistent play
 
 ### Separate Tracks
 
@@ -105,14 +106,22 @@ Organization (Flex)
 | Singles | TFR-S |
 | Doubles | TFR-D |
 
-### Rating Change
+### Rating Change (Conservative)
 
-| Result | Points |
-|--------|--------|
-| Upset win | +8 to +15 |
-| Expected win | +5 to +8 |
-| Close loss | -3 to -5 |
-| Blowout loss | -8 to -12 |
+| Result | Points (vs equal) |
+|--------|-------------------|
+| Expected win | +0.5 to +1.0 |
+| Upset win (vs higher) | +1.0 to +3.0 |
+| Close loss | -0.2 to -0.3 |
+| Blowout loss | -0.5 to -1.0 |
+
+### Implementation Details
+- **Blowout detection:** Average set differential ≥4 games (6-2 or worse)
+- **Upset bonus:** +0.1 per TFR point difference (max +2.0)
+- **Blowout multiplier:** 1.5× points for blowout wins
+- **K-factor:** 32 for <10 matches, 24 for <30, 16 for 30+ (still in code but TFR system takes precedence)
+- **Rating bounds:** 10-80 TFR (1.0-8.0 NTRP)
+- **Example:** 10-4 record over 14 matches → ~+3-4 TFR (stay in same NTRP level)
 
 ### Skill Level Storage
 - **Scale:** Ratings stored as TFR (NTRP × 10), e.g., 3.5 NTRP = 35 TFR
@@ -160,7 +169,7 @@ Organization (Flex)
 | 14 | Doubles partner selection | ✅ Complete |
 | 15 | Season page UI improvements | ✅ Complete |
 | 16 | Flag review | ✅ Complete |
-| 17 | TFR algorithm | ⏳ Pending |
+| 17 | TFR algorithm | ✅ Complete |
 
 ---
 
@@ -223,6 +232,18 @@ Organization (Flex)
 - Dashboard fetches registrations via profile_id (not player_id) due to FK constraints
 - Registration page shows registered divisions + remaining available divisions
 - Fixed unique constraint: `season_registrations(player_id, season_id, division_id)` allows multiple divisions per player per season
+
+### Confidence Badges ✅
+- Updated thresholds: 0-4 (Projected), 5-9 (Developing), 10+ (Established)
+- Utility function `getConfidenceBadge()` in `src/utils/rating.ts`
+- Badges displayed on profile page and leaderboard
+
+### TFR Algorithm ✅
+- Conservative point system: +0.5-1.0 for expected win, +1.0-3.0 for upset
+- Close loss: -0.2 to -0.3, Blowout loss: -0.5 to -1.0
+- Blowout detection: average set differential ≥4 games
+- Conservative progression: ~2-2.5 years (2-3 seasons/year) to move up full point
+- Example: 10-4 record over 14 matches → ~+3-4 TFR (stay in same NTRP level)
 
 ### Database Fixes ✅
 - `season_registrations` table now has proper constraint for multi-division registration
@@ -436,4 +457,4 @@ CREATE INDEX IF NOT EXISTS idx_season_registrations_partner ON season_registrati
 - Phase 14 (Doubles Partner Selection): ✅ Complete
 - Phase 15 (Season Page UI): ✅ Complete
 - Phase 16 (Flag Review): ✅ Complete
-- Phase 17 (TFR Algorithm): ⏳ Pending
+- Phase 17 (TFR Algorithm): ✅ Complete

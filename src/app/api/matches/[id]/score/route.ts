@@ -33,13 +33,42 @@ function getKFactor(matchCount: number, ratingDeviation: number): number {
   return 16
 }
 
-function updateRating(
-  currentRating: number,
-  expected: number,
-  actual: number,
+// Calculate TFR point change based on result and score differential
+function calculateTfrChange(
+  playerRating: number,
+  opponentRating: number,
+  won: boolean,
+  score: string,
   kFactor: number
 ): number {
-  return currentRating + kFactor * (actual - expected)
+  const expected = calculateExpectedRating(playerRating, opponentRating)
+  
+  // Determine if it was a blowout (6-0, 6-1, 6-2) or close (6-4, 7-5, etc.)
+  const sets = score.split(' ')
+  let totalDiff = 0
+  let validSets = 0
+  
+  sets.forEach(set => {
+    const parts = set.includes('(') ? set.split('(')[0] : set
+    const [p1, p2] = parts.split('-').map(Number)
+    if (!isNaN(p1) && !isNaN(p2)) {
+      totalDiff += Math.abs(p1 - p2)
+      validSets++
+    }
+  })
+  
+  const avgDiff = validSets > 0 ? totalDiff / validSets : 2
+  const isBlowout = avgDiff >= 4  // 6-2 or worse
+  
+  if (won) {
+    // Win: +0.3 to +1.0 for expected, +0.5 to +3.0 for upset
+    const baseWin = opponentRating > playerRating ? 1.0 : 0.5
+    const upsetBonus = opponentRating > playerRating ? Math.min(2.0, (opponentRating - playerRating) / 10) : 0
+    return (baseWin + upsetBonus) * (isBlowout ? 1.5 : 1.0)
+  } else {
+    // Loss: -0.2 to -0.3 for close, -0.5 to -1.0 for blowout
+    return isBlowout ? -(0.5 + Math.random() * 0.5) : -(0.2 + Math.random() * 0.1)
+  }
 }
 
 async function updatePlayerRatings(
@@ -78,25 +107,12 @@ async function updatePlayerRatings(
   const homeMatchCount = homePlayer[matchCountField] || 0
   const awayMatchCount = awayPlayer[matchCountField] || 0
   
-  const homeExpected = calculateExpectedRating(homeRating, awayRating)
-  const awayExpected = calculateExpectedRating(awayRating, homeRating)
+  // Use TFR point system
+  const homeTfrChange = calculateTfrChange(homeRating, awayRating, winnerId === homePlayerId, score, getKFactor(homeMatchCount, homeRD))
+  const awayTfrChange = calculateTfrChange(awayRating, homeRating, winnerId === awayPlayerId, score, getKFactor(awayMatchCount, awayRD))
   
-  let homeActual = 0.5
-  let awayActual = 0.5
-  
-  if (winnerId === homePlayerId) {
-    homeActual = 1.0
-    awayActual = 0.0
-  } else if (winnerId === awayPlayerId) {
-    homeActual = 0.0
-    awayActual = 1.0
-  }
-  
-  const homeKFactor = getKFactor(homeMatchCount, homeRD)
-  const awayKFactor = getKFactor(awayMatchCount, awayRD)
-  
-  let newHomeRating = updateRating(homeRating, homeExpected, homeActual, homeKFactor)
-  let newAwayRating = updateRating(awayRating, awayExpected, awayActual, awayKFactor)
+  let newHomeRating = homeRating + homeTfrChange
+  let newAwayRating = awayRating + awayTfrChange
   
   newHomeRating = Math.max(10, Math.min(80, newHomeRating))
   newAwayRating = Math.max(10, Math.min(80, newAwayRating))
