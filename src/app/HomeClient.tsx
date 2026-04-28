@@ -186,7 +186,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                   <p className="text-xl text-slate-600 mb-8 leading-relaxed max-w-xl">
                     The league designed for the everyday player who loves the game but hates the rigid calendar. 
                     No forfeited matches or stressful coordination—just pure tennis on your terms. 
-                    Weekend warrior or weeknight post-work hitter, we find your level.
+                    Weekend warrior or weeknight post-work hitter, come Flex your game.
                   </p>
                 </AnimatedSection>
 
