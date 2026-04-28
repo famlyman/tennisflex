@@ -36,8 +36,7 @@ Organization (Flex)
 │   │           └── Match history
 │   ├── Match
 │   ├── Message
-│   ├── RatingFlag
-│   └── Extension
+│   └── RatingFlag
 └── ChapterRequest (pending Flexes)
 ```
 
@@ -56,7 +55,6 @@ Organization (Flex)
 | `matches` | Match scheduling and scores |
 | `messages` | In-app chat between opponents |
 | `rating_flags` | Anti-sandbagging reports |
-| `extensions` | Match time extension requests |
 
 ---
 

@@ -32,19 +32,13 @@ Tech Stack: Next.js 16, Supabase, TypeScript
 - ✅ divisions (Singles/Doubles types)
 - ✅ skill_levels (TFR rating buckets - stored as NTRP × 10)
 - ✅ players (TFR ratings)
-- ✅ matches (Match scheduling)
-- ⚠️ messages (In-app chat - defined but unused)
-- ⚠️ rating_flags (Anti-sandbagging - defined but unused)
-- ⚠️ extensions (Match time - defined but unused)
+- ✅ messages (In-app chat - fully implemented)
+- ✅ rating_flags (Anti-sandbagging - fully implemented)
 
 ### Features Not Yet Implemented
 
-1. **Notifications** - No notification system
-2. **In-app Messaging UI** - Table exists but no UI
-3. **Rating Flag Review UI** - Table exists but no UI
-4. **Match Extension UI** - Table exists but no UI
-5. **UTR Integration** - Column exists but unused
-6. **Season Completion/Standings** - No automated workflow
+1. **UTR Integration** - Column exists but backburnered (season length sufficient)
+2. **Match Extensions** - Removed from scope
 
 ---
 
@@ -110,16 +104,13 @@ Tech Stack: Next.js 16, Supabase, TypeScript
 
 ### Medium Priority (Future)
 
-4. Match Pairing Algorithm
-5. Messaging UI
-6. Profile Enhancements
-7. UTR Integration
+4. Profile Enhancements
+5. PWA Push Notifications
+6. Hit Partner Matching
 
 ### Nice to Have (Future)
 
-8. PWA Push Notifications
-9. Hit Partner Matching
-10. Analytics Dashboard
+7. Analytics Dashboard
 
 ---
 
