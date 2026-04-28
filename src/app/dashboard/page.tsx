@@ -106,6 +106,7 @@ async function getDashboardData(userId: string) {
   let playerSeasons: any[] = []
   let allOrgSeasons: any[] = []
   let player: any = null
+  let playerMatches: any[] = []
   let leaderboardData: any = null
   
   const { data: playerData } = await adminClient
@@ -174,29 +175,67 @@ async function getDashboardData(userId: string) {
       }
       playerSeasons = Array.from(seasonMap.values())
 
-      // Fetch leaderboard for player's registered skill level
-      if (playerRegistrations.length > 0) {
-        const primaryReg = playerRegistrations[0]
-        if (primaryReg.division && primaryReg.season) {
-          // Get skill levels for this division
-          const { data: skillLevels } = await adminClient
-            .from('skill_levels')
-            .select('id, name, min_rating, max_rating')
-            .eq('division_id', primaryReg.division.id)
-            .order('min_rating', { ascending: true })
+        // Fetch player's matches across all registrations
+        if (playerRegistrations.length > 0) {
+          // Get all skill level IDs from player's registrations
+          const skillLevelIds = playerRegistrations
+            .map((reg: any) => reg.skill_level_id)
+            .filter(Boolean)
           
-          if (skillLevels && skillLevels.length > 0) {
-            // Determine which rating to use based on division type (singles vs doubles)
-            const isDoubles = primaryReg.division.type?.includes('doubles') || primaryReg.division.name?.toLowerCase().includes('doubles')
-            const playerRating = isDoubles 
-              ? (player.initial_ntrp_doubles || player.tfr_doubles / 10 || 0)
-              : (player.initial_ntrp_singles || player.tfr_singles / 10 || 0)
+          if (skillLevelIds.length > 0) {
+            const { data: matches } = await adminClient
+              .from('matches')
+              .select(`
+                *,
+                skill_level:skill_levels!matches_skill_level_id_fkey (
+                  id, name, division:divisions!skill_levels_division_id_fkey (id, name, type)
+                ),
+                home_player:players!matches_home_player_id_fkey (
+                  id, profile:profiles (full_name)
+                ),
+                away_player:players!matches_away_player_id_fkey (
+                  id, profile:profiles (full_name)
+                )
+              `)
+              .or(`home_player_id.eq.${player.id},away_player_id.eq.${player.id}`)
+              .in('skill_level_id', skillLevelIds)
+              .order('created_at', { ascending: false })
             
-            console.log('DEBUG: Player rating:', playerRating, 'isDoubles:', isDoubles, 'skillLevels:', skillLevels.map(sl => ({ name: sl.name, min: sl.min_rating, max: sl.max_rating })))
-            
-            // Find the player's skill level based on their rating
-            // Note: skill_levels store ratings as TFR (e.g., 35 for 3.5), so we need to multiply
-            const playerTfr = playerRating * 10
+             // Add opponent name to each match
+            playerMatches = (matches || []).map((match: any) => {
+              const isHome = match.home_player_id === player.id
+              const opponent = isHome ? match.away_player : match.home_player
+              return {
+                ...match,
+                opponent_name: opponent?.profile?.full_name || 'Unknown'
+              }
+            })
+          }
+        }
+
+        // Fetch leaderboard for player's registered skill level
+        if (playerRegistrations.length > 0) {
+          const primaryReg = playerRegistrations[0]
+          if (primaryReg.division && primaryReg.season) {
+            // Get skill levels for this division
+            const { data: skillLevels } = await adminClient
+              .from('skill_levels')
+              .select('id, name, min_rating, max_rating')
+              .eq('division_id', primaryReg.division.id)
+              .order('min_rating', { ascending: true })
+           
+            if (skillLevels && skillLevels.length > 0) {
+              // Determine which rating to use based on division type (singles vs doubles)
+              const isDoubles = primaryReg.division.type?.includes('doubles') || primaryReg.division.name?.toLowerCase().includes('doubles')
+              const playerRating = isDoubles 
+                ? (player.initial_ntrp_doubles || player.tfr_doubles / 10 || 0)
+                : (player.initial_ntrp_singles || player.tfr_singles / 10 || 0)
+             
+              console.log('DEBUG: Player rating:', playerRating, 'isDoubles:', isDoubles, 'skillLevels:', skillLevels.map(sl => ({ name: sl.name, min: sl.min_rating, max: sl.max_rating })))
+             
+              // Find the player's skill level based on their rating
+              // Note: skill_levels store ratings as TFR (e.g., 35 for 3.5), so we need to multiply
+              const playerTfr = playerRating * 10
             const playerSkillLevel = skillLevels.find((sl: any) => {
               if (!sl.min_rating || !sl.max_rating) return false
               return playerTfr >= sl.min_rating && playerTfr <= sl.max_rating
@@ -268,6 +307,7 @@ async function getDashboardData(userId: string) {
     isCoordinator,
     player,
     playerRegistrations,
+    playerMatches,
     activeMatchCount: 0,
     organizations: [],
     seasons: playerSeasons.length > 0 ? playerSeasons : allOrgSeasons,
@@ -475,6 +515,62 @@ export default async function Dashboard() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Player Matches Card */}
+              {dashboardData.playerMatches && dashboardData.playerMatches.length > 0 && (
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900">Your Matches</h3>
+                    <span className="text-sm text-slate-500">
+                      {dashboardData.playerMatches.filter((m: any) => m.status === 'completed').length} completed, {' '}
+                      {dashboardData.playerMatches.filter((m: any) => m.status !== 'completed').length} scheduled
+                    </span>
+                  </div>
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {dashboardData.playerMatches.map((match: any) => {
+                      const isHome = match.home_player_id === dashboardData.player?.id
+                      const opponentId = isHome ? match.away_player_id : match.home_player_id
+                      const isWinner = match.winner_id === dashboardData.player?.id
+                      const isCompleted = match.status === 'completed'
+                      
+                      return (
+                        <div key={match.id} className={`p-3 rounded-lg border ${isCompleted ? 'bg-slate-50 border-slate-200' : 'bg-blue-50 border-blue-200'}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${isCompleted ? (isWinner ? 'bg-emerald-500' : 'bg-red-500') : 'bg-blue-500'}`}></span>
+                                <p className="text-sm font-medium text-slate-900">
+                                  vs {match.opponent_name || 'Unknown'}
+                                </p>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                {match.skill_level?.division?.name || 'Unknown division'} • {' '}
+                                {isCompleted ? 'Completed' : 'Scheduled'}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              {isCompleted && match.score ? (
+                                <div>
+                                  <p className={`text-sm font-bold ${isWinner ? 'text-emerald-600' : 'text-red-600'}`}>
+                                    {match.score}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {isWinner ? 'Won' : 'Lost'}
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                  Scheduled
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}
