@@ -161,7 +161,6 @@ Organization (Flex)
 | 9 | Player registration | ✅ Complete |
 | 10 | Match pages + scoring | ✅ Complete |
 | 11 | Score submission | ✅ Complete |
-<<<<<<< HEAD
 | 12 | Leaderboard | ✅ Complete |
 | 13 | Season registration tracking | ✅ Complete |
 | 14 | Doubles partner selection | ✅ Complete |
@@ -320,18 +319,15 @@ RESEND_API_KEY=                  # Resend API key for transactional emails (free
 - **Score submission modal**: Set-by-set dropdowns (0-7), winner selection
 - **Per-division leaderboard**: Fixed org lookup through division→season→organization chain
 - **Fixed pending matches**: Dashboard now correctly counts non-completed matches
-<<<<<<< HEAD
 - **Season registration tracking**: Resolved issue with player ↔ season relationship
   - Created `season_registrations` table to track season/division registrations
   - Added RLS policies for player INSERT and SELECT
   - Updated `/api/seasons/[id]/register` to insert registration records
   - Added check-if-exists before insert to handle duplicates
   - Added comprehensive debug logging for troubleshooting
-=======
 - **Player dashboard cards**: Changed to 3-column horizontal layout
 - **Leaderboard card**: Now shows actual leaderboard for player's skill level based on their TFR/initial NTRP
 - **Profile page redesign**: Modern profile with avatar (initials), stats grid, two-column layout for ratings and account
->>>>>>> a22e7e4d73ca7391e0210905b45995b2ca89d4da
 
 ### Quick SQL Reference
 
