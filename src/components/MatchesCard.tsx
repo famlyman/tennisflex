@@ -85,12 +85,14 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
   const [loadingAvailability, setLoadingAvailability] = useState(false)
   const supabaseClient = getSupabaseClient()
 
+  const cleanId = (id: string) => id.replace(/[}%7D{}]/g, '').trim()
+  
   const openMatchModal = async (match: Match) => {
     setSelectedMatch(match)
     setLoadingAvailability(true)
     
     try {
-      const res = await fetch(`/api/matches/${encodeURIComponent(match.id)}/availability`)
+      const res = await fetch(`/api/matches/${cleanId(match.id)}/availability`)
       const data = await res.json()
       setMatchAvailability(data.myAvailability || [])
       setOpponentAvailability(data.opponentAvailability || [])
@@ -105,7 +107,7 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
     if (!selectedMatch) return
     
     try {
-      await fetch(`/api/matches/${encodeURIComponent(selectedMatch.id)}/availability}`, {
+      await fetch(`/api/matches/${cleanId(selectedMatch.id)}/availability}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dates })
