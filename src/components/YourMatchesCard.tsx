@@ -114,20 +114,16 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
     }
   }
 
-  function updateNote(date: string, note: string) {
-    setMyAvailability(myAvailability.map(d => 
-      d.date === date ? { ...d, note } : d
-    ))
-  }
-
   async function handleSave() {
     setSaving(true)
     try {
       const dates = myAvailability.map(d => d.date)
       const notes: {[key: string]: string} = {}
-      myAvailability.forEach(d => {
-        if (d.note) notes[d.date] = d.note
-      })
+      if (note) {
+        dates.forEach(d => {
+          notes[d] = note
+        })
+      }
       
       const res = await fetch('/api/player/availability', {
         method: 'POST',
@@ -294,36 +290,39 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                     {myAvailability.length === 0 ? (
                       <p className="text-sm text-slate-500">No dates selected yet.</p>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
                         {myAvailability.sort((a, b) => a.date.localeCompare(b.date)).map((item) => {
                           const d = new Date(item.date + 'T00:00:00')
                           return (
-                            <div key={item.date} className="p-3 bg-indigo-50 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium text-indigo-900">
-                                  {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                </p>
-                                <button
-                                  onClick={() => {
-                                    setMyAvailability(myAvailability.filter(d => d.date !== item.date))
-                                  }}
-                                  className="text-xs text-red-600 hover:text-red-800"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                              <textarea
-                                value={item.note}
-                                onChange={(e) => updateNote(item.date, e.target.value)}
-                                placeholder="Add a note (e.g., evenings work best...)"
-                                className="mt-2 w-full px-2 py-1 text-sm border border-indigo-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                rows={2}
-                              />
-                            </div>
+                            <span key={item.date} className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm flex items-center gap-2">
+                              {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              <button
+                                onClick={() => {
+                                  setMyAvailability(myAvailability.filter(d => d.date !== item.date))
+                                }}
+                                className="text-xs text-red-600 hover:text-red-800"
+                              >
+                                ×
+                              </button>
+                            </span>
                           )
                         })}
                       </div>
                     )}
+
+                    <div className="mt-4">
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Notes (applies to all your available dates)
+                      </label>
+                      <textarea
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        placeholder="e.g., evenings work best..."
+                        className="w-full px-3 py-2 text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
                   </div>
 
                   <div className="flex gap-3">
