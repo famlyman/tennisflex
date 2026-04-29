@@ -202,7 +202,7 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                     <h3 className="font-semibold text-slate-900 mb-3">Select Available Dates</h3>
                     <div className="dark-calendar">
                       <Calendar
-                        calendarType="US"
+                        locale="en-US"
                         onClickDay={(value) => {
                           const d = new Date(value)
                           const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
