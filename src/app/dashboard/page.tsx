@@ -4,6 +4,16 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase'
 import NotificationBell from '@/components/NotificationBell'
+import YourMatchesCard from '@/components/YourMatchesCard'
+
+interface MatchData {
+  id: string
+  scheduled_at: string | null
+  status: string
+  skill_level_name: string
+  division_type: string
+  opponent_name: string
+}
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -107,6 +117,7 @@ async function getDashboardData(userId: string) {
   let allOrgSeasons: any[] = []
   let player: any = null
   let leaderboardData: any = null
+  let upcomingMatches: MatchData[] = []
   
   const { data: playerData } = await adminClient
     .from('players')
@@ -260,6 +271,35 @@ async function getDashboardData(userId: string) {
           }
         }
       }
+
+      // Fetch upcoming matches for this player
+      const { data: matches } = await adminClient
+        .from('matches')
+        .select(`
+          id,
+          scheduled_at,
+          status,
+          skill_level:skill_levels!matches_skill_level_id_fkey (
+            name,
+            division:divisions!skill_levels_division_id_fkey (type)
+          ),
+          home_player:players!matches_home_player_id_fkey (id, profile:profiles!players_profile_id_fkey (full_name)),
+          away_player:players!matches_away_player_id_fkey (id, profile:profiles!players_profile_id_fkey (full_name))
+        `)
+        .or(`home_player_id.eq.${player.id},away_player_id.eq.${player.id}`)
+        .neq('status', 'completed')
+        .order('scheduled_at', { ascending: true })
+
+      upcomingMatches = (matches || []).map((m: any) => ({
+        id: m.id,
+        scheduled_at: m.scheduled_at,
+        status: m.status,
+        skill_level_name: m.skill_level?.name,
+        division_type: m.skill_level?.division?.type,
+        opponent_name: m.home_player?.id === player.id 
+          ? m.away_player?.profile?.full_name 
+          : m.home_player?.profile?.full_name,
+      }))
     }
   }
 
@@ -276,6 +316,7 @@ async function getDashboardData(userId: string) {
     totalMatches: 0,
     pendingMatches: 0,
     leaderboardData,
+    upcomingMatches,
   }
 }
 
@@ -446,6 +487,11 @@ export default async function Dashboard() {
                   <p className="text-slate-500 text-sm">Join a season to appear on the leaderboard!</p>
                 )}
               </div>
+
+              {/* Your Matches Card */}
+              {dashboardData.upcomingMatches && dashboardData.upcomingMatches.length > 0 && (
+                <YourMatchesCard matches={dashboardData.upcomingMatches} />
+              )}
 
               {dashboardData.playerRegistrations.length > 0 && (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
