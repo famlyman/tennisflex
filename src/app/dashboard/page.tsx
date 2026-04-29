@@ -338,6 +338,9 @@ async function getDashboardData(userId: string) {
         opponent_name: m.home_player?.id === player.id 
           ? m.away_player?.profile?.full_name 
           : m.home_player?.profile?.full_name,
+        opponent_id: m.home_player?.id === player.id 
+          ? m.away_player?.id 
+          : m.home_player?.id,
       }))
     }
   }
@@ -528,53 +531,48 @@ export default async function Dashboard() {
                 )}
               </div>
 
-              {/* Your Matches Card */}
-              {dashboardData.upcomingMatches && dashboardData.upcomingMatches.length > 0 && (
-                <YourMatchesCard matches={dashboardData.upcomingMatches} />
-              )}
+               {dashboardData.playerRegistrations.length > 0 && (
+                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                   <div className="flex items-center justify-between mb-4">
+                     <h3 className="text-lg font-semibold text-slate-900">Your Registrations</h3>
+                     <Link href="/seasons" className="text-sm text-indigo-600 hover:underline">
+                       More →
+                     </Link>
+                   </div>
+                   <div className="space-y-3">
+                     {dashboardData.playerRegistrations.map((reg: any) => (
+                       <div key={reg.id} className="p-3 bg-slate-50 rounded-lg">
+                         <div className="flex items-center justify-between">
+                           <div>
+                             <p className="font-medium text-slate-900 text-sm">{reg.season?.name}</p>
+                             <p className="text-xs text-slate-500">
+                               {reg.division?.name || reg.division?.type?.replace('_', ' ')}
+                             </p>
+                           </div>
+                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                             reg.season?.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                             reg.season?.status === 'registration_open' ? 'bg-emerald-100 text-emerald-700' :
+                             'bg-slate-100 text-slate-500'
+                           }`}>
+                             {reg.season?.status?.replace('_', ' ')}
+                           </span>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
 
-              {dashboardData.playerRegistrations.length > 0 && (
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-slate-900">Your Registrations</h3>
-                    <Link href="/seasons" className="text-sm text-indigo-600 hover:underline">
-                      More →
-                    </Link>
-                  </div>
-                  <div className="space-y-3">
-                    {dashboardData.playerRegistrations.map((reg: any) => (
-                      <div key={reg.id} className="p-3 bg-slate-50 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-slate-900 text-sm">{reg.season?.name}</p>
-                            <p className="text-xs text-slate-500">
-                              {reg.division?.name || reg.division?.type?.replace('_', ' ')}
-                            </p>
-                          </div>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            reg.season?.status === 'active' ? 'bg-blue-100 text-blue-700' :
-                            reg.season?.status === 'registration_open' ? 'bg-emerald-100 text-emerald-700' :
-                            'bg-slate-100 text-slate-500'
-                          }`}>
-                            {reg.season?.status?.replace('_', ' ')}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Player Matches Card */}
-              {dashboardData.playerMatches && dashboardData.playerMatches.length > 0 && (
-                <YourMatchesCard 
-                  matches={dashboardData.upcomingMatches} 
-                  playerId={dashboardData.player?.id} 
-                />
-              )}
-            </>
-          )}
-        </div>
+               {/* Player Matches Card */}
+               {dashboardData.playerMatches && dashboardData.playerMatches.length > 0 && (
+                 <YourMatchesCard 
+                   matches={dashboardData.upcomingMatches} 
+                   playerId={dashboardData.player?.id} 
+                 />
+               )}
+             </>
+           )}
+         </div>
 
         {/* Seasons List for Coordinators */}
         {isCoordinator && (

@@ -4,6 +4,52 @@ import { useState } from 'react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import Link from 'next/link'
+import { getSupabaseClient } from '@/utils/client'
+
+const calendarStyles = `
+  .dark-calendar .react-calendar {
+    width: 100%;
+    border: none;
+    font-family: inherit;
+  }
+  .dark-calendar .react-calendar__navigation {
+    margin-bottom: 1rem;
+  }
+  .dark-calendar .react-calendar__navigation button {
+    color: #111827;
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+  .dark-calendar .react-calendar__navigation button:enabled:hover,
+  .dark-calendar .react-calendar__navigation button:enabled:focus {
+    background-color: #f3f4f6;
+    border-radius: 0.375rem;
+  }
+  .dark-calendar .react-calendar__navigation__arrow {
+    font-size: 1.5rem;
+    color: #111827;
+    font-weight: 700;
+  }
+  .dark-calendar .react-calendar__month-view__weekdays {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #111827;
+    text-transform: uppercase;
+  }
+  .dark-calendar .react-calendar__tile {
+    color: #111827;
+    font-weight: 600;
+  }
+  .dark-calendar .react-calendar__tile:enabled:hover,
+  .dark-calendar .react-calendar__tile:enabled:focus {
+    background-color: #e0e7ff;
+    border-radius: 0.375rem;
+  }
+  .dark-calendar .react-calendar__tile--now {
+    font-weight: 700;
+    color: #4338ca;
+  }
+`
 
 interface Match {
   id: string
@@ -13,6 +59,7 @@ interface Match {
   skill_level_id?: string
   division_type: string
   opponent_name: string
+  opponent_id?: string
   season_id?: string
 }
 
@@ -24,24 +71,31 @@ interface YourMatchesCardProps {
 export default function YourMatchesCard({ matches, playerId }: YourMatchesCardProps) {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
   const [myAvailability, setMyAvailability] = useState<string[]>([])
-  const [opponentAvailability, setOpponentAvailability] = useState<{date: string, player_name: string}[]>([])
+  const [opponentAvailability, setOpponentAvailability] = useState<string[]>([])
   const [opponentName, setOpponentName] = useState('Opponent')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-
-  const cleanId = (id: string) => id.replace(/[}%7D{}]/g, '').trim()
 
   async function openAvailability(match: Match) {
     setSelectedMatch(match)
     setLoading(true)
 
     try {
-      const res = await fetch(`/api/matches/${cleanId(match.id)}/availability`)
-      if (res.ok) {
-        const data = await res.json()
-        setMyAvailability(data.myAvailability || [])
-        setOpponentAvailability(data.opponentAvailability || [])
-        setOpponentName(data.opponentName || 'Opponent')
+      // Get my availability
+      const myRes = await fetch('/api/player/availability')
+      if (myRes.ok) {
+        const myData = await myRes.json()
+        setMyAvailability(myData.availability || [])
+      }
+
+      // Get opponent's availability
+      if (match.opponent_id) {
+        const oppRes = await fetch(`/api/player/availability?player_id=${match.opponent_id}`)
+        if (oppRes.ok) {
+          const oppData = await oppRes.json()
+          setOpponentAvailability(oppData.availability || [])
+        }
+        setOpponentName(match.opponent_name)
       }
     } catch (e) {
       console.error('Failed to load availability:', e)
@@ -59,17 +113,16 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
   }
 
   async function handleSave() {
-    if (!selectedMatch) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/matches/${cleanId(selectedMatch.id)}/availability`, {
+      const res = await fetch('/api/player/availability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dates: myAvailability }),
       })
       if (res.ok) {
         const data = await res.json()
-        setOpponentAvailability(data.opponentAvailability || [])
+        setMyAvailability(data.availability || [])
       }
     } catch (e) {
       console.error('Failed to save:', e)
@@ -82,15 +135,9 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
     return null
   }
 
-  const today = new Date().toISOString().split('T')[0]
-  const next14Days = Array.from({ length: 14 }, (_, i) => {
-    const date = new Date()
-    date.setDate(date.getDate() + i)
-    return date.toISOString().split('T')[0]
-  })
-
   return (
     <>
+      <style>{calendarStyles}</style>
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
         <h3 className="text-lg font-semibold text-slate-900 mb-4">Your Matches</h3>
         <div className="space-y-3">
@@ -153,29 +200,31 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                 <>
                   <div>
                     <h3 className="font-semibold text-slate-900 mb-3">Select Available Dates</h3>
-                    <Calendar
-                      onClickDay={(value) => {
-                        const dateStr = new Date(value).toISOString().split('T')[0]
-                        toggleDate(dateStr)
-                      }}
-                      tileClassName={({ date }) => {
-                        const dateStr = date.toISOString().split('T')[0]
-                        const myDate = myAvailability.includes(dateStr)
-                        const opponentDate = opponentAvailability.some(a => a.date === dateStr)
+                    <div className="dark-calendar">
+                      <Calendar
+                        onClickDay={(value) => {
+                          const dateStr = new Date(value).toISOString().split('T')[0]
+                          toggleDate(dateStr)
+                        }}
+                        tileClassName={({ date }) => {
+                          const dateStr = date.toISOString().split('T')[0]
+                          const myDate = myAvailability.includes(dateStr)
+                          const opponentDate = opponentAvailability.includes(dateStr)
 
-                        if (myDate && opponentDate) {
-                          return 'bg-purple-300 text-purple-900 font-bold rounded border-2 border-purple-500'
-                        }
-                        if (myDate) {
-                          return 'bg-indigo-200 text-indigo-900 font-bold rounded'
-                        }
-                        if (opponentDate) {
-                          return 'bg-emerald-200 text-emerald-900 font-bold rounded'
-                        }
-                        return 'text-gray-900'
-                      }}
-                      minDate={new Date()}
-                    />
+                          if (myDate && opponentDate) {
+                            return 'bg-purple-300 text-purple-900 font-bold rounded border-2 border-purple-500'
+                          }
+                          if (myDate) {
+                            return 'bg-indigo-200 text-indigo-900 font-bold rounded'
+                          }
+                          if (opponentDate) {
+                            return 'bg-emerald-200 text-emerald-900 font-bold rounded'
+                          }
+                          return 'text-gray-900'
+                        }}
+                        minDate={new Date()}
+                      />
+                    </div>
 
                     <div className="flex flex-wrap gap-4 mt-3 text-xs">
                       <div className="flex items-center gap-1">
@@ -205,10 +254,10 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                     <div>
                       <h3 className="font-semibold text-slate-900 mb-3">{opponentName}'s Availability</h3>
                       <div className="space-y-2">
-                        {opponentAvailability.map((slot, idx) => (
+                        {opponentAvailability.map((date, idx) => (
                           <div key={idx} className="p-3 bg-emerald-50 rounded-lg">
                             <p className="font-medium text-slate-900">
-                              {new Date(slot.date).toLocaleDateString('en-US', {
+                              {new Date(date).toLocaleDateString('en-US', {
                                 weekday: 'short',
                                 month: 'short',
                                 day: 'numeric'
@@ -235,24 +284,22 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                     )}
                   </div>
 
-                  {selectedMatch.skill_level_id && (
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setSelectedMatch(null)}
-                        className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setSelectedMatch(null)}
+                      className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+                    >
+                      Close
+                    </button>
+                    {selectedMatch.season_id && selectedMatch.skill_level_id && (
+                      <Link
+                        href={`/seasons/${selectedMatch.season_id}/skill-level/${selectedMatch.skill_level_id}`}
+                        className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-center"
                       >
-                        Close
-                      </button>
-                      {selectedMatch.season_id && (
-                        <Link
-                          href={`/seasons/${selectedMatch.season_id}/skill-level/${selectedMatch.skill_level_id}`}
-                          className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-center"
-                        >
-                          View Matches
-                        </Link>
-                      )}
-                    </div>
-                  )}
+                        View Matches
+                      </Link>
+                    )}
+                  </div>
                 </>
               )}
             </div>

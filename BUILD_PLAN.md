@@ -528,13 +528,16 @@ CREATE INDEX IF NOT EXISTS idx_season_registrations_partner ON season_registrati
 - Added `src/app/seasons/error.tsx` (Seasons list error page)
 - Added `src/app/seasons/[id]/not-found.tsx` (Season-specific 404)
 
-### Match Availability System ✅
-- Created `supabase/match_availability.sql` with table definition
-- Table: `match_availability` (id, match_id, player_id, available_date)
-- Unique constraint prevents duplicate date entries per player per match
-- RLS policies: players can only manage their own availability
-- API endpoint: `/api/matches/[id]/availability` (GET/POST/DELETE)
-- Allows players to set specific dates they're available for matches
+### Match Availability Feature ✅
+- Created `supabase/universal_availability.sql` with new table definition
+- Table: `player_availability` (id, player_id, available_date)
+- UNIQUE constraint prevents duplicate date entries per player
+- RLS policies: players can only manage their own availability, all can view
+- API endpoint: `/api/player/availability` (GET/POST)
+  - GET: Fetch player's available dates (?player_id=X for opponent)
+  - POST: Save player's available dates (replaces all existing)
+- Allows players to set general availability dates visible to all opponents
+- Calendar shows overlapping dates where both players are available (purple highlight)
 
 ### Notifications System ✅
 - Created `src/utils/notifications.ts` with helper functions:
@@ -602,6 +605,6 @@ CREATE INDEX IF NOT EXISTS idx_season_registrations_partner ON season_registrati
 - `src/app/dashboard/page.tsx` (modified - added MatchesCard)
 - `src/app/profile/page.tsx` (modified - removed USTA number)
 - `src/app/api/matches/[id]/score/route.ts` (modified - added notifications)
-- `src/app/api/matches/[id]/availability/route.ts` (new)
+- `src/app/api/player/availability/route.ts` (new)
 - `package.json` (added react-calendar)
 - `BUILD_PLAN.md` (this update)

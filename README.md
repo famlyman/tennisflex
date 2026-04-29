@@ -18,17 +18,17 @@ A multi-tenant tennis league management platform built with Next.js 16 and Supab
 ### Recent Updates (April 2026)
 
 #### Match Availability Feature
-- **API Route**: `/api/matches/[id]/availability` (GET/POST)
-  - GET: Fetch match details and player availability slots
-  - POST: Save player availability for match scheduling
+- **API Route**: `/api/player/availability` (GET/POST)
+  - GET: Fetch player's available dates (optionally ?player_id=X for opponent)
+  - POST: Save player's available dates
   
-- **Database**: New `match_availability` table
+- **Database**: New `player_availability` table
   - Stores player availability with date and time slots
   - Row Level Security (RLS) policies for players and coordinators
-  
+   
 - **UI Components**:
   - `YourMatchesCard` - Displays upcoming matches on player dashboard with "Set Availability" button
-  - `MatchAvailabilityModal` - Modal for selecting available dates and time slots
+  - Uses react-calendar to show availability with overlapping date detection
   - Time slots: Morning (8am-12pm), Afternoon (12pm-5pm), Evening (5pm-9pm), Night (9pm+)
 
 ## Getting Started
