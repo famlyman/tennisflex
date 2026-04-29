@@ -4,16 +4,26 @@
 -- First, backup existing data if needed (optional)
 -- CREATE TABLE match_availability_backup AS SELECT * FROM match_availability;
 
--- Drop the old table
+-- Drop the old table if exists
 DROP TABLE IF EXISTS match_availability;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Players can view all availability" ON player_availability;
+DROP POLICY IF EXISTS "Players can insert own availability" ON player_availability;
+DROP POLICY IF EXISTS "Players can update own availability" ON player_availability;
+DROP POLICY IF EXISTS "Players can delete own availability" ON player_availability;
+DROP POLICY IF EXISTS "Service role full access" ON player_availability;
+
+-- Drop table if exists to start fresh
+DROP TABLE IF EXISTS player_availability;
 
 -- Create new universal availability table
 CREATE TABLE IF NOT EXISTS player_availability (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
   available_date date NOT NULL,
+  note text,
   created_at timestamptz DEFAULT now(),
-  
   UNIQUE(player_id, available_date)
 );
 
@@ -34,6 +44,14 @@ FOR SELECT USING (true);
 -- Players can only insert/update their own availability
 CREATE POLICY "Players can insert own availability" ON player_availability
 FOR INSERT WITH CHECK (
+  player_id IN (
+    SELECT id FROM players 
+    WHERE profile_id = auth.uid()
+  )
+);
+
+CREATE POLICY "Players can update own availability" ON player_availability
+FOR UPDATE USING (
   player_id IN (
     SELECT id FROM players 
     WHERE profile_id = auth.uid()

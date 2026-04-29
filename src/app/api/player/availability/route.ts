@@ -44,13 +44,16 @@ export async function GET(request: Request) {
   // Get availability for the target player
   const { data: availability } = await adminClient
     .from('player_availability')
-    .select('available_date')
+    .select('available_date, note')
     .eq('player_id', targetPlayerId)
     .order('available_date', { ascending: true })
 
   return NextResponse.json({
     playerId: targetPlayerId,
-    availability: (availability || []).map(a => a.available_date),
+    availability: (availability || []).map(a => ({
+      date: a.available_date,
+      note: a.note || ''
+    })),
   })
 }
 
@@ -87,7 +90,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { dates } = body // Array of date strings
+  const { dates, notes } = body // dates: Array of date strings, notes: Object {date: note}
 
   if (!Array.isArray(dates)) {
     return NextResponse.json({ error: 'Dates must be an array' }, { status: 400 })
@@ -103,7 +106,8 @@ export async function POST(request: Request) {
   if (dates.length > 0) {
     const inserts = dates.map((date: string) => ({
       player_id: player.id,
-      available_date: date
+      available_date: date,
+      note: notes && notes[date] ? notes[date] : null
     }))
 
     const { error } = await adminClient
@@ -118,12 +122,15 @@ export async function POST(request: Request) {
   // Return updated availability
   const { data: availability } = await adminClient
     .from('player_availability')
-    .select('available_date')
+    .select('available_date, note')
     .eq('player_id', player.id)
     .order('available_date', { ascending: true })
 
   return NextResponse.json({
     success: true,
-    availability: (availability || []).map(a => a.available_date),
+    availability: (availability || []).map(a => ({
+      date: a.available_date,
+      note: a.note || ''
+    })),
   })
 }

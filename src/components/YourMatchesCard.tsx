@@ -70,11 +70,12 @@ interface YourMatchesCardProps {
 
 export default function YourMatchesCard({ matches, playerId }: YourMatchesCardProps) {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
-  const [myAvailability, setMyAvailability] = useState<string[]>([])
-  const [opponentAvailability, setOpponentAvailability] = useState<string[]>([])
+  const [myAvailability, setMyAvailability] = useState<{date: string, note: string}[]>([])
+  const [opponentAvailability, setOpponentAvailability] = useState<{date: string, note: string}[]>([])
   const [opponentName, setOpponentName] = useState('Opponent')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [note, setNote] = useState('')
 
   async function openAvailability(match: Match) {
     setSelectedMatch(match)
@@ -105,20 +106,33 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
   }
 
   function toggleDate(date: string) {
-    if (myAvailability.includes(date)) {
-      setMyAvailability(myAvailability.filter(d => d !== date))
+    const existing = myAvailability.find(d => d.date === date)
+    if (existing) {
+      setMyAvailability(myAvailability.filter(d => d.date !== date))
     } else {
-      setMyAvailability([...myAvailability, date])
+      setMyAvailability([...myAvailability, { date, note: '' }])
     }
+  }
+
+  function updateNote(date: string, note: string) {
+    setMyAvailability(myAvailability.map(d => 
+      d.date === date ? { ...d, note } : d
+    ))
   }
 
   async function handleSave() {
     setSaving(true)
     try {
+      const dates = myAvailability.map(d => d.date)
+      const notes: {[key: string]: string} = {}
+      myAvailability.forEach(d => {
+        if (d.note) notes[d.date] = d.note
+      })
+      
       const res = await fetch('/api/player/availability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dates: myAvailability }),
+        body: JSON.stringify({ dates, notes }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -182,7 +196,7 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                 </div>
                 <button
                   onClick={() => setSelectedMatch(null)}
-                  className="text-slate-400 hover:text-slate-600"
+                  className="text-slate-900 hover:text-slate-600"
                 >
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -211,8 +225,8 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                         tileClassName={({ date }) => {
                           const d = new Date(date)
                           const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-                          const myDate = myAvailability.includes(dateStr)
-                          const opponentDate = opponentAvailability.includes(dateStr)
+                          const myDate = myAvailability.some(d => d.date === dateStr)
+                          const opponentDate = opponentAvailability.some(d => d.date === dateStr)
 
                           if (myDate && opponentDate) {
                             return 'bg-purple-300 text-purple-900 font-bold rounded border-2 border-purple-500'
@@ -257,15 +271,18 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                     <div>
                       <h3 className="font-semibold text-slate-900 mb-3">{opponentName}'s Availability</h3>
                       <div className="space-y-2">
-                        {opponentAvailability.map((date, idx) => (
+                        {opponentAvailability.map((item, idx) => (
                           <div key={idx} className="p-3 bg-emerald-50 rounded-lg">
                             <p className="font-medium text-slate-900">
-                              {new Date(date).toLocaleDateString('en-US', {
+                              {new Date(item.date + 'T00:00:00').toLocaleDateString('en-US', {
                                 weekday: 'short',
                                 month: 'short',
                                 day: 'numeric'
                               })}
                             </p>
+                            {item.note && (
+                              <p className="text-sm text-slate-600 mt-1">{item.note}</p>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -277,13 +294,32 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                     {myAvailability.length === 0 ? (
                       <p className="text-sm text-slate-500">No dates selected yet.</p>
                     ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {myAvailability.sort().map((date: string) => {
-                          const d = new Date(date + 'T00:00:00')
+                      <div className="space-y-2">
+                        {myAvailability.sort((a, b) => a.date.localeCompare(b.date)).map((item) => {
+                          const d = new Date(item.date + 'T00:00:00')
                           return (
-                            <span key={date} className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm">
-                              {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </span>
+                            <div key={item.date} className="p-3 bg-indigo-50 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium text-indigo-900">
+                                  {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </p>
+                                <button
+                                  onClick={() => {
+                                    setMyAvailability(myAvailability.filter(d => d.date !== item.date))
+                                  }}
+                                  className="text-xs text-red-600 hover:text-red-800"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                              <textarea
+                                value={item.note}
+                                onChange={(e) => updateNote(item.date, e.target.value)}
+                                placeholder="Add a note (e.g., evenings work best...)"
+                                className="mt-2 w-full px-2 py-1 text-sm border border-indigo-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                rows={2}
+                              />
+                            </div>
                           )
                         })}
                       </div>
