@@ -194,7 +194,7 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                   onClick={() => setSelectedMatch(null)}
                   className="text-slate-900 hover:text-slate-600"
                 >
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-6 h-6 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -210,34 +210,35 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                 <>
                   <div>
                     <h3 className="font-semibold text-slate-900 mb-3">Select Available Dates</h3>
-                    <div className="dark-calendar">
-                      <Calendar
-                        locale="en-US"
-                        onClickDay={(value) => {
-                          const d = new Date(value)
-                          const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-                          toggleDate(dateStr)
-                        }}
-                        tileClassName={({ date }) => {
-                          const d = new Date(date)
-                          const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-                          const myDate = myAvailability.some(d => d.date === dateStr)
-                          const opponentDate = opponentAvailability.some(d => d.date === dateStr)
+                     <div className="dark-calendar">
+                       <Calendar
+                         key={JSON.stringify(myAvailability.map(d => d.date))}
+                         locale="en-US"
+                         onClickDay={(value) => {
+                           const d = new Date(value)
+                           const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+                           toggleDate(dateStr)
+                         }}
+                         tileClassName={({ date }) => {
+                           const d = new Date(date)
+                           const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+                           const myDate = myAvailability.some(d => d.date === dateStr)
+                           const opponentDate = opponentAvailability.some(d => d.date === dateStr)
 
-                          if (myDate && opponentDate) {
-                            return 'bg-purple-300 text-purple-900 font-bold rounded border-2 border-purple-500'
-                          }
-                          if (myDate) {
-                            return 'bg-indigo-200 text-indigo-900 font-bold rounded'
-                          }
-                          if (opponentDate) {
-                            return 'bg-emerald-200 text-emerald-900 font-bold rounded'
-                          }
-                          return 'text-gray-900'
-                        }}
-                        minDate={new Date()}
-                      />
-                    </div>
+                           if (myDate && opponentDate) {
+                             return 'bg-purple-300 text-purple-900 font-bold rounded border-2 border-purple-500'
+                           }
+                           if (myDate) {
+                             return 'bg-indigo-200 text-indigo-900 font-bold rounded'
+                           }
+                           if (opponentDate) {
+                             return 'bg-emerald-200 text-emerald-900 font-bold rounded'
+                           }
+                           return 'text-gray-900'
+                         }}
+                         minDate={new Date()}
+                       />
+                     </div>
 
                     <div className="flex flex-wrap gap-4 mt-3 text-xs">
                       <div className="flex items-center gap-1">

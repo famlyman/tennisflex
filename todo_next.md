@@ -35,6 +35,13 @@ This document outlines the logical progression for the Tennis-Flex platform foll
 - [ ] **Flagging Heatmap:** Identify "problem players" who receive frequent rating flags.
 - [ ] **Growth Tracking:** Compare registration counts across historical seasons.
 
+## 📱 Priority 6: Mobile Expansion (Monorepo Strategy)
+**Goal:** Transition to a shared-core architecture to support a native Expo/React Native app.
+- [ ] **Turborepo Migration:** Restructure the project into a monorepo (`apps/web`, `apps/mobile`, `packages/shared`).
+- [ ] **Shared Logic:** Extract TFR algorithm and Supabase types into a shared `packages/logic` directory.
+- [ ] **Native Features:** Implement the Player Journey in Expo (Push Notifications, Deep Linking, Native UI).
+- [ ] **Dashboard Retention:** Keep the Next.js app for complex Coordinator Dashboard tasks while using Expo for the Player experience.
+
 ## 🛠 Technical Debt & Maintenance
 - [ ] **Push Notifications:** Move beyond the in-app bell to native PWA push notifications.
 - [ ] **API Rate Limiting:** Implement Vercel Edge middleware for protection.
