@@ -1,4 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tennis-Flex
+
+A multi-tenant tennis league management platform built with Next.js 16 and Supabase.
+
+## Features
+
+### Core Functionality
+- **Multi-Tenant Architecture** - Organizations (Flexes) with regional support
+- **Season Management** - Full lifecycle: upcoming → registration_open → active → completed
+- **Player Registration** - Multi-division registration with NTRP ratings and doubles partner selection
+- **Match System** - Round-robin generation, score submission, TFR rating updates
+- **TFR Rating Algorithm** - Conservative rating system with blowout detection, K-factors, confidence badges
+- **Leaderboards** - Per skill level, ranked by wins with confidence badges
+- **Anti-Sandbagging** - Player flagging system with coordinator review workflow
+- **Notifications & Match Chat** - In-app messaging system
+- **PWA Support** - Service worker, manifest, offline capabilities
+
+### Recent Updates (April 2026)
+
+#### Match Availability Feature
+- **API Route**: `/api/matches/[id]/availability` (GET/POST)
+  - GET: Fetch match details and player availability slots
+  - POST: Save player availability for match scheduling
+  
+- **Database**: New `match_availability` table
+  - Stores player availability with date and time slots
+  - Row Level Security (RLS) policies for players and coordinators
+  
+- **UI Components**:
+  - `YourMatchesCard` - Displays upcoming matches on player dashboard with "Set Availability" button
+  - `MatchAvailabilityModal` - Modal for selecting available dates and time slots
+  - Time slots: Morning (8am-12pm), Afternoon (12pm-5pm), Evening (5pm-9pm), Night (9pm+)
 
 ## Getting Started
 
@@ -19,6 +50,16 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Database Setup
+
+Run the SQL migration to create the match_availability table:
+
+```bash
+# Execute supabase/match_availability.sql in your Supabase SQL editor
+# or via Supabase CLI
+supabase db execute --file supabase/match_availability.sql
+```
 
 ## Learn More
 

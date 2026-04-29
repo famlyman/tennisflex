@@ -4,8 +4,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase'
 import NotificationBell from '@/components/NotificationBell'
-<<<<<<< HEAD
 import YourMatchesCard from '@/components/YourMatchesCard'
+import MatchesCard from '@/components/MatchesCard'
 
 interface MatchData {
   id: string
@@ -15,9 +15,6 @@ interface MatchData {
   division_type: string
   opponent_name: string
 }
-=======
-import MatchesCard from '@/components/MatchesCard'
->>>>>>> 6e50647e457a0c6625df1175651ee6fa266aa5bb
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0

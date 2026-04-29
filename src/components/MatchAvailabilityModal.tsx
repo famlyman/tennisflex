@@ -2,27 +2,16 @@
 
 import { useState, useEffect } from 'react'
 
-interface AvailabilitySlot {
-  date: string
-  time_slots: string[]
-}
-
 interface Props {
   matchId: string | null
   onClose: () => void
 }
 
-const TIME_OPTIONS = [
-  'Morning (8am-12pm)',
-  'Afternoon (12pm-5pm)',
-  'Evening (5pm-9pm)',
-  'Night (9pm+)',
-]
-
 export default function MatchAvailabilityModal({ matchId, onClose }: Props) {
-  const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
-  const [selectedDate, setSelectedDate] = useState('')
-  const [selectedTimes, setSelectedTimes] = useState<string[]>([])
+  const [myAvailability, setMyAvailability] = useState<string[]>([])
+  const [opponentAvailability, setOpponentAvailability] = useState<{date: string, player_name: string}[]>([])
+  const [opponentName, setOpponentName] = useState('Opponent')
+  const [selectedDates, setSelectedDates] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -38,7 +27,10 @@ export default function MatchAvailabilityModal({ matchId, onClose }: Props) {
       const res = await fetch(`/api/matches/${matchId}/availability`)
       if (res.ok) {
         const data = await res.json()
-        setAvailability(data.availability || [])
+        setMyAvailability(data.myAvailability || [])
+        setOpponentAvailability(data.opponentAvailability || [])
+        setOpponentName(data.opponentName || 'Opponent')
+        setSelectedDates(data.myAvailability || [])
       }
     } catch (e) {
       console.error('Failed to load availability:', e)
@@ -47,28 +39,27 @@ export default function MatchAvailabilityModal({ matchId, onClose }: Props) {
     }
   }
 
-  function toggleTime(time: string) {
-    if (selectedTimes.includes(time)) {
-      setSelectedTimes(selectedTimes.filter(t => t !== time))
+  function toggleDate(date: string) {
+    if (selectedDates.includes(date)) {
+      setSelectedDates(selectedDates.filter(d => d !== date))
     } else {
-      setSelectedTimes([...selectedTimes, time])
+      setSelectedDates([...selectedDates, date])
     }
   }
 
   async function handleSave() {
-    if (!matchId || !selectedDate || selectedTimes.length === 0) return
+    if (!matchId) return
     setSaving(true)
     try {
       const res = await fetch(`/api/matches/${matchId}/availability`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: selectedDate, time_slots: selectedTimes }),
+        body: JSON.stringify({ dates: selectedDates }),
       })
       if (res.ok) {
         const data = await res.json()
-        setAvailability(data.availability || [])
-        setSelectedDate('')
-        setSelectedTimes([])
+        setMyAvailability(selectedDates)
+        setOpponentAvailability(data.opponentAvailability || [])
       }
     } catch (e) {
       console.error('Failed to save:', e)
@@ -78,6 +69,13 @@ export default function MatchAvailabilityModal({ matchId, onClose }: Props) {
   }
 
   if (!matchId) return null
+
+  const today = new Date().toISOString().split('T')[0]
+  const next14Days = Array.from({ length: 14 }, (_, i) => {
+    const date = new Date()
+    date.setDate(date.getDate() + i)
+    return date.toISOString().split('T')[0]
+  })
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -99,48 +97,43 @@ export default function MatchAvailabilityModal({ matchId, onClose }: Props) {
           ) : (
             <>
               <div>
-                <h3 className="font-semibold text-slate-900 mb-3">Add Available Time</h3>
-                <div className="space-y-3">
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
-                  />
-                   
-                  <div className="flex flex-wrap gap-2">
-                    {TIME_OPTIONS.map((time) => (
-                      <button
-                        key={time}
-                        onClick={() => toggleTime(time)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                          selectedTimes.includes(time)
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={handleSave}
-                    disabled={!selectedDate || selectedTimes.length === 0 || saving}
-                    className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-                  >
-                    {saving ? 'Saving...' : 'Add Availability'}
-                  </button>
+                <h3 className="font-semibold text-slate-900 mb-3">Select Available Dates</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {next14Days.map((date) => (
+                    <button
+                      key={date}
+                      onClick={() => toggleDate(date)}
+                      disabled={date < today}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        selectedDates.includes(date)
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      } disabled:opacity-30 disabled:cursor-not-allowed`}
+                    >
+                      {new Date(date).toLocaleDateString('en-US', { 
+                        weekday: 'short', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
+                    </button>
+                  ))}
                 </div>
+
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full mt-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Availability'}
+                </button>
               </div>
 
-              {availability.length > 0 && (
+              {opponentAvailability.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-slate-900 mb-3">Your Available Times</h3>
+                  <h3 className="font-semibold text-slate-900 mb-3">{opponentName}'s Availability</h3>
                   <div className="space-y-2">
-                    {availability.map((slot, idx) => (
-                      <div key={idx} className="p-3 bg-slate-50 rounded-lg">
+                    {opponentAvailability.map((slot, idx) => (
+                      <div key={idx} className="p-3 bg-amber-50 rounded-lg">
                         <p className="font-medium text-slate-900">
                           {new Date(slot.date).toLocaleDateString('en-US', { 
                             weekday: 'short', 
@@ -148,13 +141,6 @@ export default function MatchAvailabilityModal({ matchId, onClose }: Props) {
                             day: 'numeric' 
                           })}
                         </p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {slot.time_slots.map((time: string, i: number) => (
-                            <span key={i} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
-                              {time}
-                            </span>
-                          ))}
-                        </div>
                       </div>
                     ))}
                   </div>
