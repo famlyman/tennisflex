@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase'
 import NotificationBell from '@/components/NotificationBell'
 import YourMatchesCard from '@/components/YourMatchesCard'
-import MatchesCard from '@/components/MatchesCard'
 
 interface MatchData {
   id: string
@@ -568,8 +567,8 @@ export default async function Dashboard() {
 
               {/* Player Matches Card */}
               {dashboardData.playerMatches && dashboardData.playerMatches.length > 0 && (
-                <MatchesCard 
-                  matches={dashboardData.playerMatches} 
+                <YourMatchesCard 
+                  matches={dashboardData.upcomingMatches} 
                   playerId={dashboardData.player?.id} 
                 />
               )}
