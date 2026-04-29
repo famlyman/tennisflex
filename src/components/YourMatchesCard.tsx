@@ -203,11 +203,13 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                     <div className="dark-calendar">
                       <Calendar
                         onClickDay={(value) => {
-                          const dateStr = new Date(value).toISOString().split('T')[0]
+                          const d = new Date(value)
+                          const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
                           toggleDate(dateStr)
                         }}
                         tileClassName={({ date }) => {
-                          const dateStr = date.toISOString().split('T')[0]
+                          const d = new Date(date)
+                          const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
                           const myDate = myAvailability.includes(dateStr)
                           const opponentDate = opponentAvailability.includes(dateStr)
 
@@ -275,11 +277,14 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                       <p className="text-sm text-slate-500">No dates selected yet.</p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
-                        {myAvailability.sort().map((date: string) => (
-                          <span key={date} className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm">
-                            {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </span>
-                        ))}
+                        {myAvailability.sort().map((date: string) => {
+                          const d = new Date(date + 'T00:00:00')
+                          return (
+                            <span key={date} className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm">
+                              {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
