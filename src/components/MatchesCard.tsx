@@ -105,9 +105,9 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
 
   const saveAvailability = async (dates: string[]) => {
     if (!selectedMatch) return
-    
+
     try {
-      await fetch(`/api/matches/${cleanId(selectedMatch.id)}/availability}`, {
+      await fetch(`/api/matches/${cleanId(selectedMatch.id)}/availability`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dates })
@@ -223,17 +223,23 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
                           className="dark-calendar"
                           tileClassName={({ date }) => {
                             const dateStr = date.toISOString().split('T')[0]
-                            if (matchAvailability.includes(dateStr)) {
+                            const myDate = matchAvailability.includes(dateStr)
+                            const opponentDate = opponentAvailability.some((a: any) => a.date === dateStr)
+
+                            if (myDate && opponentDate) {
+                              return 'bg-purple-300 text-purple-900 font-bold rounded border-2 border-purple-500'
+                            }
+                            if (myDate) {
                               return 'bg-indigo-200 text-indigo-900 font-bold rounded'
                             }
-                            if (opponentAvailability.some((a: any) => a.date === dateStr)) {
+                            if (opponentDate) {
                               return 'bg-emerald-200 text-emerald-900 font-bold rounded'
                             }
                             return 'text-gray-900'
                           }}
                         />
                       </div>
-                  <div className="flex gap-4 mt-3 text-xs">
+                  <div className="flex flex-wrap gap-4 mt-3 text-xs">
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 bg-indigo-600 rounded"></div>
                       <span className="text-gray-800">Your availability</span>
@@ -241,6 +247,10 @@ export default function MatchesCard({ matches, playerId }: MatchesCardProps) {
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 bg-emerald-600 rounded"></div>
                       <span className="text-gray-800">{opponentAvailability[0]?.player_name || 'Opponent'}'s availability</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-purple-600 rounded border border-purple-800"></div>
+                      <span className="text-gray-800">Both available</span>
                     </div>
                   </div>
                 </div>
