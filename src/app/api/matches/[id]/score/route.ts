@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/utils/supabase'
+import { sendNotification, notifyMatchScoreSubmitted } from '@/utils/notifications'
 
 interface RouteParams {
   id: string
@@ -246,6 +247,25 @@ export async function PUT(request: Request, { params }: { params: Promise<RouteP
       score,
       divisionType
     )
+  }
+
+  // Send notification to opponent
+  const opponentId = winner_id === match.home_player_id ? match.away_player_id : match.home_player_id
+  if (opponentId) {
+    const { data: opponentPlayer } = await adminSupabase
+      .from('players')
+      .select('profile_id')
+      .eq('id', opponentId)
+      .single()
+    
+    if (opponentPlayer?.profile_id) {
+      await sendNotification(adminSupabase, opponentPlayer.profile_id, {
+        type: 'score_submitted',
+        title: 'Score Submitted',
+        message: 'Your opponent submitted a score. Please verify.',
+        link: `/seasons/${match.skill_level?.division?.season_id}/skill-level/${match.skill_level_id}`,
+      })
+    }
   }
 
   return NextResponse.json({ success: true, match_id: matchId })

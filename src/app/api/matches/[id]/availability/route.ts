@@ -16,21 +16,30 @@ export async function GET(request: Request, { params }: { params: Promise<RouteP
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
     {
       cookies: {
+<<<<<<< HEAD
         getAll() {
           return cookieStore.getAll()
         },
+=======
+        getAll() { return cookieStore.getAll() },
+>>>>>>> 6e50647e457a0c6625df1175651ee6fa266aa5bb
         setAll() {},
       },
     }
   )
 
+<<<<<<< HEAD
   const adminSupabase = createAdminClient()
+=======
+  const adminClient = createAdminClient()
+>>>>>>> 6e50647e457a0c6625df1175651ee6fa266aa5bb
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+<<<<<<< HEAD
   // Get match details
   const { data: match, error: matchError } = await adminSupabase
     .from('matches')
@@ -48,11 +57,27 @@ export async function GET(request: Request, { params }: { params: Promise<RouteP
 
   // Check if user is part of this match
   const { data: userPlayer } = await adminSupabase
+=======
+  // Get match details to verify user is a player
+  const { data: match } = await adminClient
+    .from('matches')
+    .select('home_player_id, away_player_id')
+    .eq('id', matchId)
+    .single()
+
+  if (!match) {
+    return NextResponse.json({ error: 'Match not found' }, { status: 404 })
+  }
+
+  // Verify user is part of this match
+  const { data: playerData } = await adminClient
+>>>>>>> 6e50647e457a0c6625df1175651ee6fa266aa5bb
     .from('players')
     .select('id')
     .eq('profile_id', user.id)
     .single()
 
+<<<<<<< HEAD
   if (!userPlayer || (userPlayer.id !== match.home_player_id && userPlayer.id !== match.away_player_id)) {
     return NextResponse.json({ error: 'Not authorized to view this match' }, { status: 403 })
   }
@@ -76,6 +101,55 @@ export async function GET(request: Request, { params }: { params: Promise<RouteP
       away_player: match.away_player,
     },
     availability: availability || [],
+=======
+  if (!playerData || (match.home_player_id !== playerData.id && match.away_player_id !== playerData.id)) {
+    return NextResponse.json({ error: 'Not authorized for this match' }, { status: 403 })
+  }
+
+  // Get all availability for this match
+  const { data: availability } = await adminClient
+    .from('match_availability')
+    .select(`
+      *,
+      player:players (
+        id,
+        profile:profiles (full_name)
+      )
+    `)
+    .eq('match_id', matchId)
+    .order('available_date', { ascending: true })
+
+  // Separate current player's availability from opponent's
+  const myAvailability = (availability || [])
+    .filter(a => a.player_id === playerData.id)
+    .map(a => a.available_date)
+  
+  const opponentAvailability = (availability || [])
+    .filter(a => a.player_id !== playerData.id)
+    .map(a => ({
+      date: a.available_date,
+      player_name: a.player?.profile?.full_name || 'Opponent'
+    }))
+
+  // Get opponent info
+  const opponentId = match.home_player_id === playerData.id 
+    ? match.away_player_id 
+    : match.home_player_id
+  
+  const { data: opponent } = await adminClient
+    .from('players')
+    .select('profile:profiles (full_name)')
+    .eq('id', opponentId)
+    .single()
+
+  const opponentName = (opponent?.profile as any)?.full_name || 'Opponent'
+
+  return NextResponse.json({
+    myAvailability,
+    opponentAvailability,
+    opponentName,
+    matchId
+>>>>>>> 6e50647e457a0c6625df1175651ee6fa266aa5bb
   })
 }
 
@@ -88,15 +162,23 @@ export async function POST(request: Request, { params }: { params: Promise<Route
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
     {
       cookies: {
+<<<<<<< HEAD
         getAll() {
           return cookieStore.getAll()
         },
+=======
+        getAll() { return cookieStore.getAll() },
+>>>>>>> 6e50647e457a0c6625df1175651ee6fa266aa5bb
         setAll() {},
       },
     }
   )
 
+<<<<<<< HEAD
   const adminSupabase = createAdminClient()
+=======
+  const adminClient = createAdminClient()
+>>>>>>> 6e50647e457a0c6625df1175651ee6fa266aa5bb
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
@@ -104,6 +186,7 @@ export async function POST(request: Request, { params }: { params: Promise<Route
   }
 
   const body = await request.json()
+<<<<<<< HEAD
   const { date, time_slots } = body
 
   if (!date || !time_slots) {
@@ -122,11 +205,22 @@ export async function POST(request: Request, { params }: { params: Promise<Route
   }
 
   const { data: userPlayer } = await adminSupabase
+=======
+  const { dates } = body // Array of date strings
+
+  if (!Array.isArray(dates)) {
+    return NextResponse.json({ error: 'Dates must be an array' }, { status: 400 })
+  }
+
+  // Get player
+  const { data: playerData } = await adminClient
+>>>>>>> 6e50647e457a0c6625df1175651ee6fa266aa5bb
     .from('players')
     .select('id')
     .eq('profile_id', user.id)
     .single()
 
+<<<<<<< HEAD
   if (!userPlayer || (userPlayer.id !== match.home_player_id && userPlayer.id !== match.away_player_id)) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
   }
@@ -175,4 +269,35 @@ export async function POST(request: Request, { params }: { params: Promise<Route
     .order('date', { ascending: true })
 
   return NextResponse.json({ success: true, availability: availability || [] })
+=======
+  if (!playerData) {
+    return NextResponse.json({ error: 'Player not found' }, { status: 404 })
+  }
+
+  // Remove old availability for this player and match
+  await adminClient
+    .from('match_availability')
+    .delete()
+    .eq('match_id', matchId)
+    .eq('player_id', playerData.id)
+
+  // Insert new availability
+  if (dates.length > 0) {
+    const inserts = dates.map((date: string) => ({
+      match_id: matchId,
+      player_id: playerData.id,
+      available_date: date
+    }))
+
+    const { error } = await adminClient
+      .from('match_availability')
+      .insert(inserts)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+  }
+
+  return NextResponse.json({ success: true })
+>>>>>>> 6e50647e457a0c6625df1175651ee6fa266aa5bb
 }

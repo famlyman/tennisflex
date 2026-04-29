@@ -29,6 +29,17 @@ export default function ProfilePage() {
   
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [location, setLocation] = useState('')
+  const [playPrefs, setPlayPrefs] = useState({
+    weekdays: false,
+    weekends: false,
+    mornings: false,
+    afternoons: false,
+    evenings: false,
+  })
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [gender, setGender] = useState('')
   const [initialNtrpSingles, setInitialNtrpSingles] = useState('')
   const [initialNtrpDoubles, setInitialNtrpDoubles] = useState('')
@@ -48,17 +59,42 @@ export default function ProfilePage() {
 
       setEmail(session.user.email || '')
 
-      const { data: profile } = await supabase
+       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('full_name, gender, initial_ntrp_singles, initial_ntrp_doubles')
+        .select('full_name, phone, location, play_preferences, gender, initial_ntrp_singles, initial_ntrp_doubles, avatar_url')
         .eq('id', session.user.id)
         .single()
+      
+      if (profileError) {
+        console.error('Profile fetch error:', profileError.message)
+        // Try again with fewer columns if location column doesn't exist
+        if (profileError.message.includes('location')) {
+          const { data: p2 } = await supabase
+            .from('profiles')
+            .select('full_name, phone, usta_number, play_preferences, gender, initial_ntrp_singles, initial_ntrp_doubles, avatar_url')
+            .eq('id', session.user.id)
+            .single()
+          if (p2) Object.assign(profile || {}, p2, { location: '' })
+        }
+      }
 
       if (profile) {
-        setFullName(profile.full_name || '')
+         setFullName(profile.full_name || '')
+         setPhone(profile.phone || '')
+         setLocation(profile.location || '')
+        setPlayPrefs(profile.play_preferences || {
+          weekdays: false,
+          weekends: false,
+          mornings: false,
+          afternoons: false,
+          evenings: false,
+        })
         setGender(profile.gender || '')
         setInitialNtrpSingles(profile.initial_ntrp_singles?.toString() || '')
         setInitialNtrpDoubles(profile.initial_ntrp_doubles?.toString() || '')
+        if (profile.avatar_url) {
+          setAvatarPreview(profile.avatar_url)
+        }
       }
 
       try {
@@ -106,12 +142,34 @@ export default function ProfilePage() {
     if (!session) return
 
     try {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ 
-          full_name: fullName,
-          gender: gender || null
-        })
+      // Upload avatar if selected
+      let avatarUrl = avatarPreview
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop()
+        const fileName = `${session.user.id}-${Date.now()}.${fileExt}`
+        
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, avatarFile, { upsert: true })
+        
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName)
+          avatarUrl = publicUrl
+        }
+      }
+
+       const { error: profileError } = await supabase
+         .from('profiles')
+         .update({ 
+           full_name: fullName,
+           phone: phone || null,
+           location: location || null,
+           play_preferences: playPrefs,
+           gender: gender || null,
+           avatar_url: avatarUrl
+         })
         .eq('id', session.user.id)
 
       if (profileError) {
@@ -154,7 +212,7 @@ export default function ProfilePage() {
     } finally {
       setSaving(false)
     }
-  }, [supabase, fullName, initialNtrpSingles, initialNtrpDoubles, playerData, gender])
+  }, [supabase, fullName, phone, location, playPrefs, initialNtrpSingles, initialNtrpDoubles, playerData, gender, avatarFile, avatarPreview])
 
   const getInitials = (name: string) => {
     return name
@@ -197,27 +255,54 @@ export default function ProfilePage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {/* Header Card with Avatar */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8 mb-6">
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-3xl font-bold text-white">{getInitials(fullName)}</span>
-            </div>
-            <div className="text-center sm:text-left">
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{fullName}</h1>
-              <p className="text-slate-500 mt-1">{email}</p>
-              <div className="flex items-center justify-center sm:justify-start gap-2 mt-3">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  isPlayer ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
-                }`}>
-                  {isPlayer ? 'Player' : 'Member'}
-                </span>
-                {gender && (
-                  <span className="px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-600 capitalize">
-                    {gender}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+           <div className="flex flex-col sm:flex-row items-center gap-6">
+             <div className="relative">
+               <div className="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                 {avatarPreview ? (
+                   <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                 ) : (
+                   <span className="text-3xl font-bold text-white">{getInitials(fullName)}</span>
+                 )}
+               </div>
+               <label className="absolute bottom-0 right-0 bg-white rounded-full p-1.5 shadow-md cursor-pointer hover:bg-slate-100">
+                 <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                 </svg>
+                 <input
+                   type="file"
+                   accept="image/*"
+                   className="hidden"
+                   onChange={(e) => {
+                     const file = e.target.files?.[0]
+                     if (file) {
+                       setAvatarFile(file)
+                       setAvatarPreview(URL.createObjectURL(file))
+                     }
+                   }}
+                 />
+               </label>
+             </div>
+             <div className="text-center sm:text-left">
+               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{fullName}</h1>
+               <p className="text-slate-500 mt-1">{email}</p>
+               {location && (
+                 <p className="text-sm text-slate-500 mt-1">{location}</p>
+               )}
+               <div className="flex items-center justify-center sm:justify-start gap-2 mt-3">
+                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                   isPlayer ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+                 }`}>
+                   {isPlayer ? 'Player' : 'Member'}
+                 </span>
+                 {gender && (
+                   <span className="px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-600 capitalize">
+                     {gender}
+                   </span>
+                 )}
+               </div>
+             </div>
+           </div>
         </div>
 
         {error && (
@@ -355,6 +440,59 @@ export default function ProfilePage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-slate-700 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    id="phone"
+                    type="tel"
+                    className="block w-full rounded-lg border border-slate-200 px-3 py-2.5 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                 <div>
+                   <label htmlFor="location" className="block text-sm font-medium text-slate-700 mb-1">
+                     Location / Home Court
+                   </label>
+                   <input
+                     id="location"
+                     type="text"
+                     className="block w-full rounded-lg border border-slate-200 px-3 py-2.5 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                     value={location}
+                     onChange={(e) => setLocation(e.target.value)}
+                     placeholder="City, State or Court Name"
+                   />
+                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Play Preferences
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      ['weekdays', 'Weekdays'],
+                      ['weekends', 'Weekends'],
+                      ['mornings', 'Mornings'],
+                      ['afternoons', 'Afternoons'],
+                      ['evenings', 'Evenings'],
+                    ].map(([key, label]) => (
+                      <label key={key} className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={playPrefs[key as keyof typeof playPrefs]}
+                          onChange={(e) => setPlayPrefs({ ...playPrefs, [key as string]: e.target.checked })}
+                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-slate-700">{label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 <div>

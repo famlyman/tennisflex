@@ -36,8 +36,7 @@ Organization (Flex)
 │   │           └── Match history
 │   ├── Match
 │   ├── Message
-│   ├── RatingFlag
-│   └── Extension
+│   └── RatingFlag
 └── ChapterRequest (pending Flexes)
 ```
 
@@ -56,7 +55,6 @@ Organization (Flex)
 | `matches` | Match scheduling and scores |
 | `messages` | In-app chat between opponents |
 | `rating_flags` | Anti-sandbagging reports |
-| `extensions` | Match time extension requests |
 
 ---
 
@@ -163,13 +161,18 @@ Organization (Flex)
 | 9 | Player registration | ✅ Complete |
 | 10 | Match pages + scoring | ✅ Complete |
 | 11 | Score submission | ✅ Complete |
-<<<<<<< HEAD
 | 12 | Leaderboard | ✅ Complete |
 | 13 | Season registration tracking | ✅ Complete |
 | 14 | Doubles partner selection | ✅ Complete |
 | 15 | Season page UI improvements | ✅ Complete |
 | 16 | Flag review | ✅ Complete |
 | 17 | TFR algorithm | ✅ Complete |
+| 18 | Error handling pages | ✅ Complete |
+| 19 | Match availability system | ✅ Complete |
+| 20 | Notifications system | ✅ Complete |
+| 21 | Dashboard improvements (MatchesCard) | ✅ Complete |
+| 22 | Profile page cleanup | ✅ Complete |
+| 23 | Database technical debt fixes | ✅ Complete |
 
 ---
 
@@ -259,16 +262,28 @@ src/
 ├── app/
 │   ├── page.tsx                    # Landing page
 │   ├── HomeClient.tsx             # Landing page client component
-│   ├── [chapter]/page.tsx         # Flex homepage
+│   ├── error.tsx                  # Global error page
+│   ├── not-found.tsx              # Global 404 page
+│   ├── [chapter]/
+│   │   ├── page.tsx              # Flex homepage
+│   │   ├── error.tsx             # Flex-specific error page
+│   │   └── not-found.tsx         # Flex-specific 404 page
 │   ├── register/page.tsx           # Player/coordinator registration
 │   ├── login/page.tsx              # Login
-│   ├── dashboard/page.tsx          # User dashboard
+│   ├── dashboard/
+│   │   ├── page.tsx              # User dashboard
+│   │   └── error.tsx             # Dashboard error page
 │   ├── admin/chapters/page.tsx     # Flex request admin
 │   ├── seasons/
 │   │   ├── page.tsx                # Browse seasons
+│   │   ├── error.tsx               # Seasons error page
 │   │   ├── create/page.tsx         # Create season
-│   │   └── [id]/register/page.tsx  # Register for season
+│   │   └── [id]/
+│   │       ├── page.tsx            # Season details
+│   │       ├── register/page.tsx   # Register for season
+│   │       └── not-found.tsx      # Season 404 page
 │   ├── divisions/page.tsx          # Manage divisions
+│   ├── profile/page.tsx            # User profile
 │   ├── auth/
 │   │   ├── callback/route.ts       # Auth callback
 │   │   └── signout/route.ts        # Sign out
@@ -277,7 +292,10 @@ src/
 │       ├── admin/chapters/         # Flex admin APIs
 │       ├── seasons/                # Season APIs
 │       ├── divisions/              # Division APIs
-│       ├── matches/[id]/score/    # Score submission API
+│       ├── matches/[id]/
+│       │   ├── score/route.ts     # Score submission API
+│       │   └── availability/route.ts  # Match availability API
+│       ├── organizations/[id]/players/route.ts  # Organization players API
 │       ├── skill-levels/[id]/     # Skill level matches API
 │       └── leaderboard/            # Leaderboard APIs
 │           ├── [id]/             # Get leaderboard for skill level
@@ -285,10 +303,20 @@ src/
 │           ├── divisions/          # Get divisions for season
 │           └── skill-levels/        # Get skill levels for division
 ├── actions/                        # Server actions
-├── components/                    # UI components
+├── components/
+│   ├── MatchesCard.tsx            # Calendar view of matches
+│   └── NotificationBell.tsx      # Notification dropdown
 ├── types/database.ts              # TypeScript types
-└── utils/                        # Utilities
+└── utils/
+    ├── notifications.ts            # Notification helper functions
+    ├── rating.ts                   # TFR rating utilities
+    └── token.ts                   # JWT token utilities
 ```
+
+### Supabase Migrations (in /supabase/)
+- `fix_profiles_columns.sql` - Add missing profile columns
+- `match_availability.sql` - Match availability table
+- `migration_technical_debt_fixes.sql` - Indexes, constraints, notifications table
 
 ---
 
@@ -322,18 +350,15 @@ RESEND_API_KEY=                  # Resend API key for transactional emails (free
 - **Score submission modal**: Set-by-set dropdowns (0-7), winner selection
 - **Per-division leaderboard**: Fixed org lookup through division→season→organization chain
 - **Fixed pending matches**: Dashboard now correctly counts non-completed matches
-<<<<<<< HEAD
 - **Season registration tracking**: Resolved issue with player ↔ season relationship
   - Created `season_registrations` table to track season/division registrations
   - Added RLS policies for player INSERT and SELECT
   - Updated `/api/seasons/[id]/register` to insert registration records
   - Added check-if-exists before insert to handle duplicates
   - Added comprehensive debug logging for troubleshooting
-=======
 - **Player dashboard cards**: Changed to 3-column horizontal layout
 - **Leaderboard card**: Now shows actual leaderboard for player's skill level based on their TFR/initial NTRP
 - **Profile page redesign**: Modern profile with avatar (initials), stats grid, two-column layout for ratings and account
->>>>>>> a22e7e4d73ca7391e0210905b45995b2ca89d4da
 
 ### Quick SQL Reference
 
@@ -416,6 +441,31 @@ Use admin client (service role) for all queries to bypass RLS issues with foreig
 
 ---
 
+## Database Technical Debt - SQL Fixes
+
+Run these SQL commands in your Supabase SQL Editor to fix technical debt issues:
+
+```sql
+-- Add UNIQUE constraint to prevent duplicate skill levels per division
+ALTER TABLE skill_levels 
+ADD CONSTRAINT IF NOT EXISTS skill_levels_division_id_name_key UNIQUE(division_id, name);
+
+-- Add index for matches lookup by skill_level_id (improves query performance)
+CREATE INDEX IF NOT EXISTS idx_matches_skill_level_id ON matches(skill_level_id);
+
+-- Add index for season_registrations lookups
+CREATE INDEX IF NOT EXISTS idx_season_registrations_player_season ON season_registrations(player_id, season_id);
+
+-- Add index for notifications by user and read status
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, read);
+
+-- Verify season_registrations has correct unique constraint
+ALTER TABLE season_registrations DROP CONSTRAINT IF EXISTS season_registrations_player_id_season_id_key;
+ALTER TABLE season_registrations ADD CONSTRAINT IF NOT EXISTS season_registrations_unique UNIQUE(player_id, season_id, division_id);
+```
+
+---
+
 ## April 27, 2026 - Updates
 
 ### Season Page UI Redesign
@@ -458,3 +508,100 @@ CREATE INDEX IF NOT EXISTS idx_season_registrations_partner ON season_registrati
 - Phase 15 (Season Page UI): ✅ Complete
 - Phase 16 (Flag Review): ✅ Complete
 - Phase 17 (TFR Algorithm): ✅ Complete
+- Phase 18 (Error Handling Pages): ✅ Complete
+- Phase 19 (Match Availability System): ✅ Complete
+- Phase 20 (Notifications System): ✅ Complete
+- Phase 21 (Dashboard Improvements): ✅ Complete
+- Phase 22 (Profile Page Cleanup): ✅ Complete
+- Phase 23 (Database Technical Debt): ✅ Complete
+
+---
+
+## April 28, 2026 - Session Updates (ses_22bb04eeeffe8h1aSwK5txSsV9)
+
+### Error Handling Pages ✅
+- Added `error.tsx` (global error page with "Try again" and "Go home" buttons)
+- Added `not-found.tsx` (global 404 page with back to home link)
+- Added `src/app/[chapter]/error.tsx` (Flex-specific error page)
+- Added `src/app/[chapter]/not-found.tsx` (Flex-specific 404)
+- Added `src/app/dashboard/error.tsx` (Dashboard error page)
+- Added `src/app/seasons/error.tsx` (Seasons list error page)
+- Added `src/app/seasons/[id]/not-found.tsx` (Season-specific 404)
+
+### Match Availability System ✅
+- Created `supabase/match_availability.sql` with table definition
+- Table: `match_availability` (id, match_id, player_id, available_date)
+- Unique constraint prevents duplicate date entries per player per match
+- RLS policies: players can only manage their own availability
+- API endpoint: `/api/matches/[id]/availability` (GET/POST/DELETE)
+- Allows players to set specific dates they're available for matches
+
+### Notifications System ✅
+- Created `src/utils/notifications.ts` with helper functions:
+  - `sendNotification()` - Generic notification sender
+  - `notifyMatchScoreSubmitted()` - Notify opponent when score submitted
+  - `notifySeasonRegistration()` - Notify coordinator of new registration
+- Notifications table with: user_id, type, title, message, link, read status
+- Integrated with score submission flow
+
+### Dashboard Improvements ✅
+- Added `MatchesCard` component using `react-calendar`
+- Calendar displays match dates with availability highlighting
+- Quick overview of upcoming matches on dashboard
+- Installed `react-calendar` package (^6.0.1)
+
+### Profile Page Cleanup ✅
+- Removed `ustaNumber` field from profile page
+- Streamlined profile form to focus on essential info:
+  - Full name, email, phone, location
+  - Play preferences (weekdays/weekends, morning/afternoon/evening)
+  - Gender, avatar upload
+  - Initial NTRP ratings (singles/doubles)
+
+### Database Technical Debt Fixes ✅
+- Created `supabase/migration_technical_debt_fixes.sql`:
+  - Added UNIQUE constraint on `skill_levels(division_id, name)`
+  - Added performance indexes:
+    - `idx_matches_skill_level_id`
+    - `idx_season_registrations_player_season`
+    - `idx_season_registrations_division`
+    - `idx_players_profile_id`
+    - `idx_matches_home_player`
+    - `idx_matches_away_player`
+  - Ensured `notifications` table exists with proper schema
+  - Added RLS policies for notifications
+
+### Profile Table Fixes ✅
+- Created `supabase/fix_profiles_columns.sql` to add missing columns:
+  - `location` (text)
+  - `phone` (text)
+  - `play_preferences` (jsonb)
+  - `gender` (text with CHECK constraint)
+  - `avatar_url` (text)
+  - `initial_ntrp_singles` (numeric 3,1)
+  - `initial_ntrp_doubles` (numeric 3,1)
+
+### Score Submission Enhancements ✅
+- Integrated notification system with score submission
+- Opponents now receive notification when score is submitted
+- Score submission API (`/api/matches/[id]/score/route.ts`) updated to send notifications
+
+### Files Modified in This Session
+- `src/app/error.tsx` (new)
+- `src/app/not-found.tsx` (new)
+- `src/app/[chapter]/error.tsx` (new)
+- `src/app/[chapter]/not-found.tsx` (new)
+- `src/app/dashboard/error.tsx` (new)
+- `src/app/seasons/error.tsx` (new)
+- `src/app/seasons/[id]/not-found.tsx` (new)
+- `src/components/MatchesCard.tsx` (new)
+- `src/utils/notifications.ts` (new)
+- `supabase/match_availability.sql` (new)
+- `supabase/migration_technical_debt_fixes.sql` (new)
+- `supabase/fix_profiles_columns.sql` (new)
+- `src/app/dashboard/page.tsx` (modified - added MatchesCard)
+- `src/app/profile/page.tsx` (modified - removed USTA number)
+- `src/app/api/matches/[id]/score/route.ts` (modified - added notifications)
+- `src/app/api/matches/[id]/availability/route.ts` (new)
+- `package.json` (added react-calendar)
+- `BUILD_PLAN.md` (this update)

@@ -4,20 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase'
 import NotificationBell from '@/components/NotificationBell'
-<<<<<<< HEAD
-import YourMatchesCard from '@/components/YourMatchesCard'
-
-interface MatchData {
-  id: string
-  scheduled_at: string | null
-  status: string
-  skill_level_name: string
-  division_type: string
-  opponent_name: string
-}
-=======
 import MatchesCard from '@/components/MatchesCard'
->>>>>>> 6e50647e457a0c6625df1175651ee6fa266aa5bb
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -122,7 +109,6 @@ async function getDashboardData(userId: string) {
   let player: any = null
   let playerMatches: any[] = []
   let leaderboardData: any = null
-  let upcomingMatches: MatchData[] = []
   
   const { data: playerData } = await adminClient
     .from('players')
@@ -314,35 +300,6 @@ async function getDashboardData(userId: string) {
           }
         }
       }
-
-      // Fetch upcoming matches for this player
-      const { data: matches } = await adminClient
-        .from('matches')
-        .select(`
-          id,
-          scheduled_at,
-          status,
-          skill_level:skill_levels!matches_skill_level_id_fkey (
-            name,
-            division:divisions!skill_levels_division_id_fkey (type)
-          ),
-          home_player:players!matches_home_player_id_fkey (id, profile:profiles!players_profile_id_fkey (full_name)),
-          away_player:players!matches_away_player_id_fkey (id, profile:profiles!players_profile_id_fkey (full_name))
-        `)
-        .or(`home_player_id.eq.${player.id},away_player_id.eq.${player.id}`)
-        .neq('status', 'completed')
-        .order('scheduled_at', { ascending: true })
-
-      upcomingMatches = (matches || []).map((m: any) => ({
-        id: m.id,
-        scheduled_at: m.scheduled_at,
-        status: m.status,
-        skill_level_name: m.skill_level?.name,
-        division_type: m.skill_level?.division?.type,
-        opponent_name: m.home_player?.id === player.id 
-          ? m.away_player?.profile?.full_name 
-          : m.home_player?.profile?.full_name,
-      }))
     }
   }
 
@@ -360,7 +317,6 @@ async function getDashboardData(userId: string) {
     totalMatches: 0,
     pendingMatches: 0,
     leaderboardData,
-    upcomingMatches,
   }
 }
 
@@ -397,7 +353,6 @@ export default async function Dashboard() {
   const fullName = dashboardData.profile?.full_name || user.user_metadata?.full_name || 'User'
   const isCoordinator = dashboardData.isCoordinator
   const isPlatformOwner = dashboardData.profile?.role === 'platform_owner'
-
   return (
     <div className="min-h-screen bg-slate-50">
       <nav className="bg-white border-b border-slate-200 px-6 py-4">
@@ -527,15 +482,97 @@ export default async function Dashboard() {
                       ))}
                     </div>
                   </div>
-                ) : (
-                  <p className="text-slate-500 text-sm">Join a season to appear on the leaderboard!</p>
-                )}
-              </div>
-
-              {/* Your Matches Card */}
-              {dashboardData.upcomingMatches && dashboardData.upcomingMatches.length > 0 && (
-                <YourMatchesCard matches={dashboardData.upcomingMatches} />
+              ) : (
+                <p className="text-slate-500 text-sm">Join a season to appear on the leaderboard!</p>
               )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+                      <button
+                        onClick={() => setSelectedMatch(null)}
+                        className="text-slate-400 hover:text-slate-600"
+                      >
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {loadingAvailability ? (
+                      <div className="text-center py-8">
+                        <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mb-4">
+                          <p className="text-sm font-medium text-slate-700 mb-2">Select dates you're available:</p>
+                          <div className="react-calendar-wrapper">
+                            <Calendar
+                              onClickDay={handleDateClick}
+                              tileClassName={({ date }) => {
+                                const dateStr = date.toISOString().split('T')[0]
+                                if (matchAvailability.includes(dateStr)) {
+                                  return 'bg-indigo-100 text-indigo-800 font-bold rounded'
+                                }
+                                if (opponentAvailability.some((a: any) => a.date === dateStr)) {
+                                  return 'bg-emerald-100 text-emerald-800 font-bold rounded'
+                                }
+                                return null
+                              }}
+                            />
+                          </div>
+                          <div className="flex gap-4 mt-3 text-xs">
+                            <div className="flex items-center gap-1">
+                              <div className="w-3 h-3 bg-indigo-500 rounded"></div>
+                              <span className="text-slate-600">Your availability</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-3 h-3 bg-emerald-500 rounded"></div>
+                              <span className="text-slate-600">{opponentAvailability[0]?.player_name || 'Opponent'}'s availability</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-200 pt-4">
+                          <h4 className="text-sm font-semibold text-slate-700 mb-2">Your Available Dates:</h4>
+                          {matchAvailability.length === 0 ? (
+                            <p className="text-sm text-slate-500">No dates selected yet.</p>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {matchAvailability.sort().map((date: string) => (
+                                <span key={date} className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm">
+                                  {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                          <button
+                            onClick={() => setSelectedMatch(null)}
+                            className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+                          >
+                            Close
+                          </button>
+                          <Link
+                            href={`/seasons/${selectedMatch.skill_level?.division?.season?.id}/skill-level/${selectedMatch.skill_level_id}`}
+                            className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-center"
+                          >
+                            View Match
+                          </Link>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
 
               {dashboardData.playerRegistrations.length > 0 && (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -623,10 +660,12 @@ export default async function Dashboard() {
                     </Link>
                   </div>
                 ))}
-              </div>
-            )}
-          </div>
-        )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 
         {/* Seasons List for Players (show seasons available for registration) */}
         {!isCoordinator && dashboardData.player && (

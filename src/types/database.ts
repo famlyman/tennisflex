@@ -22,6 +22,16 @@ export interface Profile {
   id: string
   full_name: string
   avatar_url: string | null
+  phone: string | null
+  location: string | null
+  usta_number: string | null
+  play_preferences: {
+    weekdays: boolean
+    weekends: boolean
+    mornings: boolean
+    afternoons: boolean
+    evenings: boolean
+  } | null
   gender: 'male' | 'female' | 'other' | null
   created_at: string
 }
