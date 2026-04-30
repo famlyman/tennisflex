@@ -146,9 +146,9 @@ async function getDashboardData(userId: string) {
     const { data: registrationsRaw } = await adminClient
       .from('season_registrations')
       .select(`*`)
-      .eq('profile_id', player.profile_id)
+      .eq('profile_id', userId)
 
-    console.log('DEBUG: Raw registrations:', registrationsRaw?.length)
+    console.log('DEBUG: Raw registrations for user:', userId, 'Count:', registrationsRaw?.length)
     
     if (registrationsRaw && registrationsRaw.length > 0) {
       // Get unique season IDs
@@ -187,42 +187,54 @@ async function getDashboardData(userId: string) {
       playerSeasons = Array.from(seasonMap.values())
 
         // Fetch player's matches across all registrations
-        if (playerRegistrations.length > 0) {
-          // Get all skill level IDs from player's registrations
-          const skillLevelIds = playerRegistrations
-            .map((reg: any) => reg.skill_level_id)
-            .filter(Boolean)
-          
-          if (skillLevelIds.length > 0) {
-            const { data: matches } = await adminClient
-              .from('matches')
-              .select(`
-                *,
-                skill_level:skill_levels!matches_skill_level_id_fkey (
-                  id, name, division:divisions!skill_levels_division_id_fkey (id, name, type)
-                ),
-                home_player:players!matches_home_player_id_fkey (
-                  id, profile:profiles (full_name)
-                ),
-                away_player:players!matches_away_player_id_fkey (
-                  id, profile:profiles (full_name)
-                )
-              `)
-              .or(`home_player_id.eq.${player.id},away_player_id.eq.${player.id}`)
-              .in('skill_level_id', skillLevelIds)
-              .order('created_at', { ascending: false })
-            
-             // Add opponent name to each match
-            playerMatches = (matches || []).map((match: any) => {
-              const isHome = match.home_player_id === player.id
-              const opponent = isHome ? match.away_player : match.home_player
-              return {
-                ...match,
-                opponent_name: opponent?.profile?.full_name || 'Unknown'
-              }
-            })
+        // NOTE: We fetch by player.id AND profile_id to be safe
+        const { data: matches } = await adminClient
+          .from('matches')
+          .select(`
+            *,
+            skill_level:skill_levels!matches_skill_level_id_fkey (
+              id, name, division:divisions!skill_levels_division_id_fkey (id, name, type, season_id)
+            ),
+            home_player:players!matches_home_player_id_fkey (
+              id, profile:profiles!players_profile_id_fkey (full_name)
+            ),
+            away_player:players!matches_away_player_id_fkey (
+              id, profile:profiles!players_profile_id_fkey (full_name)
+            )
+          `)
+          .or(`home_player_id.eq.${player.id},away_player_id.eq.${player.id}`)
+          .order('created_at', { ascending: false })
+        
+        console.log('DEBUG: Matches found for player:', matches?.length)
+
+         // Add opponent name to each match
+        playerMatches = (matches || []).map((match: any) => {
+          const isHome = match.home_player_id === player.id
+          const opponent = isHome ? match.away_player : match.home_player
+          return {
+            ...match,
+            opponent_name: opponent?.profile?.full_name || 'Unknown'
           }
-        }
+        })
+
+        // Filter upcoming matches for the card
+        upcomingMatches = (matches || [])
+          .filter((m: any) => m.status !== 'completed')
+          .map((m: any) => ({
+            id: m.id,
+            scheduled_at: m.scheduled_at,
+            status: m.status,
+            skill_level_name: m.skill_level?.name,
+            skill_level_id: m.skill_level?.id,
+            season_id: m.skill_level?.division?.season_id,
+            division_type: m.skill_level?.division?.type,
+            opponent_name: m.home_player?.id === player.id 
+              ? m.away_player?.profile?.full_name 
+              : m.home_player?.profile?.full_name,
+            opponent_id: m.home_player?.id === player.id 
+              ? m.away_player?.id 
+              : m.home_player?.id,
+          }))
 
         // Fetch leaderboard for player's registered skill level
         if (playerRegistrations.length > 0) {

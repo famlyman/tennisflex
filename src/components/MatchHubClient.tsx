@@ -218,6 +218,10 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
       })
       if (res.ok) {
         setNewMessage('')
+        // Immediate local refresh to ensure visibility even if real-time lags
+        const msgRes = await fetch(`/api/messages?match_id=${match.id}`)
+        const msgData = await msgRes.json()
+        if (msgData.messages) setMessages(msgData.messages)
       }
     } catch (err) {
       console.error(err)
