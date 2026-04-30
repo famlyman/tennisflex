@@ -433,7 +433,6 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                     </span>
                   </div>
                 )
-                )
               })
             )}
             <div ref={messagesEndRef} />
