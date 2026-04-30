@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabaseClient } from '@/utils/client'
 import { getConfidenceDisplay, getConfidenceBadge } from '@/utils/rating'
+import { RatingCalculator } from '@/components/RatingCalculator'
 
 interface PlayerData {
   id: string
@@ -349,6 +350,8 @@ export default function ProfilePage() {
             </h2>
             
             <div className="space-y-4">
+              <RatingCalculator />
+
               <div className="relative">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-slate-700">Singles</span>
