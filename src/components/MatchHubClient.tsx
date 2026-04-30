@@ -446,7 +446,7 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Message your opponent..."
-                className="w-full pl-4 pr-14 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
+                className="w-full pl-4 pr-14 py-3 bg-white border border-slate-200 rounded-2xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
               />
               <button
                 type="submit"
