@@ -18,9 +18,7 @@ export async function GET(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
       {
         cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
+          getAll() { return cookieStore.getAll() },
           setAll() {},
         },
       }
@@ -31,26 +29,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch messages for this match
-    // Try both with and without the explicit FK name to be safe
     const { data: messages, error } = await supabase
       .from('messages')
       .select('*, sender:profiles(full_name)')
       .eq('match_id', matchId)
       .order('created_at', { ascending: true })
 
-    if (error) {
-      // Fallback for different FK name
-      const { data: retryMessages, error: retryError } = await supabase
-        .from('messages')
-        .select('*, sender:profiles!messages_sender_id_fkey(full_name)')
-        .eq('match_id', matchId)
-        .order('created_at', { ascending: true })
-      
-      if (retryError) throw retryError
-      return NextResponse.json({ messages: retryMessages || [] })
-    }
-
+    if (error) throw error
     return NextResponse.json({ messages: messages || [] })
   } catch (err: any) {
     console.error('GET Messages Error:', err)
@@ -73,9 +58,7 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
       {
         cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
+          getAll() { return cookieStore.getAll() },
           setAll() {},
         },
       }
@@ -93,8 +76,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Message content required' }, { status: 400 })
     }
 
-    // Create message using the user's client (honors RLS)
-    const { data: message, error: insertError } = await supabase
+    const adminClient = createAdminClient()
+
+    // DEBUG: Check if the user is actually a participant in this match
+    const { data: playerRecord } = await adminClient
+      .from('players')
+      .select('id')
+      .eq('profile_id', user.id)
+      .maybeSingle()
+
+    const { data: match } = await adminClient
+      .from('matches')
+      .select('home_player_id, away_player_id')
+      .eq('id', matchId)
+      .single()
+
+    if (!match) {
+      return NextResponse.json({ error: 'Match not found' }, { status: 404 })
+    }
+
+    const isParticipant = playerRecord && (
+      playerRecord.id === match.home_player_id || 
+      playerRecord.id === match.away_player_id
+    )
+
+    if (!isParticipant) {
+      return NextResponse.json({ 
+        error: 'You are not a participant in this match',
+        debug: {
+          userProfileId: user.id,
+          userPlayerId: playerRecord?.id || 'not found',
+          matchHomeId: match.home_player_id,
+          matchAwayId: match.away_player_id
+        }
+      }, { status: 403 })
+    }
+
+    // Try inserting with ADMIN client first to see if it's an RLS issue
+    // If this works, but the user client failed, then it's RLS.
+    const { data: message, error: insertError } = await adminClient
       .from('messages')
       .insert({
         match_id: matchId,
@@ -113,42 +133,27 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    // Notify opponent - use admin client to ensure we can read match/player data
-    const adminClient = createAdminClient()
-    const { data: match } = await adminClient
-      .from('matches')
-      .select('home_player_id, away_player_id')
-      .eq('id', matchId)
-      .single()
+    // Notify opponent
+    const opponentId = playerRecord.id === match.home_player_id 
+      ? match.away_player_id 
+      : match.home_player_id
 
-    if (match) {
-      const { data: playerRecord } = await adminClient
+    if (opponentId) {
+      const { data: opponent } = await adminClient
         .from('players')
-        .select('id')
-        .eq('profile_id', user.id)
-        .maybeSingle()
+        .select('profile_id')
+        .eq('id', opponentId)
+        .single()
 
-      const opponentId = playerRecord?.id === match.home_player_id 
-        ? match.away_player_id 
-        : match.home_player_id
-
-      if (opponentId) {
-        const { data: opponent } = await adminClient
-          .from('players')
-          .select('profile_id')
-          .eq('id', opponentId)
-          .single()
-
-        if (opponent) {
-          await adminClient.from('notifications').insert({
-            user_id: opponent.profile_id,
-            type: 'message_received',
-            title: 'New Message',
-            message: `You have a new message about your match`,
-            link: `/matches/${matchId}`,
-            read: false
-          })
-        }
+      if (opponent) {
+        await adminClient.from('notifications').insert({
+          user_id: opponent.profile_id,
+          type: 'message_received',
+          title: 'New Message',
+          message: `You have a new message about your match`,
+          link: `/matches/${matchId}`,
+          read: false
+        })
       }
     }
 
