@@ -2,6 +2,12 @@
 
 This document outlines the logical progression for the Tennis-Flex platform following the completion of the core Phase 1-23 implementation.
 
+## ✅ Recently Completed
+- [x] **Match Hub & Real-time Coordination:** Dedicated coordination page with live chat and shared availability.
+- [x] **Service Worker Fix:** Resolved PWA deployment skew issues (MIME type errors).
+- [x] **API Resilience:** Upgraded messaging/scheduling to handle ID migrations and RLS complexities.
+- [x] **UI Polish:** Enforced dark text on light backgrounds for better contrast.
+
 ## 🚀 Priority 1: NTRP Verification (Scraper Integration)
 **Goal:** Replace or augment self-reported skill levels with verified data.
 - [ ] **Integration:** Connect `scraper/tennisrecord.ts` to the registration flow.
@@ -44,8 +50,8 @@ This document outlines the logical progression for the Tennis-Flex platform foll
 
 ## 🛠 Technical Debt & Maintenance
 - [ ] **Push Notifications:** Move beyond the in-app bell to native PWA push notifications.
-- [ ] **API Rate Limiting:** Implement Vercel Edge middleware for protection.
 - [ ] **Email Templates:** Polish transactional emails for match schedules and score verifications.
+- [ ] **Rate Limiting:** Implement Vercel Edge middleware for API protection.
 
 ---
-*Created: April 29, 2026*
+*Updated: April 30, 2026*

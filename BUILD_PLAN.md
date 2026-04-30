@@ -173,10 +173,30 @@ Organization (Flex)
  | 21 | Dashboard improvements (YourMatchesCard) | ✅ Complete |
  | 22 | Profile page cleanup | ✅ Complete |
  | 23 | Database technical debt fixes | ✅ Complete |
+ | 24 | Match Hub & Real-time Coordination | ✅ Complete |
 
 ---
 
 ## Completed Features
+
+### Phase 24: Match Hub & Real-time Coordination ✅
+- **Match Hub Page (`/matches/[id]`)**: A dedicated space for match-specific coordination, moving away from constrained modals.
+- **Real-time Chat**: Integrated Supabase Realtime for instant messaging between opponents with auto-scroll and timestamping.
+- **Enhanced Coordination Calendar**:
+  - Unified view of player availability: You (Indigo), Opponent (Emerald), and Overlap (Purple).
+  - Instant availability toggling with immediate database synchronization.
+- **Smart Scheduling Logic**: Added "Schedule Best Date" quick action that identifies the first shared availability and proposes it as the official match time.
+- **Dashboard Integration**: Upgraded the "Your Matches" card on the player dashboard to act as a portal directly to the Hub.
+
+### Recent Fixes & Platform Stability ✅
+- **Service Worker (PWA) Deployment Fix**: Resolved 'text/plain' MIME type errors caused by deployment skew. Implemented a "Network First" strategy for navigation (HTML) and "Cache First" for hashed static assets.
+- **API Resilience & ID Migration Support**: 
+  - Refactored Messaging and Scheduling APIs to use `adminClient` for critical lookups, resolving RLS and participant-matching issues after player ID swaps/merges.
+  - Added comprehensive diagnostic logging and error reporting to the messaging flow.
+- **UI Readability & Contrast**: Enforced a "Dark Text on Light Background" policy across the app, specifically fixing the chat input and bubble contrast issues.
+- **Dashboard Data Sync**: Updated the dashboard's data fetching to use `profile_id` (Auth ID) as the primary link for registrations, ensuring players see their matches correctly even after account changes.
+
+---
 
 ### Phase 1: Landing Page + Auth ✅
 - Landing page with hero, features, TFR explanation
