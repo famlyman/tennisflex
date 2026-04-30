@@ -544,13 +544,13 @@ export default async function Dashboard() {
                  </div>
                )}
 
-               {/* Player Matches Card */}
-               {dashboardData.playerMatches && dashboardData.playerMatches.length > 0 && (
-                 <YourMatchesCard 
-                   matches={dashboardData.upcomingMatches} 
-                   playerId={dashboardData.player?.id} 
-                 />
-               )}
+                {/* Player Matches Card */}
+                {dashboardData.playerMatches && dashboardData.playerMatches.length > 0 && (
+                  <YourMatchesCard 
+                    matches={dashboardData.playerMatches} 
+                    playerId={dashboardData.player?.id} 
+                  />
+                )}
              </>
            )}
          </div>
