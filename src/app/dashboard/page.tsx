@@ -323,37 +323,6 @@ async function getDashboardData(userId: string) {
         }
       }
 
-      // Fetch upcoming matches for this player
-      const { data: matches } = await adminClient
-        .from('matches')
-        .select(`
-          id,
-          scheduled_at,
-          status,
-          skill_level:skill_levels!matches_skill_level_id_fkey (
-            name,
-            division:divisions!skill_levels_division_id_fkey (type)
-          ),
-          home_player:players!matches_home_player_id_fkey (id, profile:profiles!players_profile_id_fkey (full_name)),
-          away_player:players!matches_away_player_id_fkey (id, profile:profiles!players_profile_id_fkey (full_name))
-        `)
-        .or(`home_player_id.eq.${player.id},away_player_id.eq.${player.id}`)
-        .neq('status', 'completed')
-        .order('scheduled_at', { ascending: true })
-
-      upcomingMatches = (matches || []).map((m: any) => ({
-        id: m.id,
-        scheduled_at: m.scheduled_at,
-        status: m.status,
-        skill_level_name: m.skill_level?.name,
-        division_type: m.skill_level?.division?.type,
-        opponent_name: m.home_player?.id === player.id 
-          ? m.away_player?.profile?.full_name 
-          : m.home_player?.profile?.full_name,
-        opponent_id: m.home_player?.id === player.id 
-          ? m.away_player?.id 
-          : m.home_player?.id,
-      }))
     }
   }
 
