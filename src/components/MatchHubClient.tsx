@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
+import Link from 'next/link'
 import { getSupabaseClient } from '@/utils/client'
+
 // Helper to format dates
 const formatDate = (date: Date | string, options: Intl.DateTimeFormatOptions = {}) => {
   const d = typeof date === 'string' ? new Date(date) : date
@@ -13,6 +15,118 @@ const formatDate = (date: Date | string, options: Intl.DateTimeFormatOptions = {
 const formatISO = (date: Date) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
+
+interface Message {
+  id: string
+  match_id: string
+  sender_id: string
+  content: string
+  created_at: string
+  sender?: {
+    full_name: string
+  }
+}
+
+interface Availability {
+  date: string
+  note: string
+}
+
+interface MatchHubClientProps {
+  match: any
+  currentUserId: string
+  currentPlayerId: string
+  opponent: any
+}
+
+const calendarStyles = `
+  .hub-calendar .react-calendar {
+    width: 100%;
+    border: none;
+    font-family: inherit;
+    background: transparent;
+  }
+  .hub-calendar .react-calendar__navigation {
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .hub-calendar .react-calendar__navigation button {
+    color: #0f172a;
+    font-size: 1.125rem;
+    font-weight: 700;
+    min-width: 44px;
+    background: none;
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .hub-calendar .react-calendar__navigation button:enabled:hover {
+    background-color: #f1f5f9;
+  }
+  .hub-calendar .react-calendar__month-view__weekdays {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .hub-calendar .react-calendar__month-view__weekdays__weekday abbr {
+    text-decoration: none;
+  }
+  .hub-calendar .react-calendar__tile {
+    padding: 12px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #1e293b;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .hub-calendar .react-calendar__tile--now {
+    background: #f8fafc !important;
+    color: #4f46e5 !important;
+    text-decoration: underline;
+  }
+  .hub-calendar .react-calendar__tile:enabled:hover {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+  }
+  .hub-calendar .react-calendar__tile--active {
+    background: transparent !important;
+    color: inherit !important;
+  }
+  .hub-calendar .availability-me {
+    background-color: #e0e7ff !important;
+    color: #3730a3 !important;
+    border-color: #c7d2fe !important;
+  }
+  .hub-calendar .availability-opp {
+    background-color: #dcfce7 !important;
+    color: #166534 !important;
+    border-color: #bbf7d0 !important;
+  }
+  .hub-calendar .availability-both {
+    background-color: #f3e8ff !important;
+    color: #6b21a8 !important;
+    border-color: #e9d5ff !important;
+    font-weight: 800;
+    box-shadow: 0 0 0 2px #d8b4fe;
+  }
+  .hub-calendar .scheduled-date {
+    background-color: #4f46e5 !important;
+    color: white !important;
+    border-color: #4338ca !important;
+    box-shadow: 0 4px 6px -1px rgb(79 70 229 / 0.2);
+  }
+`
 
 export default function MatchHubClient({ match, currentUserId, currentPlayerId, opponent }: MatchHubClientProps) {
   const [messages, setMessages] = useState<Message[]>([])
@@ -244,7 +358,7 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
               >
                 <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                   <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <span className="text-sm font-bold text-indigo-900">Schedule Best Date</span>
@@ -350,5 +464,3 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
     </div>
   )
 }
-
-import Link from 'next/link'
