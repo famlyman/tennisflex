@@ -153,7 +153,7 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
           table: 'messages',
           filter: `match_id=eq.${match.id}`
         },
-        async (payload) => {
+        async (payload: { new: { id: string } }) => {
           // Fetch the full message with sender profile
           const { data: fullMsg } = await supabase
             .from('messages')
