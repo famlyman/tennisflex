@@ -417,7 +417,7 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                 return (
                   <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                     {!isMe && showSender && (
-                      <span className="text-[10px] font-bold text-slate-400 mb-1 ml-1 uppercase tracking-wider">
+                      <span className="text-[10px] font-bold text-slate-600 mb-1 ml-1 uppercase tracking-wider">
                         {msg.sender?.full_name || 'Opponent'}
                       </span>
                     )}
@@ -428,10 +428,11 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                     }`}>
                       {msg.content}
                     </div>
-                    <span className="text-[9px] text-slate-400 mt-1 px-1">
+                    <span className="text-[9px] text-slate-500 mt-1 px-1 font-medium">
                       {formatDate(msg.created_at, { hour: 'numeric', minute: '2-digit' })}
                     </span>
                   </div>
+                )
                 )
               })
             )}

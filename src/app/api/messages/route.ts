@@ -25,30 +25,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Get player's player record
-  const { data: player } = await supabase
-    .from('players')
-    .select('id')
-    .eq('profile_id', user.id)
-    .single()
-
-  if (!player) {
-    return NextResponse.json({ messages: [] })
-  }
-
-  // Fetch messages for this match, only if player is involved
+  // Fetch messages for this match
+  // We use the profile join to get the sender name
   const { data: messages } = await supabase
     .from('messages')
-    .select('*, sender:profiles!messages_sender_id_fkey(full_name)')
+    .select('*, sender:profiles(full_name)')
     .eq('match_id', matchId)
     .order('created_at', { ascending: true })
-
-  // Mark as read
-  await supabase
-    .from('messages')
-    .update({ read: true })
-    .eq('match_id', matchId)
-    .neq('sender_id', user.id)
 
   return NextResponse.json({ messages: messages || [] })
 }
@@ -84,7 +67,7 @@ export async function POST(request: Request) {
   }
 
   // Create message
-  const { data: message, error } = await supabase
+  const { data: message, error: insertError } = await supabase
     .from('messages')
     .insert({
       match_id: matchId,
@@ -94,8 +77,9 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (insertError) {
+    console.error('Insert message error:', insertError)
+    return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
   // Notify opponent - get the match to find opponent
@@ -106,7 +90,14 @@ export async function POST(request: Request) {
     .single()
 
   if (match) {
-    const opponentId = match.home_player_id === user.id 
+    // We need to know which player record corresponds to the current user to find the opponent
+    const { data: playerRecord } = await supabase
+      .from('players')
+      .select('id')
+      .eq('profile_id', user.id)
+      .maybeSingle()
+
+    const opponentId = playerRecord?.id === match.home_player_id 
       ? match.away_player_id 
       : match.home_player_id
 
@@ -124,7 +115,7 @@ export async function POST(request: Request) {
           type: 'message_received',
           title: 'New Message',
           message: `You have a new message about your upcoming match`,
-          link: `/seasons/${matchId}`
+          link: `/matches/${matchId}`
         })
       }
     }
