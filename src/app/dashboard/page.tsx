@@ -386,7 +386,7 @@ export default async function Dashboard() {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xl leading-none">T</span>
             </div>
-            <span className="font-bold text-xl tracking-tight">Tennis-Flex</span>
+            <span className="font-bold text-xl text-gray-600 tracking-tight">Tennis-Flex</span>
           </Link>
           <div className="flex items-center gap-4">
             <NotificationBell />
@@ -453,7 +453,7 @@ export default async function Dashboard() {
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
                       {dashboardData.player?.tfr_singles 
-                        ? (dashboardData.player.tfr_singles / 10).toFixed(1) 
+                        ? (dashboardData.player.tfr_singles).toFixed(1) 
                         : '--'}
                     </p>
                     <p className="text-xs text-slate-500">Singles</p>
@@ -464,7 +464,7 @@ export default async function Dashboard() {
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
                       {dashboardData.player?.tfr_doubles 
-                        ? (dashboardData.player.tfr_doubles / 10).toFixed(1) 
+                        ? (dashboardData.player.tfr_doubles).toFixed(1) 
                         : '--'}
                     </p>
                     <p className="text-xs text-slate-500">Doubles</p>
