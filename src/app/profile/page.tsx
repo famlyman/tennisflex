@@ -352,7 +352,6 @@ export default function ProfilePage() {
             </h2>
             
             <div className="space-y-4">
-              <RatingCalculator />
 
               <div className="relative">
                 <div className="flex items-center justify-between mb-2">
