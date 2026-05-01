@@ -1,4 +1,5 @@
-import { chromium } from 'playwright';
+import chromium from '@sparticuz/chromium';
+import { chromium as playwrightCore } from 'playwright-core';
 
 interface PlayerRating {
   name: string;
@@ -32,7 +33,11 @@ function parseRecord(text: string): { record: string; wins: number; losses: numb
 }
 
 export async function searchPlayers(playerName: string): Promise<PlayerSearchResult[]> {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await playwrightCore.launch({
+    args: chromium.args,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
+  });
   const context = await browser.newContext({
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
   });
@@ -110,7 +115,11 @@ export async function scrapePlayerRating(playerName: string, locationFilter?: st
     }
   }
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await playwrightCore.launch({
+    args: chromium.args,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
+  });
   const context = await browser.newContext({
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
   });
