@@ -11,6 +11,7 @@ This document outlines the logical progression for the Tennis-Flex platform foll
 - [x] **Profile Page Enhancement:** Added "Calculate Your TFR Rating" widget to "My Ratings" card.
 - [x] **Dashboard Fix:** "Your Matches" card now shows ALL matches (not just upcoming).
 - [x] **Deployment Fix:** Resolved Vercel build errors (Turbopack compatibility, prerendering issues).
+- [x] **TFR Rating Display:** Fixed dashboard to show whole number TFR ratings (e.g., 30 instead of 30.0).
 
 ## 🚀 Priority 1: NTRP Verification (Scraper Integration)
 **Goal:** Replace or augment self-reported skill levels with verified data.
@@ -58,4 +59,4 @@ This document outlines the logical progression for the Tennis-Flex platform foll
 - [ ] **Rate Limiting:** Implement Vercel Edge middleware for API protection.
 
 ---
-*Updated: April 30, 2026 - TennisRecord scraper integrated, Profile page enhanced, Vercel deployment fixed*
+*Updated: May 1, 2026 - TFR rating display fixed to show whole numbers in dashboard*

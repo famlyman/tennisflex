@@ -15,7 +15,7 @@ A multi-tenant tennis league management platform built with Next.js 16 and Supab
 - **Notifications & Match Chat** - In-app messaging system
 - **PWA Support** - Service worker, manifest, offline capabilities
 
-### Recent Updates (April 2026)
+### Recent Updates (May 2026)
 
 #### Match Hub & Real-time Coordination
 - **Match Hub Page**: Dedicated workspace for coordinating specific matches (`/matches/[id]`).
@@ -26,6 +26,11 @@ A multi-tenant tennis league management platform built with Next.js 16 and Supab
 - **Enhanced API Layer**: Improved resilience for player ID migrations and robust RLS-compliant messaging.
 - **PWA Reliability**: Fixed deployment skew issues with an optimized "Network First" service worker strategy.
 - **UI Polish**: Enforced high-contrast dark text on light backgrounds across all coordination components.
+
+#### Dashboard Improvements
+- **TFR Rating Display**: Fixed to show whole numbers (e.g., 30 instead of 30.0) for cleaner UI presentation.
+- **TennisRecord Scraper API**: Created `/api/tennisrecord` endpoint with ScrapingBee integration.
+- **Profile Page Enhancement**: Added "Calculate Your TFR Rating" widget to "My Ratings" card.
 
 ## Getting Started
 
