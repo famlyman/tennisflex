@@ -457,9 +457,6 @@ export default async function Dashboard() {
                         : '--'}
                     </p>
                     <p className="text-xs text-slate-500">Singles</p>
-                    <p className="text-xs text-slate-400">
-                      {dashboardData.player?.initial_ntrp_singles ? `NTRP: ${dashboardData.player.initial_ntrp_singles}` : ''}
-                    </p>
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
@@ -468,9 +465,6 @@ export default async function Dashboard() {
                         : '--'}
                     </p>
                     <p className="text-xs text-slate-500">Doubles</p>
-                    <p className="text-xs text-slate-400">
-                      {dashboardData.player?.initial_ntrp_doubles ? `NTRP: ${dashboardData.player.initial_ntrp_doubles}` : ''}
-                    </p>
                   </div>
                 </div>
                 <p className="text-sm text-slate-400 mt-4">
