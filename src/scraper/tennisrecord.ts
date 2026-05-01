@@ -1,4 +1,4 @@
-import { chromium as playwrightCore } from 'playwright-core';
+import * as cheerio from 'cheerio';
 
 interface PlayerRating {
   name: string;
@@ -32,62 +32,51 @@ function parseRecord(text: string): { record: string; wins: number; losses: numb
 }
 
 export async function searchPlayers(playerName: string): Promise<PlayerSearchResult[]> {
-  const browser = await playwrightCore.launch({ headless: true });
-  const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-  });
-  const page = await context.newPage();
-  
+  const SCRAPINGBEE_API_KEY = process.env.SCRAPINGBEE_API_KEY;
   const encodedName = encodeURIComponent(playerName);
   const url = `https://www.tennisrecord.com/adult/profile.aspx?playername=${encodedName}`;
-
+  
   const results: PlayerSearchResult[] = [];
-
+  
   try {
-    await page.goto(url, { timeout: 30000 });
-    await page.waitForTimeout(3000);
+    let html: string;
     
-    const html = await page.content();
-    
-    const linkPattern = /<a[^>]+href="\/adult\/profile\.aspx\?playername=[^"]+&s=(\d+)"[^>]*>([^<]+)<\/a>\s*\(([^,]+),?\s*([A-Z]{2})\)/g;
-    const locMatches = html.matchAll(linkPattern);
-    
-    for (const match of locMatches) {
-      const playerId = match[1];
-      const name = match[2].trim();
-      const location = `${match[3]}, ${match[4]}`;
-      
-      results.push({
-        name,
-        location,
-        gender: 'Unknown',
-        playerId,
-      });
+    if (SCRAPINGBEE_API_KEY) {
+      // Use ScrapingBee for JS rendering
+      const response = await fetch(
+        `https://app.scrapingbee.com/api/v1/?api_key=${SCRAPINGBEE_API_KEY}&url=${encodeURIComponent(url)}&render_js=true`
+      );
+      html = await response.text();
+    } else {
+      // Fallback to simple fetch (may not work for JS-rendered content)
+      const response = await fetch(url);
+      html = await response.text();
     }
-
-    if (results.length === 0) {
-      const profileMatch = url.match(/playername=([^&]+)/);
-      if (profileMatch) {
-        const profileUrl = `https://www.tennisrecord.com/adult/profile.aspx?playername=${encodedName}&s=1`;
-        await page.goto(profileUrl, { timeout: 30000 });
-        await page.waitForTimeout(2000);
-        const html2 = await page.content();
+    
+    const $ = cheerio.load(html);
+    
+    // Parse player links with locations
+    $('a[href*="profile.aspx"]').each((i, el) => {
+      const href = $(el).attr('href') || '';
+      const match = href.match(/playername=[^&]+&s=(\d+)/);
+      if (match) {
+        const playerId = match[1];
+        const name = $(el).text().trim();
+        const parentText = $(el).parent().text();
+        const locMatch = parentText.match(/\(([^,]+),?\s*([A-Z]{2})\)/);
         
-        const nameMatch = html2.match(/>\s*([^<]+?)\s*<\/a>\s*\(([^,]+),?\s*([A-Z]{2})\)/);
-        if (nameMatch) {
+        if (locMatch) {
           results.push({
-            name: nameMatch[1].trim(),
-            location: `${nameMatch[2]}, ${nameMatch[3]}`,
+            name,
+            location: `${locMatch[1].trim()}, ${locMatch[2]}`,
             gender: 'Unknown',
-            playerId: '1',
+            playerId,
           });
         }
       }
-    }
+    });
   } catch (error) {
     console.error(`[tennisrecord] Search error for ${playerName}:`, error);
-  } finally {
-    await browser.close();
   }
 
   return results;
@@ -110,75 +99,63 @@ export async function scrapePlayerRating(playerName: string, locationFilter?: st
     }
   }
 
-  const browser = await playwrightCore.launch({ headless: true });
-  const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-  });
-  const page = await context.newPage();
-  
+  const SCRAPINGBEE_API_KEY = process.env.SCRAPINGBEE_API_KEY;
   const encodedName = encodeURIComponent(playerName);
   const sParam = playerId || '1';
   const url = `https://www.tennisrecord.com/adult/matchhistory.aspx?playername=${encodedName}&year=2026&s=${sParam}`;
-
+  
   try {
-    await page.goto(url, { timeout: 30000 });
-    await page.waitForTimeout(2000);
+    let html: string;
     
-    const bodyText = await page.evaluate(() => document.body.innerText);
-    const allText = await page.locator('body').textContent();
+    if (SCRAPINGBEE_API_KEY) {
+      const response = await fetch(
+        `https://app.scrapingbee.com/api/v1/?api_key=${SCRAPINGBEE_API_KEY}&url=${encodeURIComponent(url)}&render_js=true`
+      );
+      html = await response.text();
+    } else {
+      const response = await fetch(url);
+      html = await response.text();
+    }
     
-    if (!allText || allText.includes('Player Not Found') || allText.length < 500) {
-      await browser.close();
+    const $ = cheerio.load(html);
+    const bodyText = $('body').text();
+    
+    if (bodyText.includes('Player Not Found') || bodyText.length < 500) {
       return null;
     }
 
-    const profMatch = bodyText.match(/([A-Za-z]+ [A-Za-z]+)\s*\(?([A-Z]{2})?\)/);
-    const html = await page.content();
-    const htmlLocMatch = html.match(/href="\/adult\/profile\.aspx\?playername=[^>]*>\s*([^<]+)<\/a>\s*\(([^,]+),?\s*([A-Z]{2})\)/);
-    const name = profMatch?.[1]?.trim() || playerName;
-    const location = htmlLocMatch ? `${htmlLocMatch[2]}, ${htmlLocMatch[3]}` : '';
+    const name = $('a[href*="profile.aspx"]').first().text().trim() || playerName;
+    const locationMatch = $('body').text().match(/\(([^,]+),?\s*([A-Z]{2})\)/);
+    const location = locationMatch ? `${locationMatch[1].trim()}, ${locationMatch[2]}` : '';
     const gender = bodyText.includes('Male') ? 'Male' : bodyText.includes('Female') ? 'Female' : '';
     
-    const dynamicIdx = bodyText.indexOf('Estimated Dynamic Rating');
     let dynamicRating: string | null = null;
     let dynamicRatingDate: string | null = null;
-    if (dynamicIdx !== -1) {
-      const snippet = bodyText.substring(dynamicIdx, dynamicIdx + 80);
-      const ratingMatch = snippet.match(/([\d.]+)/);
-      if (ratingMatch) dynamicRating = ratingMatch[1];
-      const dateMatch = snippet.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
-      if (dateMatch) dynamicRatingDate = dateMatch[1];
-    }
+    const dynamicRow = $('td:contains("Estimated Dynamic Rating")').parent();
+    const dynamicText = dynamicRow.find('td').last().text().trim();
+    const ratingMatch = dynamicText.match(/([\d.]+)/);
+    if (ratingMatch) dynamicRating = ratingMatch[1];
+    const dateMatch = bodyText.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+    if (dateMatch) dynamicRatingDate = dateMatch[1];
 
-    const singlesIdx = bodyText.indexOf('TTR Singles Rating');
     let singlesRating = '';
     let singlesLastMatch: string | null = null;
-    if (singlesIdx !== -1) {
-      const snippet = bodyText.substring(singlesIdx, singlesIdx + 100);
-      const ratingMatch = snippet.match(/([\d.]+)\s*\(/);
-      if (ratingMatch) singlesRating = ratingMatch[1];
-      const dateMatch = snippet.match(/\)\s*(\d{1,2}\/\d{1,2}\/\d{4})/);
-      if (dateMatch) singlesLastMatch = dateMatch[1];
-    }
-    
-    const doublesIdx = bodyText.indexOf('TTR Doubles Rating');
+    const singlesRow = $('td:contains("TTR Singles Rating")').parent();
+    const singlesText = singlesRow.find('td').last().text().trim();
+    const singlesMatch = singlesText.match(/([\d.]+)/);
+    if (singlesMatch) singlesRating = singlesMatch[1];
+
     let doublesRating = '';
     let doublesLastMatch: string | null = null;
-    if (doublesIdx !== -1) {
-      const snippet = bodyText.substring(doublesIdx, doublesIdx + 100);
-      const ratingMatch = snippet.match(/([\d.]+)\s*\(/);
-      if (ratingMatch) doublesRating = ratingMatch[1];
-      const dateMatch = snippet.match(/\)\s*(\d{1,2}\/\d{1,2}\/\d{4})/);
-      if (dateMatch) doublesLastMatch = dateMatch[1];
-    }
-    
+    const doublesRow = $('td:contains("TTR Doubles Rating")').parent();
+    const doublesText = doublesRow.find('td').last().text().trim();
+    const doublesMatch = doublesText.match(/([\d.]+)/);
+    if (doublesMatch) doublesRating = doublesMatch[1];
+
     const recordMatch = bodyText.match(/Record:\s*(\d+-\d+)/);
     const record = recordMatch?.[1] || '0-0';
 
-    if (!name) {
-      await browser.close();
-      return null;
-    }
+    if (!name) return null;
 
     const { wins, losses } = parseRecord(record);
 
@@ -197,71 +174,10 @@ export async function scrapePlayerRating(playerName: string, locationFilter?: st
       dynamicRatingDate,
       playerId,
     };
-    await browser.close();
   } catch (error) {
     console.error(`[tennisrecord] Error scraping player ${playerName}:`, error);
-    await browser.close();
     return null;
   }
 }
 
-if (require.main === module) {
-  const playerName = process.argv[2] || 'Dennis Geronimus';
-  
-  async function main() {
-    const locationFilter = process.argv[3];
-    const playerIdParam = process.argv[4];
-    
-    if (playerIdParam) {
-      const result = await scrapePlayerRating(playerName, undefined, playerIdParam);
-      console.log(JSON.stringify(result, null, 2));
-    } else if (locationFilter) {
-      const searchResults = await searchPlayers(playerName);
-      console.log('Search results:');
-      console.log(JSON.stringify(searchResults, null, 2));
-      
-      const match = searchResults.find(r => 
-        r.location.toLowerCase().includes(locationFilter.toLowerCase())
-      );
-      
-      if (!match) {
-        console.log(`No player found matching location: ${locationFilter}`);
-        process.exit(1);
-      }
-      
-      console.log(`\nUsing player ID ${match.playerId} for ${match.location}`);
-      const result = await scrapePlayerRating(playerName, undefined, match.playerId ?? undefined);
-      console.log('\nPlayer rating:');
-      console.log(JSON.stringify(result, null, 2));
-    } else {
-      let result = await scrapePlayerRating(playerName);
-      
-      if (!result || !result.dynamicRating) {
-        console.log(`No rating found for "${playerName}", trying name parts...`);
-        const parts = playerName.split(' ');
-        for (const part of parts) {
-          if (part.length >= 3) {
-            const partialResult = await scrapePlayerRating(part, locationFilter);
-            if (partialResult && partialResult.dynamicRating) {
-              console.log(`Found: ${partialResult.name} (${partialResult.location})`);
-              result = partialResult;
-              break;
-            }
-          }
-        }
-      }
-      
-      if (result && result.dynamicRating) {
-        console.log(JSON.stringify(result, null, 2));
-      } else {
-        console.log(JSON.stringify({ error: 'Player not found' }, null, 2));
-        process.exit(1);
-      }
-    }
-  }
-  
-  main().then(() => process.exit(0)).catch(err => {
-    console.error('FATAL:', err);
-    process.exit(1);
-  });
-}
+// For local testing: node -e "import('./src/scraper/tennisrecord.js').then(m => m.scrapePlayerRating('Dennis Geronimus').then(console.log))"
