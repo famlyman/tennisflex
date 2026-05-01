@@ -453,7 +453,7 @@ export default async function Dashboard() {
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
                       {dashboardData.player?.tfr_singles 
-                        ? (dashboardData.player.tfr_singles).toFixed(1) 
+                        ? dashboardData.player.tfr_singles 
                         : '--'}
                     </p>
                     <p className="text-xs text-slate-500">Singles</p>
@@ -464,7 +464,7 @@ export default async function Dashboard() {
                   <div>
                     <p className="text-3xl font-bold text-indigo-600">
                       {dashboardData.player?.tfr_doubles 
-                        ? (dashboardData.player.tfr_doubles).toFixed(1) 
+                        ? dashboardData.player.tfr_doubles 
                         : '--'}
                     </p>
                     <p className="text-xs text-slate-500">Doubles</p>
