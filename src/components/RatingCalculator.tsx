@@ -89,10 +89,10 @@ export function RatingCalculator() {
 
       {result && (
         <div className="mt-4 p-4 bg-green-50 rounded-md">
-          <p className="font-semibold">{result.name}</p>
-          <p className="text-sm text-gray-600">{result.location}</p>
+          <p className="font-semibold text-slate-900">{result.name}</p>
+          <p className="text-sm text-slate-600">{result.location}</p>
           <div className="mt-2">
-            <p className="text-sm">Dynamic Rating: <span className="font-semibold">{result.dynamicRating}</span></p>
+            <p className="text-sm text-slate-900">Dynamic Rating: <span className="font-semibold">{result.dynamicRating}</span></p>
             <p className="text-2xl font-bold text-blue-600 mt-1">TFR: {result.tfr}</p>
           </div>
         </div>
