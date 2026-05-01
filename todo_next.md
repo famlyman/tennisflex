@@ -7,10 +7,14 @@ This document outlines the logical progression for the Tennis-Flex platform foll
 - [x] **Service Worker Fix:** Resolved PWA deployment skew issues (MIME type errors).
 - [x] **API Resilience:** Upgraded messaging/scheduling to handle ID migrations and RLS complexities.
 - [x] **UI Polish:** Enforced dark text on light backgrounds for better contrast.
+- [x] **TennisRecord Scraper API:** Created `/api/tennisrecord` endpoint with ScrapingBee integration.
+- [x] **Profile Page Enhancement:** Added "Calculate Your TFR Rating" widget to "My Ratings" card.
+- [x] **Dashboard Fix:** "Your Matches" card now shows ALL matches (not just upcoming).
+- [x] **Deployment Fix:** Resolved Vercel build errors (Turbopack compatibility, prerendering issues).
 
 ## 🚀 Priority 1: NTRP Verification (Scraper Integration)
 **Goal:** Replace or augment self-reported skill levels with verified data.
-- [ ] **Integration:** Connect `scraper/tennisrecord.ts` to the registration flow.
+- [x] **Integration:** Connect `scraper/tennisrecord.ts` to the registration flow.
 - [ ] **UI/UX:** Add a "Verify with TennisRecord" button during player onboarding.
 - [ ] **Data Sync:** Auto-populate `initial_ntrp_singles` and `initial_ntrp_doubles` from scraped data.
 - [ ] **Anti-Sandbagging:** Flag players whose self-reported rating significantly deviates from their scraped dynamic rating.
@@ -54,4 +58,4 @@ This document outlines the logical progression for the Tennis-Flex platform foll
 - [ ] **Rate Limiting:** Implement Vercel Edge middleware for API protection.
 
 ---
-*Updated: April 30, 2026*
+*Updated: April 30, 2026 - TennisRecord scraper integrated, Profile page enhanced, Vercel deployment fixed*
