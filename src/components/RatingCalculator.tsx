@@ -57,7 +57,7 @@ export function RatingCalculator() {
             placeholder="e.g. John Smith"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
           />
         </div>
 
@@ -68,7 +68,7 @@ export function RatingCalculator() {
             placeholder="e.g. Austin, TX"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
           />
         </div>
 
