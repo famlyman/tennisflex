@@ -44,14 +44,14 @@ export function RatingCalculator() {
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold mb-4">Calculate Your TFR Rating</h3>
+      <h3 className="text-lg text-gray-600 font-semibold mb-4">Calculate Your TFR Rating</h3>
       <p className="text-sm text-gray-600 mb-4">
-        Enter your name and city exactly as it appears on USTA/Tennis Link.
+        For a more accurate rating, please enter your name and city exactly as it appears on USTA/Tennis Link.
       </p>
       
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Player Name</label>
+          <label className="block text-sm text-gray-600 font-medium mb-1">Player Name</label>
           <input
             type="text"
             placeholder="e.g. John Smith"
@@ -62,7 +62,7 @@ export function RatingCalculator() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">City</label>
+          <label className="block text-sm text-gray-600 font-medium mb-1">City</label>
           <input
             type="text"
             placeholder="e.g. Austin, TX"
