@@ -612,6 +612,9 @@ export default function ProfilePage() {
                 'Save Changes'
               )}
             </button>
+
+            <RatingCalculator />
+
           </form>
         </div>
       </main>

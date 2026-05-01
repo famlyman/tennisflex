@@ -46,7 +46,7 @@ export function RatingCalculator() {
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
       <h3 className="text-lg font-semibold mb-4">Calculate Your TFR Rating</h3>
       <p className="text-sm text-gray-600 mb-4">
-        Enter your name and city exactly as it appears on tennisrecord.com
+        Enter your name and city exactly as it appears on USTA/Tennis Link.
       </p>
       
       <div className="space-y-4">
