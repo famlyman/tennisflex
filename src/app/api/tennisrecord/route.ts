@@ -28,3 +28,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Scraping failed' }, { status: 500 });
   }
 }
+ 
