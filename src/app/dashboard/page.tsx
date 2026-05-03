@@ -199,6 +199,7 @@ async function getDashboardData(userId: string, email?: string | null) {
           id: m.id,
           scheduled_at: m.scheduled_at,
           status: m.status,
+          verified_by_opponent: m.verified_by_opponent,
           skill_level_name: m.skill_level?.name,
           skill_level_id: m.skill_level?.id,
           season_id: m.skill_level?.division?.season_id,

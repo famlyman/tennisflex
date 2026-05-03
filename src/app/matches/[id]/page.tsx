@@ -111,7 +111,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className={`px-4 py-2 rounded-2xl border font-bold text-sm ${
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border font-bold text-sm ${
                 match.status === 'completed' 
                   ? 'bg-slate-100 border-slate-200 text-slate-600'
                   : match.scheduled_at 
@@ -123,6 +123,15 @@ export default async function MatchPage({ params }: MatchPageProps) {
                   : match.scheduled_at 
                     ? `Scheduled: ${new Date(match.scheduled_at).toLocaleDateString()}` 
                     : 'Awaiting Schedule'}
+                
+                {match.status === 'completed' && match.verified_by_opponent && (
+                  <span className="flex items-center gap-1 ml-1 px-2 py-0.5 bg-blue-600 text-white text-[10px] uppercase tracking-wider rounded-full">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.64.304 1.24.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.172a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Verified
+                  </span>
+                )}
               </div>
             </div>
           </div>
