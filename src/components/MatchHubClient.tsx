@@ -143,6 +143,7 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
   ])
   const [winnerId, setWinnerId] = useState<string | null>(match.winner_id)
   const [submittingScore, setSubmittingScore] = useState(false)
+  const [scheduling, setScheduling] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const supabase = getSupabaseClient()
 
