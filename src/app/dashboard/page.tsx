@@ -246,10 +246,10 @@ async function getDashboardData(userId: string, email?: string | null) {
       }
 
       if (targetSkillLevelObj) {
-        // 1. Get all players for this organization as a base (to ensure we find everyone)
+        // 1. Get all players for this organization as a base
         const { data: allOrglayers } = await adminClient
           .from('players')
-          .select('id, profile:profiles(full_name)')
+          .select('id, profile:profiles!players_profile_id_fkey(full_name)')
           .eq('organization_id', primaryPlayer?.organization_id || orgIds[0])
 
         // 2. Get registered player IDs for this skill level
@@ -283,9 +283,16 @@ async function getDashboardData(userId: string, email?: string | null) {
             if (m.winner_id === pid) wins++
             else if (m.winner_id) losses++
           })
+          
+          // Ensure we correctly extract the name from the profile relation
+          const profileData = p.profile as any
+          const fullName = Array.isArray(profileData) 
+            ? profileData[0]?.full_name 
+            : profileData?.full_name
+
           return { 
             player_id: pid, 
-            player_name: p.profile?.full_name || 'Unknown', 
+            player_name: fullName || 'Unknown Player', 
             wins, 
             losses, 
             matches: pMatches.length 
