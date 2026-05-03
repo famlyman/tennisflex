@@ -229,7 +229,8 @@ export async function PUT(request: Request, { params }: { params: Promise<RouteP
     .update({
       score,
       winner_id,
-      status: 'completed'
+      status: 'completed',
+      verified_by_opponent: isCoordinator // Auto-verify if coordinator updates
     })
     .eq('id', matchId)
 

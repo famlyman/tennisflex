@@ -443,6 +443,28 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                   {match.status === 'completed' ? 'Edit Score' : 'Submit Score'}
                 </span>
               </button>
+
+              {match.status === 'completed' && !match.verified_by_opponent && (
+                <button 
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`/api/matches/${match.id}/verify`, { method: 'POST' });
+                      if (res.ok) window.location.reload();
+                      else alert('Failed to verify score');
+                    } catch (err) {
+                      alert('Error verifying score');
+                    }
+                  }}
+                  className="flex flex-col items-center justify-center p-4 rounded-2xl bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors group"
+                >
+                  <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-bold text-blue-900">Verify Score</span>
+                </button>
+              )}
               
               <Link 
                 href={`/seasons/${match.skill_level?.division?.season_id}`}

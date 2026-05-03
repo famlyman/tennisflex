@@ -264,7 +264,7 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                           {new Date(match.scheduled_at).toLocaleDateString()}
                         </span>
                       )}
-                      {(data?.isCoordinator || match.home_player_id === data?.userId || match.away_player_id === data?.userId) && match.status !== 'completed' && (
+                      {(data?.isCoordinator || match.home_player?.profile?.id === data?.userId || match.away_player?.profile?.id === data?.userId) && match.status !== 'completed' && (
                         <button
                           onClick={() => openScoreModal(match)}
                           className="text-sm bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700"
@@ -272,7 +272,23 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                           Add Score
                         </button>
                       )}
-                      {(data?.isCoordinator || match.home_player_id === data?.userId || match.away_player_id === data?.userId) && match.status === 'completed' && (
+                      {match.status === 'completed' && !match.verified_by_opponent && (match.home_player?.profile?.id === data?.userId || match.away_player?.profile?.id === data?.userId) && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/matches/${match.id}/verify`, { method: 'POST' });
+                              if (res.ok) loadData(skillLevelId!);
+                              else alert('Failed to verify score');
+                            } catch (err) {
+                              alert('Error verifying score');
+                            }
+                          }}
+                          className="text-sm bg-emerald-600 text-white px-3 py-1 rounded-lg hover:bg-emerald-700"
+                        >
+                          Verify Score
+                        </button>
+                      )}
+                      {(data?.isCoordinator || match.home_player?.profile?.id === data?.userId || match.away_player?.profile?.id === data?.userId) && match.status === 'completed' && (
                         <button
                           onClick={() => openScoreModal(match)}
                           className="text-sm bg-slate-200 text-slate-700 px-3 py-1 rounded-lg hover:bg-slate-300"
