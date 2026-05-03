@@ -36,8 +36,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       home_player:players!matches_home_player_id_fkey (id, profile_id),
       away_player:players!matches_away_player_id_fkey (id, profile_id),
       skill_level:skill_levels!matches_skill_level_id_fkey (
-        id, division:divisions!skill_levels_division_id_fkey (
-          id, season_id, organization_id
+        id, 
+        division:divisions!skill_levels_division_id_fkey (
+          id, 
+          season:seasons!divisions_season_id_fkey (
+            id, organization_id
+          )
         )
       )
     `)
@@ -45,10 +49,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .single()
 
   if (matchError || !match) {
+    console.error('Match fetch error:', matchError)
     return NextResponse.json({ error: 'Match not found' }, { status: 404 })
   }
 
-  const orgId = match.skill_level?.division?.organization_id
+  const orgId = match.skill_level?.division?.season?.organization_id
 
   // Check if user is a coordinator
   const { data: coordinator } = await adminSupabase
