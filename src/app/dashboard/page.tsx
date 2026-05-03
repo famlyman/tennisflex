@@ -246,22 +246,36 @@ async function getDashboardData(userId: string, email?: string | null) {
       }
 
       if (targetSkillLevelObj) {
-        // Fetch players registered for THIS skill level in THIS season
+        // 1. Get all players for this organization as a base (to ensure we find everyone)
+        const { data: allOrglayers } = await adminClient
+          .from('players')
+          .select('id, profile:profiles(full_name)')
+          .eq('organization_id', primaryPlayer?.organization_id || orgIds[0])
+
+        // 2. Get registered player IDs for this skill level
         const { data: registrations } = await adminClient
           .from('season_registrations')
-          .select('player_id, profile:profiles!season_registrations_profile_id_fkey(full_name)')
+          .select('player_id')
           .eq('skill_level_id', targetSkillLevelId)
           .eq('status', 'active')
+        
+        const registeredPlayerIds = new Set((registrations || []).map(r => r.player_id))
+        
+        // 3. Filter players who are either registered OR were in the most recent match
+        const eligiblePlayers = (allOrglayers || []).filter((p: any) => 
+          registeredPlayerIds.has(p.id) || 
+          (mostRecentMatch && (mostRecentMatch.home_player_id === p.id || mostRecentMatch.away_player_id === p.id))
+        )
 
-        // Fetch ALL completed matches for this skill level
+        // 4. Fetch ALL completed matches for this skill level
         const { data: skillLevelMatches } = await adminClient
           .from('matches')
           .select('id, home_player_id, away_player_id, winner_id, status')
           .eq('skill_level_id', targetSkillLevelId)
           .eq('status', 'completed')
 
-        const leaderboard = (registrations || []).map((reg: any) => {
-          const pid = reg.player_id
+        const leaderboard = eligiblePlayers.map((p: any) => {
+          const pid = p.id
           const pMatches = (skillLevelMatches || []).filter((m: any) => m.home_player_id === pid || m.away_player_id === pid)
           let wins = 0
           let losses = 0
@@ -271,7 +285,7 @@ async function getDashboardData(userId: string, email?: string | null) {
           })
           return { 
             player_id: pid, 
-            player_name: reg.profile?.full_name || 'Unknown', 
+            player_name: p.profile?.full_name || 'Unknown', 
             wins, 
             losses, 
             matches: pMatches.length 
