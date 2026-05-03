@@ -492,7 +492,7 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
             </div>
             <div>
               <h3 className="font-bold text-slate-900">{opponent.profile?.full_name}</h3>
-              <p className="text-xs text-slate-500">TFR: {(opponent.tfr_singles / 10).toFixed(1)} • Singles</p>
+              <p className="text-xs text-slate-500">TFR: {Math.round(opponent.tfr_singles)} • Singles</p>
             </div>
           </div>
 

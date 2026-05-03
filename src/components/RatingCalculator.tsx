@@ -93,7 +93,7 @@ export function RatingCalculator() {
           <p className="text-sm text-slate-600">{result.location}</p>
           <div className="mt-2">
             <p className="text-sm text-slate-900">Dynamic Rating: <span className="font-semibold">{result.dynamicRating}</span></p>
-            <p className="text-2xl font-bold text-blue-600 mt-1">TFR: {result.tfr}</p>
+            <p className="text-2xl font-bold text-blue-600 mt-1">TFR: {Math.round(result.tfr)}</p>
           </div>
         </div>
       )}

@@ -394,7 +394,7 @@ export default async function Dashboard() {
             <div className="flex gap-8">
               <div>
                 <p className="text-3xl font-bold text-indigo-600">
-                  {dashboardData.player?.tfr_singles || '--'}
+                  {dashboardData.player?.tfr_singles ? Math.round(dashboardData.player.tfr_singles) : '--'}
                 </p>
                 <p className="text-xs text-slate-500">Singles</p>
                 <p className="text-xs text-slate-400">
@@ -403,7 +403,7 @@ export default async function Dashboard() {
               </div>
               <div>
                 <p className="text-3xl font-bold text-indigo-600">
-                  {dashboardData.player?.tfr_doubles || '--'}
+                  {dashboardData.player?.tfr_doubles ? Math.round(dashboardData.player.tfr_doubles) : '--'}
                 </p>
                 <p className="text-xs text-slate-500">Doubles</p>
                 <p className="text-xs text-slate-400">

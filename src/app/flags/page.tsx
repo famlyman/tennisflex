@@ -118,7 +118,7 @@ export default function FlagsPage() {
   }
 
   function formatTFR(rating: number) {
-    return (rating / 10).toFixed(1)
+    return Math.round(rating).toString()
   }
 
   return (

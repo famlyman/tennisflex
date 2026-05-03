@@ -404,7 +404,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                             </div>
                             {level.min_rating !== null && level.max_rating !== null && (
                               <div className="text-sm text-slate-500 mb-2">
-                                Rating: {(level.min_rating / 10).toFixed(1)} - {(level.max_rating / 10).toFixed(1)}
+                                TFR Range: {Math.round(level.min_rating)} - {Math.round(level.max_rating)}
                               </div>
                             )}
                             {totalCount > 0 && (

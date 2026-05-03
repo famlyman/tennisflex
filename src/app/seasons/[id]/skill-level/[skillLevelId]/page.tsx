@@ -211,7 +211,7 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
           </p>
           {skill_level.min_rating !== null && skill_level.max_rating !== null && (
             <p className="text-sm text-slate-400 mt-1">
-              Rating Range: {skill_level.min_rating / 10} - {skill_level.max_rating / 10}
+              TFR Range: {Math.round(skill_level.min_rating)} - {Math.round(skill_level.max_rating)}
             </p>
           )}
         </div>
@@ -320,9 +320,9 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                        </div>
                        <div className="text-sm text-slate-500">
                          {skill_level.division?.name?.includes('Doubles') ? (
-                           <>TFR-D: {(match.home_player?.tfr_doubles / 10).toFixed(1)}</>
+                           <>TFR-D: {Math.round(match.home_player?.tfr_doubles)}</>
                          ) : (
-                           <>TFR-S: {(match.home_player?.tfr_singles / 10).toFixed(1)}</>
+                           <>TFR-S: {Math.round(match.home_player?.tfr_singles)}</>
                          )}
                        </div>
                        {match.home_player?.id && (
@@ -351,9 +351,9 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                        </div>
                        <div className="text-sm text-slate-500">
                          {skill_level.division?.name?.includes('Doubles') ? (
-                           <>TFR-D: {(match.away_player?.tfr_doubles / 10).toFixed(1)}</>
+                           <>TFR-D: {Math.round(match.away_player?.tfr_doubles)}</>
                          ) : (
-                           <>TFR-S: {(match.away_player?.tfr_singles / 10).toFixed(1)}</>
+                           <>TFR-S: {Math.round(match.away_player?.tfr_singles)}</>
                          )}
                        </div>
                        {match.away_player?.id && (
@@ -444,9 +444,9 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                   <div className="font-medium text-slate-900">{selectedMatch.home_player?.profile?.full_name}</div>
                   <div className="text-sm text-slate-500">
                     {skill_level.division?.name?.includes('Doubles') ? (
-                      <>TFR-D: {(selectedMatch.home_player?.tfr_doubles / 10).toFixed(1)}</>
+                      <>TFR-D: {Math.round(selectedMatch.home_player?.tfr_doubles)}</>
                     ) : (
-                      <>TFR-S: {(selectedMatch.home_player?.tfr_singles / 10).toFixed(1)}</>
+                      <>TFR-S: {Math.round(selectedMatch.home_player?.tfr_singles)}</>
                     )}
                   </div>
                 </div>
@@ -455,9 +455,9 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                   <div className="font-medium text-slate-900">{selectedMatch.away_player?.profile?.full_name}</div>
                   <div className="text-sm text-slate-500">
                     {skill_level.division?.name?.includes('Doubles') ? (
-                      <>TFR-D: {(selectedMatch.away_player?.tfr_doubles / 10).toFixed(1)}</>
+                      <>TFR-D: {Math.round(selectedMatch.away_player?.tfr_doubles)}</>
                     ) : (
-                      <>TFR-S: {(selectedMatch.away_player?.tfr_singles / 10).toFixed(1)}</>
+                      <>TFR-S: {Math.round(selectedMatch.away_player?.tfr_singles)}</>
                     )}
                   </div>
                 </div>

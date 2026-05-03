@@ -8,7 +8,7 @@ export function getConfidenceBadge(matchCount: number): ConfidenceBadge {
 
 export function getConfidenceDisplay(rating: number, matchCount: number): string {
   const badge = getConfidenceBadge(matchCount)
-  const ratingDisplay = (rating / 10).toFixed(1)
+  const ratingDisplay = Math.round(rating).toString()
   
   switch (badge) {
     case 'Projected':
