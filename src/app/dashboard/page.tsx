@@ -214,10 +214,10 @@ async function getDashboardData(userId: string, email?: string | null) {
     // Priority:
     // 1. Skill level of the most recent completed match
     // 2. Skill level of the first active registration
-    let targetSkillLevelId = null
-    let targetDivision = null
-    let targetSeason = null
-    let targetSkillLevelObj = null
+    let targetSkillLevelId: string | null = null
+    let targetDivision: any = null
+    let targetSeason: any = null
+    let targetSkillLevelObj: any = null
 
     // Find the most recent completed match for this user
     const mostRecentMatch = (matches || []).find((m: any) => m.status === 'completed')
