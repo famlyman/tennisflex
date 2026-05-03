@@ -12,17 +12,18 @@ interface Match {
   scheduled_at: string | null
   home_player_id: string
   away_player_id: string
+  verified_by_opponent: boolean
   home_player: {
     id: string
     tfr_singles: number
     tfr_doubles: number
-    profile: { full_name: string }
+    profile: { id: string, full_name: string }
   }
   away_player: {
     id: string
     tfr_singles: number
     tfr_doubles: number
-    profile: { full_name: string }
+    profile: { id: string, full_name: string }
   }
   winner_id: string | null
 }
