@@ -100,4 +100,4 @@
 
 ---
 
-*Last Updated: May 1, 2026 | Status: Teams feature in conceptual spitballing phase*
+*Last Updated: May 3, 2026 | Status: MVP stabilization complete, TFR rounding and dashboard fixes applied*

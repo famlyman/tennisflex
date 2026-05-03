@@ -3,23 +3,17 @@
 This document outlines the logical progression for the Tennis-Flex platform following the completion of the core Phase 1-23 implementation.
 
 ## ✅ Recently Completed
-- [x] **Unified Dashboard:** Combined player and coordinator views; supports multi-organization player records and doubles partners.
-- [x] **Match Score Integration:** Integrated score submission directly into the Match Hub coordination page with a mobile-friendly modal.
-- [x] **Verification System:** Added opponent score verification with visual "Verified" badges across the entire platform.
-- [x] **Match Hub & Real-time Coordination:** Dedicated coordination page with live chat and shared availability.
-- [x] **Service Worker Fix:** Resolved PWA deployment skew issues (MIME type errors).
-- [x] **API Resilience:** Upgraded messaging/scheduling to handle ID migrations and RLS complexities.
-- [x] **UI Polish:** Enforced dark text on light backgrounds for better contrast.
-- [x] **TennisRecord Scraper API:** Created `/api/tennisrecord` endpoint with ScrapingBee integration.
-- [x] **Profile Page Enhancement:** Added "Calculate Your TFR Rating" widget to "My Ratings" card.
-- [x] **Dashboard Fix:** "Your Matches" card now shows ALL matches (not just upcoming).
-- [x] **Deployment Fix:** Resolved Vercel build errors (Turbopack compatibility, prerendering issues).
-- [x] **TFR Rating Display:** Fixed dashboard to show whole number TFR ratings (e.g., 30 instead of 30.0).
+- [x] **TFR Rating Display:** Standardized whole-number TFR ratings (10-80 scale) across the entire app using `Math.round`.
+- [x] **Dynamic Leaderboard:** Dashboard leaderboard now automatically focuses on the user's most recent completed match.
+- [x] **Win/Loss Logic:** Fixed reversed win/loss reporting and ensured immediate database updates on score submission.
+- [x] **UI Contrast Fix:** Enforced dark text (`text-slate-900`) for player names on the leaderboard per enterprise readability standards.
+- [x] **Match Score Integration:** Integrated score submission directly into the Match Hub with verified badges.
+- [x] **Verification System:** Added opponent score verification across the platform.
 
 ## 🚀 Priority 1: NTRP Verification (Scraper Integration)
 **Goal:** Replace or augment self-reported skill levels with verified data.
-- [x] **Integration:** Connect `scraper/tennisrecord.ts` to the registration flow.
-- [ ] **UI/UX:** Add a "Verify with TennisRecord" button during player onboarding.
+- [x] **Scraper API:** Connect `scraper/tennisrecord.ts` to `/api/tennisrecord`.
+- [ ] **UI/UX:** Add a "Verify with TennisRecord" button during player onboarding/profile editing.
 - [ ] **Data Sync:** Auto-populate `initial_ntrp_singles` and `initial_ntrp_doubles` from scraped data.
 - [ ] **Anti-Sandbagging:** Flag players whose self-reported rating significantly deviates from their scraped dynamic rating.
 
@@ -32,10 +26,9 @@ This document outlines the logical progression for the Tennis-Flex platform foll
 
 ## 🧪 Priority 3: Testing & Quality Assurance
 **Goal:** Ensure platform stability and multi-tenant security.
-- [ ] **E2E Testing:** Implement Playwright tests for the critical path:
-    - Registration -> Registration Approval -> Match Generation -> Score Submission.
-- [ ] **Multi-Tenancy Audit:** Verify that Row Level Security (RLS) prevents data leakage between Organizations.
-- [ ] **TFR Validation:** Create unit tests for `src/utils/rating.ts` to verify rating changes for upsets vs. blowouts.
+- [ ] **Build Validation:** Fix remaining lint/type errors across the codebase to ensure clean CI/CD.
+- [ ] **E2E Testing:** Implement Playwright tests for the registration -> match -> score flow.
+- [ ] **Multi-Tenancy Audit:** Verify RLS policies prevent data leakage between Organizations.
 
 ## 💰 Priority 4: Monetization (Stripe Integration)
 **Goal:** Enable organizations to collect registration fees.
