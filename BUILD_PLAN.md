@@ -609,22 +609,44 @@ CREATE INDEX IF NOT EXISTS idx_season_registrations_partner ON season_registrati
 - Opponents now receive notification when score is submitted
 - Score submission API (`/api/matches/[id]/score/route.ts`) updated to send notifications
 
-### Files Modified in This Session
-- `src/app/error.tsx` (new)
-- `src/app/not-found.tsx` (new)
-- `src/app/[chapter]/error.tsx` (new)
-- `src/app/[chapter]/not-found.tsx` (new)
-- `src/app/dashboard/error.tsx` (new)
-- `src/app/seasons/error.tsx` (new)
-- `src/app/seasons/[id]/not-found.tsx` (new)
-- `src/components/MatchesCard.tsx` (new)
-- `src/utils/notifications.ts` (new)
-- `supabase/match_availability.sql` (new)
-- `supabase/migration_technical_debt_fixes.sql` (new)
-- `supabase/fix_profiles_columns.sql` (new)
-- `src/app/dashboard/page.tsx` (modified - added MatchesCard)
-- `src/app/profile/page.tsx` (modified - removed USTA number)
-- `src/app/api/matches/[id]/score/route.ts` (modified - added notifications)
-- `src/app/api/player/availability/route.ts` (new)
-- `package.json` (added react-calendar)
-- `BUILD_PLAN.md` (this update)
+---
+
+## May 2, 2026 - Session Updates
+
+### Unified Dashboard ✅
+- Refactored `getDashboardData` to support users with multiple role identities.
+- Users can now see both **Coordinator Stats** and **Player Cards** on the same dashboard.
+- Aggregates registrations and matches across **all linked player records** for a single profile.
+- Added explicit support for **Doubles Partners**: dashboard now scans for registrations where the user is listed as the partner (by Player ID or Email).
+
+### Match Hub Score Submission ✅
+- Integrated match scoring directly into the Match Hub coordination page (`src/components/MatchHubClient.tsx`).
+- Added a mobile-optimized **Score Entry Modal** with:
+  - Set-by-set dropdown inputs (0-7).
+  - Explicit winner selection toggle.
+  - Quick action button in the coordination sidebar.
+
+### Match Verification System ✅
+- Created new API endpoint: `/api/matches/[id]/verify` (POST).
+- Implemented **Opponent Verification** flow:
+  - When a score is submitted, the opponent sees a blue "Verify Score" button.
+  - Scores submitted by Coordinators are marked as **auto-verified**.
+- Added visual **"Verified" badges** across the entire platform:
+  - Skill Level match list.
+  - Match Hub status header.
+  - Dashboard "Your Matches" card.
+
+### API & Logic Fixes ✅
+- **Relationship Chain Fix**: Corrected verification logic to find `organization_id` through the `skill_level -> division -> season` path (previously failing with 404).
+- **ID Mismatch Resolution**: Fixed Skill Level page logic that was incorrectly comparing Profile IDs to Player IDs.
+- **TypeScript Safety**: Updated `Match` interfaces to include `verified_by_opponent` and nested profile IDs.
+- **State Restoration**: Fixed a regression where the scheduling state was lost during scoring integration.
+
+### Files Modified/Created in This Session
+- `src/app/api/matches/[id]/verify/route.ts` (new)
+- `src/app/dashboard/page.tsx` (modified - unified logic)
+- `src/components/MatchHubClient.tsx` (modified - integrated scoring & verification)
+- `src/app/seasons/[id]/skill-level/[skillLevelId]/page.tsx` (modified - fixed ID logic & added badges)
+- `src/app/matches/[id]/page.tsx` (modified - added header badges)
+- `src/components/YourMatchesCard.tsx` (modified - added badges)
+- `src/app/api/matches/[id]/score/route.ts` (modified - added auto-verify for coordinators)
