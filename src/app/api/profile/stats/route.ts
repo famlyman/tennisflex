@@ -44,6 +44,9 @@ export async function GET() {
       status,
       score,
       winner_id,
+      home_player_id,
+      away_player_id,
+      created_at,
       skill_level:skill_levels!matches_skill_level_id_fkey (
         name,
         division:divisions!skill_levels_division_id_fkey (
@@ -62,9 +65,12 @@ export async function GET() {
       status,
       score,
       winner_id,
+      home_player_id,
+      away_player_id,
+      created_at,
       skill_level:skill_levels!matches_skill_level_id_fkey (
         name,
-        division:distions!skill_levels_division_id_fkey (
+        division:divisions!skill_levels_division_id_fkey (
           name,
           season:seasons!divisions_season_id_fkey (name)
         )
@@ -75,21 +81,27 @@ export async function GET() {
 
   // Combine and calculate stats
   const allMatches = [...(homeMatches || []), ...(awayMatches || [])]
+  // Sort by most recent first
+  allMatches.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
   let wins = 0
   let losses = 0
+
+  allMatches.forEach((m: any) => {
+    const iWon = m.winner_id === player.id
+    if (iWon) wins++
+    else if (m.winner_id) losses++
+  })
 
   const recentMatches = allMatches.slice(0, 10).map((m: any) => {
     const isHome = m.home_player_id === player.id
     const iWon = m.winner_id === player.id
     
-    if (iWon) wins++
-    else if (m.winner_id) losses++
-
     return {
       id: m.id,
       score: m.score,
       won: iWon,
-      opponent: isHome ? 'Home' : 'Away',
+      opponent: isHome ? 'Away' : 'Home', // This should really be the name, but keeping it simple for now
       skillLevel: m.skill_level?.name,
       seasonName: m.skill_level?.division?.season?.name
     }

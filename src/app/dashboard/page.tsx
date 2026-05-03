@@ -210,63 +210,88 @@ async function getDashboardData(userId: string, email?: string | null) {
         }
       })
 
-    // Leaderboard (from first registration)
-    if (playerRegistrations.length > 0) {
+    // Leaderboard
+    // Priority:
+    // 1. Skill level of the most recent completed match
+    // 2. Skill level of the first active registration
+    let targetSkillLevelId = null
+    let targetDivision = null
+    let targetSeason = null
+    let targetSkillLevelObj = null
+
+    // Find the most recent completed match for this user
+    const mostRecentMatch = (matches || []).find((m: any) => m.status === 'completed')
+    
+    if (mostRecentMatch) {
+      targetSkillLevelId = mostRecentMatch.skill_level_id
+      targetSkillLevelObj = mostRecentMatch.skill_level
+      targetDivision = mostRecentMatch.skill_level?.division
+      targetSeason = (seasonsData || []).find(s => s.id === targetDivision?.season_id)
+    } else if (playerRegistrations.length > 0) {
       const primaryReg = playerRegistrations[0]
-      const playerRecord = allPlayers?.find(p => p.id === primaryReg.player_id) || primaryPlayer
-      if (primaryReg.division && primaryReg.season && playerRecord) {
-        const { data: skillLevels } = await adminClient
+      targetSkillLevelId = primaryReg.skill_level_id
+      targetDivision = primaryReg.division
+      targetSeason = primaryReg.season
+    }
+
+    if (targetSkillLevelId) {
+      // Fetch skill level info if we only have the ID
+      if (!targetSkillLevelObj) {
+        const { data: sl } = await adminClient
           .from('skill_levels')
           .select('id, name, min_rating, max_rating')
-          .eq('division_id', primaryReg.division.id)
-          .order('min_rating', { ascending: true })
-        
-        if (skillLevels && skillLevels.length > 0) {
-          const isDoubles = primaryReg.division.type?.includes('doubles') || primaryReg.division.name?.toLowerCase().includes('doubles')
-          const playerRating = isDoubles 
-            ? (playerRecord.initial_ntrp_doubles || playerRecord.tfr_doubles / 10 || 0)
-            : (playerRecord.initial_ntrp_singles || playerRecord.tfr_singles / 10 || 0)
-          
-          const playerTfr = playerRating * 10
-          const playerSkillLevel = skillLevels.find((sl: any) => {
-            if (!sl.min_rating || !sl.max_rating) return false
-            return playerTfr >= sl.min_rating && playerTfr <= sl.max_rating
+          .eq('id', targetSkillLevelId)
+          .single()
+        targetSkillLevelObj = sl
+      }
+
+      if (targetSkillLevelObj) {
+        // Fetch players registered for THIS skill level in THIS season
+        const { data: registrations } = await adminClient
+          .from('season_registrations')
+          .select('player_id, profile:profiles!season_registrations_profile_id_fkey(full_name)')
+          .eq('skill_level_id', targetSkillLevelId)
+          .eq('status', 'active')
+
+        // Fetch ALL completed matches for this skill level
+        const { data: skillLevelMatches } = await adminClient
+          .from('matches')
+          .select('id, home_player_id, away_player_id, winner_id, status')
+          .eq('skill_level_id', targetSkillLevelId)
+          .eq('status', 'completed')
+
+        const leaderboard = (registrations || []).map((reg: any) => {
+          const pid = reg.player_id
+          const pMatches = (skillLevelMatches || []).filter((m: any) => m.home_player_id === pid || m.away_player_id === pid)
+          let wins = 0
+          let losses = 0
+          pMatches.forEach((m: any) => {
+            if (m.winner_id === pid) wins++
+            else if (m.winner_id) losses++
           })
-
-          const targetSkillLevel = playerSkillLevel || skillLevels[0]
-          const { data: completedMatches } = await adminClient
-            .from('matches')
-            .select('id, home_player_id, away_player_id, winner_id, status, skill_level_id')
-            .eq('skill_level_id', targetSkillLevel.id)
-            .eq('status', 'completed')
-
-          const { data: allOrglayers } = await adminClient
-            .from('players')
-            .select('id, tfr_singles, profile:profiles (full_name)')
-            .eq('organization_id', playerRecord.organization_id)
-
-          const eligiblePlayers = (allOrglayers || []).filter((p: any) => {
-            if (!targetSkillLevel.min_rating || !targetSkillLevel.max_rating) return true
-            return p.tfr_singles >= targetSkillLevel.min_rating && p.tfr_singles <= targetSkillLevel.max_rating
-          })
-
-          const leaderboard = eligiblePlayers.map((p: any) => {
-            const pMatches = (completedMatches || []).filter((m: any) => m.home_player_id === p.id || m.away_player_id === p.id)
-            let wins = 0; let losses = 0
-            pMatches.forEach((m: any) => {
-              if (m.winner_id === p.id) wins++
-              else if (m.winner_id) losses++
-            })
-            return { player_id: p.id, player_name: p.profile?.full_name || 'Unknown', wins, losses, matches: pMatches.length }
-          })
-          leaderboard.sort((a, b) => b.wins !== a.wins ? b.wins - a.wins : b.matches - a.matches)
-
-          leaderboardData = {
-            division: primaryReg.division,
-            season: primaryReg.season,
-            skillLevel: targetSkillLevel,
-            leaderboard: leaderboard.slice(0, 10),
+          return { 
+            player_id: pid, 
+            player_name: reg.profile?.full_name || 'Unknown', 
+            wins, 
+            losses, 
+            matches: pMatches.length 
           }
+        })
+
+        // Sort by wins (desc), then win percentage, then total matches
+        leaderboard.sort((a, b) => {
+          if (b.wins !== a.wins) return b.wins - a.wins
+          const aWinRate = a.matches > 0 ? a.wins / a.matches : 0
+          const bWinRate = b.matches > 0 ? b.wins / b.matches : 0
+          if (bWinRate !== aWinRate) return bWinRate - aWinRate
+          return b.matches - a.matches
+        })
+
+        leaderboardData = {
+          division: targetDivision,
+          season: targetSeason,
+          skillLevel: targetSkillLevelObj,
+          leaderboard: leaderboard.slice(0, 10),
         }
       }
     }

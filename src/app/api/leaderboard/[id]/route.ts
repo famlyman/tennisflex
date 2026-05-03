@@ -70,7 +70,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const { data: players } = await adminClient
       .from('players')
-      .select('id, tfr_singles, profile:profiles (full_name)')
+      .select('id, tfr_singles, tfr_doubles, match_count_singles, match_count_doubles, profile:profiles (full_name)')
       .eq('organization_id', orgId)
       .in('id', Array.from(registeredPlayerIds))
 
@@ -78,23 +78,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const maxRating = skillLevel.max_rating
 
     const divisionName = skillLevel.division?.name || ''
-    const isDoubles = divisionName.includes('Doubles')
+    const isDoubles = divisionName.toLowerCase().includes('doubles')
     
-    const eligiblePlayers = (players || []).filter((p: any) => {
-      const rating = isDoubles ? p.tfr_doubles : p.tfr_singles
-      if (!minRating || !maxRating) return true
-      return rating >= minRating && rating <= maxRating
-    })
-    
-    const { data: matches } = await adminClient
-      .from('matches')
-      .select('id, home_player_id, away_player_id, winner_id, status')
-      .eq('skill_level_id', skillLevelId)
-      .eq('status', 'completed')
-    
-    const leaderboard = eligiblePlayers.map((player: any) => {
-      const matchCountField = isDoubles ? 'match_count_doubles' : 'match_count_singles'
+    const leaderboard = (players || []).map((player: any) => {
       const ratingField = isDoubles ? 'tfr_doubles' : 'tfr_singles'
+      const matchCountField = isDoubles ? 'match_count_doubles' : 'match_count_singles'
       
       const playerMatches = (matches || []).filter((m: any) => 
         m.home_player_id === player.id || m.away_player_id === player.id
@@ -114,15 +102,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return {
         player_id: player.id,
         player_name: player.profile?.full_name || 'Unknown',
-        [ratingField]: player[ratingField],
-        matches_played: player[matchCountField] || 0,
+        rating: player[ratingField],
+        matches: playerMatches.length,
         wins,
         losses,
       }
     })
 
+    // Sort by wins (desc), then win percentage
     leaderboard.sort((a: any, b: any) => {
       if (b.wins !== a.wins) return b.wins - a.wins
+      const aWinRate = a.matches > 0 ? a.wins / a.matches : 0
+      const bWinRate = b.matches > 0 ? b.wins / b.matches : 0
+      if (bWinRate !== aWinRate) return bWinRate - aWinRate
       return b.matches - a.matches
     })
 

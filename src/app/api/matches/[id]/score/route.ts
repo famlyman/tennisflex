@@ -84,13 +84,13 @@ async function updatePlayerRatings(
   
   const { data: homePlayer } = await adminSupabase
     .from('players')
-    .select('id, profile_id, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles')
+    .select('id, profile_id, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles, wins_singles, losses_singles, wins_doubles, losses_doubles')
     .eq('id', homePlayerId)
     .single()
     
   const { data: awayPlayer } = await adminSupabase
     .from('players')
-    .select('id, profile_id, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles')
+    .select('id, profile_id, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles, wins_singles, losses_singles, wins_doubles, losses_doubles')
     .eq('id', awayPlayerId)
     .single()
   
@@ -98,6 +98,8 @@ async function updatePlayerRatings(
   
   const ratingField = isSingles ? 'tfr_singles' : 'tfr_doubles'
   const matchCountField = isSingles ? 'match_count_singles' : 'match_count_doubles'
+  const winField = isSingles ? 'wins_singles' : 'wins_doubles'
+  const lossField = isSingles ? 'losses_singles' : 'losses_doubles'
   
   const homeRating = homePlayer[ratingField] || 35
   const awayRating = awayPlayer[ratingField] || 35
@@ -108,9 +110,12 @@ async function updatePlayerRatings(
   const homeMatchCount = homePlayer[matchCountField] || 0
   const awayMatchCount = awayPlayer[matchCountField] || 0
   
+  const homeWon = winnerId === homePlayerId
+  const awayWon = winnerId === awayPlayerId
+  
   // Use TFR point system
-  const homeTfrChange = calculateTfrChange(homeRating, awayRating, winnerId === homePlayerId, score, getKFactor(homeMatchCount, homeRD))
-  const awayTfrChange = calculateTfrChange(awayRating, homeRating, winnerId === awayPlayerId, score, getKFactor(awayMatchCount, awayRD))
+  const homeTfrChange = calculateTfrChange(homeRating, awayRating, homeWon, score, getKFactor(homeMatchCount, homeRD))
+  const awayTfrChange = calculateTfrChange(awayRating, homeRating, awayWon, score, getKFactor(awayMatchCount, awayRD))
   
   let newHomeRating = homeRating + homeTfrChange
   let newAwayRating = awayRating + awayTfrChange
@@ -126,7 +131,8 @@ async function updatePlayerRatings(
     .update({
       [ratingField]: newHomeRating,
       rating_deviation: newHomeRD,
-      [matchCountField]: homeMatchCount + 1
+      [matchCountField]: homeMatchCount + 1,
+      [homeWon ? winField : lossField]: (homePlayer[homeWon ? winField : lossField] || 0) + 1
     })
     .eq('id', homePlayerId)
   
@@ -135,7 +141,8 @@ async function updatePlayerRatings(
     .update({
       [ratingField]: newAwayRating,
       rating_deviation: newAwayRD,
-      [matchCountField]: awayMatchCount + 1
+      [matchCountField]: awayMatchCount + 1,
+      [awayWon ? winField : lossField]: (awayPlayer[awayWon ? winField : lossField] || 0) + 1
     })
     .eq('id', awayPlayerId)
 }
