@@ -74,15 +74,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .eq('organization_id', orgId)
       .in('id', Array.from(registeredPlayerIds))
 
-    const minRating = skillLevel.min_rating
-    const maxRating = skillLevel.max_rating
-
     const divisionName = skillLevel.division?.name || ''
     const isDoubles = divisionName.toLowerCase().includes('doubles')
-    
+
+    // Fetch completed matches for this skill level
+    const { data: matches } = await adminClient
+      .from('matches')
+      .select('id, home_player_id, away_player_id, winner_id, status')
+      .eq('skill_level_id', skillLevelId)
+      .eq('status', 'completed')
+
     const leaderboard = (players || []).map((player: any) => {
       const ratingField = isDoubles ? 'tfr_doubles' : 'tfr_singles'
-      const matchCountField = isDoubles ? 'match_count_doubles' : 'match_count_singles'
       
       const playerMatches = (matches || []).filter((m: any) => 
         m.home_player_id === player.id || m.away_player_id === player.id
