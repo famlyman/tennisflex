@@ -226,7 +226,7 @@ async function getDashboardData(userId: string, email?: string | null) {
       targetSkillLevelId = mostRecentMatch.skill_level_id
       targetSkillLevelObj = mostRecentMatch.skill_level
       targetDivision = mostRecentMatch.skill_level?.division
-      targetSeason = (seasonsData || []).find(s => s.id === targetDivision?.season_id)
+      targetSeason = (allOrgSeasons || []).find(s => s.id === targetDivision?.season_id)
     } else if (playerRegistrations.length > 0) {
       const primaryReg = playerRegistrations[0]
       targetSkillLevelId = primaryReg.skill_level_id
