@@ -477,7 +477,7 @@ export default async function Dashboard() {
                   {dashboardData.leaderboardData.leaderboard?.slice(0, 5).map((entry: any, idx: number) => (
                     <div key={entry.player_id} className="flex items-center gap-2 text-sm">
                       <span className={`w-5 text-center font-medium ${idx === 0 ? 'text-amber-500' : 'text-slate-400'}`}>{idx + 1}</span>
-                      <span className="flex-1 truncate">{entry.player_name}</span>
+                      <span className="flex-1 truncate text-slate-900 font-medium">{entry.player_name}</span>
                       <span className="text-slate-500">{entry.wins}W-{entry.losses}L</span>
                     </div>
                   ))}
