@@ -135,9 +135,70 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
   const [opponentAvailability, setOpponentAvailability] = useState<Availability[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [scheduling, setScheduling] = useState(false)
+  const [showScoreModal, setShowScoreModal] = useState(false)
+  const [setScores, setSetScores] = useState<{ home: string; away: string }[]>([
+    { home: '', away: '' },
+    { home: '', away: '' },
+    { home: '', away: '' },
+  ])
+  const [winnerId, setWinnerId] = useState<string | null>(match.winner_id)
+  const [submittingScore, setSubmittingScore] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const supabase = getSupabaseClient()
+
+  useEffect(() => {
+    if (match.score) {
+      const sets = match.score.split(' ').map((set: string) => {
+        const parts = set.includes('(') ? set.split('(')[0] : set
+        const [home, away] = parts.split('-')
+        return { home: home.trim(), away: away.trim() }
+      })
+      const finalSets = [...sets]
+      while (finalSets.length < 3) finalSets.push({ home: '', away: '' })
+      setSetScores(finalSets.slice(0, 3))
+    }
+  }, [match.score])
+
+  const updateSetScore = (index: number, side: 'home' | 'away', value: string) => {
+    const newScores = [...setScores]
+    newScores[index] = { ...newScores[index], [side]: value }
+    setSetScores(newScores)
+  }
+
+  async function handleScoreSubmit() {
+    if (!winnerId || submittingScore) return
+    
+    const scoreString = setScores
+      .filter(s => s.home && s.away)
+      .map(s => `${s.home}-${s.away}`)
+      .join(' ')
+    
+    if (!scoreString) {
+      alert('Please enter at least one set score')
+      return
+    }
+    
+    setSubmittingScore(true)
+    try {
+      const response = await fetch(`/api/matches/${match.id}/score`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score: scoreString, winner_id: winnerId }),
+      })
+      
+      if (response.ok) {
+        window.location.reload()
+      } else {
+        const err = await response.json()
+        alert(err.error || 'Failed to submit score')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('An error occurred while saving the score')
+    } finally {
+      setSubmittingScore(false)
+    }
+  }
 
   useEffect(() => {
     loadData()
@@ -367,6 +428,20 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                 </div>
                 <span className="text-sm font-bold text-indigo-900">Schedule Best Date</span>
               </button>
+
+              <button 
+                onClick={() => setShowScoreModal(true)}
+                className="flex flex-col items-center justify-center p-4 rounded-2xl bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <span className="text-sm font-bold text-emerald-900">
+                  {match.status === 'completed' ? 'Edit Score' : 'Submit Score'}
+                </span>
+              </button>
               
               <Link 
                 href={`/seasons/${match.skill_level?.division?.season_id}`}
@@ -465,6 +540,100 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
           </div>
         </div>
       </div>
+
+      {/* Score Submission Modal */}
+      {showScoreModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <h3 className="text-2xl font-bold text-slate-900 mb-6">
+              {match.status === 'completed' ? 'Edit Match Score' : 'Submit Match Score'}
+            </h3>
+            
+            <div className="space-y-6">
+              {/* Set Scores */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 px-2">
+                  <div className="flex-1"></div>
+                  <div className="w-16 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">Home</div>
+                  <div className="w-16 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">Away</div>
+                </div>
+                {[0, 1, 2].map((setIndex) => (
+                  <div key={setIndex} className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-sm font-bold text-slate-900 w-12">Set {setIndex + 1}</span>
+                    <select
+                      value={setScores[setIndex]?.home || ''}
+                      onChange={(e) => updateSetScore(setIndex, 'home', e.target.value)}
+                      className="w-16 px-2 py-2 bg-white border border-slate-200 rounded-xl text-center font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    >
+                      <option value="">-</option>
+                      {[...Array(8)].map((_, i) => (
+                        <option key={i} value={String(i)}>{i}</option>
+                      ))}
+                    </select>
+                    <div className="w-px h-4 bg-slate-200"></div>
+                    <select
+                      value={setScores[setIndex]?.away || ''}
+                      onChange={(e) => updateSetScore(setIndex, 'away', e.target.value)}
+                      className="w-16 px-2 py-2 bg-white border border-slate-200 rounded-xl text-center font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    >
+                      <option value="">-</option>
+                      {[...Array(8)].map((_, i) => (
+                        <option key={i} value={String(i)}>{i}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+
+              {/* Winner Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">Winner</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setWinnerId(match.home_player_id)}
+                    className={`p-4 rounded-2xl border-2 font-bold text-sm transition-all ${
+                      winnerId === match.home_player_id
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm'
+                        : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200'
+                    }`}
+                  >
+                    <div className="truncate">{match.home_player?.profile?.full_name?.split(' ')[0]}</div>
+                    <div className="text-[10px] opacity-60">Home</div>
+                  </button>
+                  <button
+                    onClick={() => setWinnerId(match.away_player_id)}
+                    className={`p-4 rounded-2xl border-2 font-bold text-sm transition-all ${
+                      winnerId === match.away_player_id
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm'
+                        : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200'
+                    }`}
+                  >
+                    <div className="truncate">{match.away_player?.profile?.full_name?.split(' ')[0]}</div>
+                    <div className="text-[10px] opacity-60">Away</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowScoreModal(false)}
+                  className="flex-1 py-4 px-6 border border-slate-200 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleScoreSubmit}
+                  disabled={!winnerId || submittingScore}
+                  className="flex-1 py-4 px-6 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-100"
+                >
+                  {submittingScore ? 'Saving...' : 'Save Score'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
