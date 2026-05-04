@@ -27,7 +27,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     // Get the division to find organization_id through season
     const { data: division, error: divError } = await adminClient
       .from('divisions')
-      .select('season_id')
+      .select('id, name, season_id')
       .eq('id', skillLevel.division_id)
       .single()
 
