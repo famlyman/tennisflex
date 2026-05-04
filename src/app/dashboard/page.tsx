@@ -699,67 +699,30 @@ export default async function Dashboard() {
           </div>
         )}
 
-        {/* Player Section (Visible to both Players and Coordinators who play) */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        {/* Player Section - Quick Actions only */}
+        <div className="mb-8">
+          {/* Quick Actions Card */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Your TFR Rating</h3>
-            <p className="text-sm text-slate-500 mb-4">Singles • Doubles</p>
-            <div className="flex gap-8">
-              <div>
-                <p className="text-3xl font-bold text-indigo-600">
-                  {dashboardData.player?.tfr_singles ? Math.round(dashboardData.player.tfr_singles) : '--'}
-                </p>
-                <p className="text-xs text-slate-500">Singles</p>
-                <p className="text-xs text-slate-400">
-                  {dashboardData.player?.initial_ntrp_singles ? `NTRP: ${dashboardData.player.initial_ntrp_singles}` : ''}
-                </p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-indigo-600">
-                  {dashboardData.player?.tfr_doubles ? Math.round(dashboardData.player.tfr_doubles) : '--'}
-                </p>
-                <p className="text-xs text-slate-500">Doubles</p>
-                <p className="text-xs text-slate-400">
-                  {dashboardData.player?.initial_ntrp_doubles ? `NTRP: ${dashboardData.player.initial_ntrp_doubles}` : ''}
-                </p>
-              </div>
-            </div>
-            <p className="text-sm text-slate-400 mt-4">
-              {dashboardData.player?.match_count_singles || 0} matches played
-            </p>
-          </div>
-
-          {dashboardData.playerRegistrations.length > 0 && (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-900">Your Registrations</h3>
-                <Link href="/seasons" className="text-sm text-indigo-600 hover:underline">More →</Link>
-              </div>
-              <div className="space-y-3">
-                {dashboardData.playerRegistrations.map((reg: any) => (
-                  <div key={reg.id} className="p-3 bg-slate-50 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-slate-900 text-sm">{reg.season?.name}</p>
-                        <p className="text-xs text-slate-500">{reg.division?.name || reg.division?.type?.replace('_', ' ')}</p>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${reg.season?.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {reg.season?.status?.replace('_', ' ')}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Quick Actions - kept as text links */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Links</h3>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/seasons" className="text-sm text-indigo-600 hover:underline">Browse Seasons</Link>
-              <Link href="/leaderboard" className="text-sm text-indigo-600 hover:underline">Full Leaderboard</Link>
-              <Link href="/profile" className="text-sm text-indigo-600 hover:underline">Edit Profile</Link>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
+            <div className="space-y-3">
+              <Link href="/seasons" className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <span className="text-sm font-medium text-slate-900">Browse Seasons</span>
+              </Link>
+              <Link href="/leaderboard" className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span className="text-sm font-medium text-slate-900">Full Leaderboard</span>
+              </Link>
+              <Link href="/profile" className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span className="text-sm font-medium text-slate-900">Edit Profile</span>
+              </Link>
             </div>
           </div>
         </div>
