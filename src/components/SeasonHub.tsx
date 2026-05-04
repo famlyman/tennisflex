@@ -58,6 +58,26 @@ const DIVISION_LABELS: Record<string, string> = {
   mixed_doubles: "Mixed Doubles",
 }
 
+interface RatingMove {
+  playerId: string
+  playerName: string
+  oldRating: number
+  newRating: number
+  matches: number
+}
+
+// Fetch rating moves for the player
+async function fetchRatingMoves(playerId: string, seasonId: string): Promise<RatingMove | null> {
+  try {
+    const res = await fetch(`/api/profile/stats?player_id=${playerId}&season_id=${seasonId}`)
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.ratingMove || null
+  } catch {
+    return null
+  }
+}
+
 export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: SeasonHubProps) {
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>('')
   const [selectedSkillLevelId, setSelectedSkillLevelId] = useState<string>(data.playerSkillLevelId || '')
@@ -70,19 +90,38 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
     ? data.skillLevels.filter(sl => sl.division_id === selectedDivisionId)
     : data.skillLevels // Show all if no division selected
 
+  const showAllDivisions = !selectedDivisionId
+
+  // Create a map of skillLevelId -> division info
+  const skillLevelDivisionMap: Record<string, any> = {}
+  data.skillLevels.forEach(sl => {
+    const div = data.divisions.find(d => d.id === sl.division_id)
+    if (div) {
+      skillLevelDivisionMap[sl.id] = div
+    }
+  })
+
   // Fetch leaderboards for all skill levels in the division
   useEffect(() => {
     if (divisionSkillLevels.length > 0) {
-      fetchAllLeaderboards(divisionSkillLevels)
+      fetchAllLeaderboards(divisionSkillLevels, showAllDivisions)
     } else {
       setLeaderboardsBySkillLevel({})
       setPlayerRank(null)
     }
   }, [selectedDivisionId])
 
-  const [leaderboardsBySkillLevel, setLeaderboardsBySkillLevel] = useState<Record<string, any>>({})
+  // Fetch player's rating moves
+  useEffect(() => {
+    if (playerId && data.season?.id) {
+      fetchRatingMoves(playerId, data.season.id).then(setRatingMove)
+    }
+  }, [playerId, data.season?.id])
 
-  async function fetchAllLeaderboards(skillLevels: SkillLevel[]) {
+  const [leaderboardsBySkillLevel, setLeaderboardsBySkillLevel] = useState<Record<string, any>>({})
+  const [ratingMove, setRatingMove] = useState<RatingMove | null>(null)
+
+  async function fetchAllLeaderboards(skillLevels: SkillLevel[], isAllView: boolean) {
     setLoading(true)
     try {
       const results: Record<string, any> = {}
@@ -92,13 +131,18 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
         const res = await fetch(`/api/leaderboard/${sl.id}`)
         if (res.ok) {
           const data = await res.json()
+          const leaderboard = data.leaderboard || []
+          // Get division info from the API response or from props
+          const division = data.division || data.skillLevel?.division || 
+            (typeof sl === 'object' && 'division' in sl ? (sl as any).division : null)
           results[sl.id] = {
             skillLevel: sl,
-            leaderboard: data.leaderboard || [],
+            leaderboard: isAllView ? (leaderboard.length > 0 ? [leaderboard[0]] : []) : leaderboard.slice(0, 5),
+            division: division,
           }
           // Find player rank
           if (!playerRankFound) {
-            const rank = data.leaderboard?.findIndex((e: any) => e.player_id === playerId)
+            const rank = leaderboard.findIndex((e: any) => e.player_id === playerId)
             if (rank !== -1) {
               playerRankFound = rank + 1
             }
@@ -214,8 +258,34 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
             ))}
           </div>
 
+          {/* Player's Rating Move */}
+          {ratingMove && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-amber-700 font-medium mb-1">Rating Update! 🎾</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-lg font-bold text-slate-900">
+                    {Math.round(ratingMove.oldRating)} → {Math.round(ratingMove.newRating)}
+                    <span className="text-sm font-normal text-emerald-600 ml-2">
+                      +{Math.round(ratingMove.newRating - ratingMove.oldRating)}
+                    </span>
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Based on {ratingMove.matches} matches
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-slate-900">
+                    {playerTfr ? Math.round(playerTfr) : '--'} TFR
+                  </p>
+                  <p className="text-xs text-slate-500">Current</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Player's Standing */}
-          {playerRank && (
+          {playerRank && !ratingMove && (
             <div className="bg-indigo-50 rounded-lg p-4 mb-4">
               <p className="text-sm text-indigo-600 font-medium mb-1">Your Standing</p>
               <div className="flex items-center justify-between">
@@ -245,22 +315,45 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
               {divisionSkillLevels.map((sl) => {
                 const data = leaderboardsBySkillLevel[sl.id]
                 if (!data || !data.leaderboard || data.leaderboard.length === 0) return null
+
+                // Get division info from the map
+                const division = skillLevelDivisionMap[sl.id]
+                const divisionLabel = division 
+                  ? (DIVISION_LABELS[division.type] || division.name || '')
+                  : ''
                 
                 return (
                   <div key={sl.id}>
-                    <p className="text-sm font-medium text-indigo-600 mb-2">{sl.name}</p>
+                    <p className="text-sm font-medium text-indigo-600 mb-1">
+                      {showAllDivisions ? (
+                        <span>{divisionLabel} • {sl.name}</span>
+                      ) : (
+                        <span>{sl.name}</span>
+                      )}
+                    </p>
                     <div className="space-y-1">
-                      {data.leaderboard.slice(0, 5).map((entry: any, idx: number) => (
+                      {data.leaderboard.map((entry: any, idx: number) => (
                         <div key={entry.player_id} className="flex items-center gap-2 text-sm">
                           <span className={`w-5 text-center font-medium ${idx === 0 ? 'text-amber-500' : 'text-slate-400'}`}>
                             {idx + 1}
                           </span>
                           <span className={`flex-1 truncate ${entry.player_id === playerId ? 'font-semibold text-indigo-600' : 'text-slate-900'}`}>
                             {entry.player_name}
+                            {entry.player_id === playerId && (
+                              <span className="text-xs text-indigo-500 ml-1">(You)</span>
+                            )}
                           </span>
                           <span className="text-slate-500">{entry.wins}W-{entry.losses}L</span>
                         </div>
                       ))}
+                      {showAllDivisions && data.leaderboard.length === 1 && data.leaderboard[0]?.matches > 0 && (
+                        <Link 
+                          href="/leaderboard" 
+                          className="text-xs text-indigo-600 hover:underline mt-1 inline-block"
+                        >
+                          View full leaderboard →
+                        </Link>
+                      )}
                     </div>
                   </div>
                 )
