@@ -297,6 +297,10 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
           {/* Stacked Leaderboards by Skill Level */}
           {loading ? (
             <div className="text-center py-4 text-slate-500 text-sm">Loading...</div>
+          ) : !selectedDivisionId ? (
+            <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <p className="text-slate-500 text-sm">Select a division to view standings</p>
+            </div>
           ) : Object.keys(leaderboardsBySkillLevel).length > 0 ? (
             <div className="space-y-4">
               {divisionSkillLevels.map((sl) => {

@@ -125,7 +125,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       entry.rank = index + 1
     })
 
-    return NextResponse.json({ leaderboard: leaderboard.slice(0, 20) })
+    return NextResponse.json({ 
+      leaderboard: leaderboard.slice(0, 20),
+      skillLevel: {
+        id: skillLevel.id,
+        name: skillLevel.name,
+      },
+      division: {
+        id: division.id,
+        name: division.name,
+      }
+    })
   } catch (err: any) {
     console.error('Leaderboard API error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
