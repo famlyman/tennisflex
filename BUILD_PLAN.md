@@ -169,11 +169,12 @@ Organization (Flex)
 | 17 | TFR algorithm | ✅ Complete |
 | 18 | Error handling pages | ✅ Complete |
  | 19 | Universal match availability system | ✅ Complete |
- | 20 | Notifications system | ✅ Complete |
- | 21 | Dashboard improvements (YourMatchesCard) | ✅ Complete |
- | 22 | Profile page cleanup | ✅ Complete |
- | 23 | Database technical debt fixes | ✅ Complete |
- | 24 | Match Hub & Real-time Coordination | ✅ Complete |
+| 20 | Notifications system | ✅ Complete |
+| 21 | Dashboard improvements (YourMatchesCard) | ✅ Complete |
+| 22 | Profile page cleanup | ✅ Complete |
+| 23 | Database technical debt fixes | ✅ Complete |
+| 24 | Match Hub & Real-time Coordination | ✅ Complete |
+| 25 | Season Hub & Dashboard Enhancement | ✅ Complete |
 
 ---
 
@@ -534,6 +535,52 @@ CREATE INDEX IF NOT EXISTS idx_season_registrations_partner ON season_registrati
 - Phase 21 (Dashboard Improvements): ✅ Complete
 - Phase 22 (Profile Page Cleanup): ✅ Complete
 - Phase 23 (Database Technical Debt): ✅ Complete
+- Phase 24 (Match Hub & Real-time Coordination): ✅ Complete
+
+---
+
+## Session Updates (May 2026)
+
+### Season Completion Workflow Testing
+- **Leaderboard API Fix**: Updated `/api/leaderboard/seasons/route.ts` to include `completed` seasons in dropdown (was only showing `active` and `registration_open`)
+- **Leaderboard Data Fix**: Updated `/api/leaderboard/[id]/route.ts` to fetch registrations with status `['active', 'completed']` (was only `active`, which broke completed seasons)
+- **SQL for Testing**: Provided SQL to complete all non-completed matches with random winners and scores for season completion testing
+
+### Dashboard Enhancement - Season Hub ✅
+- **New Season Hub Component** (`/src/components/SeasonHub.tsx`):
+  - Replaces simple leaderboard card with comprehensive season overview
+  - Season header with gradient background, status badge, progress bar (for active seasons)
+  - Stats grid: Total Players, Total Matches, Completed, Pending
+  - **Division Tabs**: Click to filter leaderboards by division (Men's/Women's Singles/Doubles, Mixed)
+  - **Stacked Leaderboards**: Shows Top 5 players for ALL skill levels in selected division (2.5, 3.0, 3.5, etc.) stacked vertically
+  - **Player Standing**: Shows "#1" player for each Division/Skill Level (when viewing specific division)
+  - **Rating Move Indicator**: Displays "Rating Update! 🎾" card when player has significant TFR changes (e.g., "35 → 38 (+3)")
+  - **Quick Links**: Simple text links to Browse Seasons, Full Leaderboard, Edit Profile
+
+- **Dashboard Changes** (`/src/app/dashboard/page.tsx`):
+  - Removed redundant "Your TFR Rating" card (replaced by Season Hub)
+  - Removed "Your Registrations" card (replaced by Season Hub)
+  - Simplified "Quick Actions" to only show for coordinators/admins
+  - Season Hub now primary focus for players after login
+
+### API Enhancements
+- **Profile Stats API** (`/api/profile/stats/route.ts`):
+  - Now accepts `player_id` and `season_id` query parameters
+  - Returns `ratingMove` object with `oldRating`, `newRating`, and `matches` count
+  - Used by Season Hub to display rating changes
+
+### Key Files Modified
+- `src/components/SeasonHub.tsx` (NEW) - Interactive season hub with division tabs and stacked leaderboards
+- `src/app/dashboard/page.tsx` - Integrated Season Hub, removed redundant cards
+- `src/app/api/leaderboard/seasons/route.ts` - Include completed seasons
+- `src/app/api/leaderboard/[id]/route.ts` - Fetch completed registrations
+- `src/app/api/profile/stats/route.ts` - Added rating move tracking
+
+### User Experience
+- Player signs in → Sees Season Hub with season progress, stats, and division leaderboards
+- Click division tab → See Top 5 players for all skill levels stacked
+- Rating updates displayed prominently at top when applicable
+- Removed clutter: No more duplicate leaderboard cards or redundant TFR displays
 
 ---
 

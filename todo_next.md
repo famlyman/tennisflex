@@ -9,6 +9,10 @@ This document outlines the logical progression for the Tennis-Flex platform foll
 - [x] **UI Contrast Fix:** Enforced dark text (`text-slate-900`) for player names on the leaderboard per enterprise readability standards.
 - [x] **Match Score Integration:** Integrated score submission directly into the Match Hub with verified badges.
 - [x] **Verification System:** Added opponent score verification across the platform.
+- [x] **Season Hub:** New dashboard component with division tabs, stacked leaderboards (Top 5), rating move indicators.
+- [x] **Dashboard Cleanup:** Removed redundant TFR Rating, Registrations cards; simplified Quick Actions to coordinators only.
+- [x] **Leaderboard API Fixes:** Include completed seasons, fetch completed registrations for accurate display.
+- [x] **Rating Move Tracking:** `/api/profile/stats` now returns rating changes for season display.
 
 ## 🚀 Priority 1: NTRP Verification (Scraper Integration)
 **Goal:** Replace or augment self-reported skill levels with verified data.
