@@ -12,6 +12,10 @@ DELETE FROM matches WHERE skill_level_id IN (
   )
 );
 
+DELETE FROM season_registrations WHERE season_id IN (
+  SELECT id FROM seasons WHERE name = 'Spring 2026'
+);
+
 DELETE FROM skill_levels WHERE division_id IN (
   SELECT id FROM divisions WHERE season_id IN (
     SELECT id FROM seasons WHERE name = 'Spring 2026'
@@ -23,41 +27,51 @@ DELETE FROM divisions WHERE season_id IN (
 );
 
 DELETE FROM seasons WHERE name = 'Spring 2026';
-DELETE FROM organizations WHERE slug = 'seattle-test';
 DELETE FROM players WHERE organization_id IN (SELECT id FROM organizations WHERE slug = 'seattle-test');
+DELETE FROM organizations WHERE slug = 'seattle-test';
 
+-- Cleanup seed profiles by specific IDs
 DELETE FROM profiles WHERE id IN (
-  '11111111-1111-1111-1111-111111111111',
-  '22222222-2222-2222-2222-222222222222',
-  '33333333-3333-3333-3333-333333333333',
-  '44444444-4444-4444-4444-444444444444',
-  '55555555-5555-5555-5555-555555555555',
-  '66666666-6666-6666-6666-666666666666',
-  '77777777-7777-7777-7777-777777777777',
-  '88888888-8888-8888-8888-888888888888'
+  '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002',
+  '00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000006',
+  '00000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000008',
+  '00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000010',
+  '00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000012',
+  '00000000-0000-0000-0000-000000000013', '00000000-0000-0000-0000-000000000014',
+  '00000000-0000-0000-0000-000000000015', '00000000-0000-0000-0000-000000000016',
+  '00000000-0000-0000-0000-000000000017', '00000000-0000-0000-0000-000000000018',
+  '00000000-0000-0000-0000-000000000019', '00000000-0000-0000-0000-000000000020'
 );
 
 -- ============================================================================
--- 2. Disable FK
+-- 2. Create profiles FIRST
 -- ============================================================================
-ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey;
+INSERT INTO profiles (id, full_name, gender) VALUES
+  ('00000000-0000-0000-0000-000000000001', 'Bob Brown', 'male'),
+  ('00000000-0000-0000-0000-000000000002', 'David Davis', 'male'),
+  ('00000000-0000-0000-0000-000000000003', 'Frank Foster', 'male'),
+  ('00000000-0000-0000-0000-000000000004', 'Henry Harris', 'male'),
+  ('00000000-0000-0000-0000-000000000005', 'Ian Irvine', 'male'),
+  ('00000000-0000-0000-0000-000000000006', 'Jack Jackson', 'male'),
+  ('00000000-0000-0000-0000-000000000007', 'Liam Lewis', 'male'),
+  ('00000000-0000-0000-0000-000000000008', 'Noah Nelson', 'male'),
+  ('00000000-0000-0000-0000-000000000009', 'Paul Parker', 'male'),
+  ('00000000-0000-0000-0000-000000000010', 'Sam Smith', 'male'),
+  ('00000000-0000-0000-0000-000000000011', 'Alice Anderson', 'female'),
+  ('00000000-0000-0000-0000-000000000012', 'Carol Chen', 'female'),
+  ('00000000-0000-0000-0000-000000000013', 'Eve Evans', 'female'),
+  ('00000000-0000-0000-0000-000000000014', 'Grace Green', 'female'),
+  ('00000000-0000-0000-0000-000000000015', 'Kate Knight', 'female'),
+  ('00000000-0000-0000-0000-000000000016', 'Mary Miller', 'female'),
+  ('00000000-0000-0000-0000-000000000017', 'Olivia Owens', 'female'),
+  ('00000000-0000-0000-0000-000000000018', 'Quinn Quigley', 'female'),
+  ('00000000-0000-0000-0000-000000000019', 'Riley Reed', 'female'),
+  ('00000000-0000-0000-0000-000000000020', 'Tina Taylor', 'female')
+ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, gender = EXCLUDED.gender;
 
 -- ============================================================================
--- 3. Create profiles FIRST (outside transaction block)
--- ============================================================================
-INSERT INTO profiles (id, full_name) VALUES
-  ('11111111-1111-1111-1111-111111111111', 'Alice Anderson'),
-  ('22222222-2222-2222-2222-222222222222', 'Bob Brown'),
-  ('33333333-3333-3333-3333-333333333333', 'Carol Chen'),
-  ('44444444-4444-4444-4444-444444444444', 'David Davis'),
-  ('55555555-5555-5555-5555-555555555555', 'Eve Evans'),
-  ('66666666-6666-6666-6666-666666666666', 'Frank Foster'),
-  ('77777777-7777-7777-7777-777777777777', 'Grace Green'),
-  ('88888888-8888-8888-8888-888888888888', 'Henry Harris')
-ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
-
--- ============================================================================
--- 4. Create org, season, divisions, skill levels, players, matches
+-- 3. Create org, season, divisions, skill levels, players, matches
 -- ============================================================================
 DO $$
 DECLARE
@@ -67,8 +81,12 @@ DECLARE
   v_womens_div_id uuid;
   v_mens_level_id uuid;
   v_womens_level_id uuid;
-  v_p1 uuid; v_p2 uuid; v_p3 uuid; v_p4 uuid;
-  v_p5 uuid; v_p6 uuid; v_p7 uuid; v_p8 uuid;
+  v_profile_id uuid;
+  v_player_id uuid;
+  v_opponent_id uuid;
+  i integer;
+  v_player_ids uuid[] := '{}';
+  v_womens_player_ids uuid[] := '{}';
 BEGIN
   -- Organization
   INSERT INTO organizations (id, name, slug) VALUES (gen_random_uuid(), 'Tennis-Flex Seattle', 'seattle-test') RETURNING id INTO v_org_id;
@@ -79,10 +97,10 @@ BEGIN
   RETURNING id INTO v_season_id;
 
   -- Mens Division
-  INSERT INTO divisions (id, season_id, name, type) VALUES (gen_random_uuid(), v_season_id, 'Mens 3.5', 'mens_singles') RETURNING id INTO v_mens_div_id;
+  INSERT INTO divisions (id, season_id, name, type) VALUES (gen_random_uuid(), v_season_id, 'Mens Singles', 'mens_singles') RETURNING id INTO v_mens_div_id;
 
   -- Womens Division
-  INSERT INTO divisions (id, season_id, name, type) VALUES (gen_random_uuid(), v_season_id, 'Womens 3.5', 'womens_singles') RETURNING id INTO v_womens_div_id;
+  INSERT INTO divisions (id, season_id, name, type) VALUES (gen_random_uuid(), v_season_id, 'Womens Singles', 'womens_singles') RETURNING id INTO v_womens_div_id;
 
   -- Mens Skill Level
   INSERT INTO skill_levels (id, division_id, name, min_rating, max_rating) VALUES (gen_random_uuid(), v_mens_div_id, '3.5', 35, 45) RETURNING id INTO v_mens_level_id;
@@ -90,56 +108,73 @@ BEGIN
   -- Womens Skill Level
   INSERT INTO skill_levels (id, division_id, name, min_rating, max_rating) VALUES (gen_random_uuid(), v_womens_div_id, '3.5', 35, 45) RETURNING id INTO v_womens_level_id;
 
-  -- Players
-  INSERT INTO players (id, profile_id, organization_id, initial_ntrp_singles, initial_ntrp_doubles, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles, flag_count) 
-  VALUES (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', v_org_id, 3.5, 3.5, 35, 35, 4.0, 0, 0, 0) RETURNING id INTO v_p1;
+  -- Create Mens Players
+  FOR i IN 1..10 LOOP
+    v_profile_id := ('00000000-0000-0000-0000-0000000000' || LPAD(i::text, 2, '0'))::uuid;
+    INSERT INTO players (id, profile_id, organization_id, initial_ntrp_singles, tfr_singles, rating_deviation, is_ready_to_play)
+    VALUES (gen_random_uuid(), v_profile_id, v_org_id, 3.5, 35 + (random() * 5), 4.0, true)
+    RETURNING id INTO v_player_id;
+    
+    v_player_ids := array_append(v_player_ids, v_player_id);
 
-  INSERT INTO players (id, profile_id, organization_id, initial_ntrp_singles, initial_ntrp_doubles, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles, flag_count) 
-  VALUES (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', v_org_id, 3.0, 3.5, 30, 35, 4.0, 0, 0, 0) RETURNING id INTO v_p2;
+    -- Registration
+    INSERT INTO season_registrations (player_id, season_id, division_id, skill_level_id, status)
+    VALUES (v_player_id, v_season_id, v_mens_div_id, v_mens_level_id, 'active');
+  END LOOP;
 
-  INSERT INTO players (id, profile_id, organization_id, initial_ntrp_singles, initial_ntrp_doubles, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles, flag_count) 
-  VALUES (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', v_org_id, 4.0, 3.5, 40, 35, 4.0, 0, 0, 0) RETURNING id INTO v_p3;
+  -- Create Womens Players
+  FOR i IN 11..20 LOOP
+    v_profile_id := ('00000000-0000-0000-0000-0000000000' || LPAD(i::text, 2, '0'))::uuid;
+    INSERT INTO players (id, profile_id, organization_id, initial_ntrp_singles, tfr_singles, rating_deviation, is_ready_to_play)
+    VALUES (gen_random_uuid(), v_profile_id, v_org_id, 3.5, 35 + (random() * 5), 4.0, true)
+    RETURNING id INTO v_player_id;
+    
+    v_womens_player_ids := array_append(v_womens_player_ids, v_player_id);
 
-  INSERT INTO players (id, profile_id, organization_id, initial_ntrp_singles, initial_ntrp_doubles, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles, flag_count) 
-  VALUES (gen_random_uuid(), '44444444-4444-4444-4444-444444444444', v_org_id, 3.5, 3.0, 35, 30, 4.0, 0, 0, 0) RETURNING id INTO v_p4;
+    -- Registration
+    INSERT INTO season_registrations (player_id, season_id, division_id, skill_level_id, status)
+    VALUES (v_player_id, v_season_id, v_womens_div_id, v_womens_level_id, 'active');
+  END LOOP;
 
-  INSERT INTO players (id, profile_id, organization_id, initial_ntrp_singles, initial_ntrp_doubles, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles, flag_count) 
-  VALUES (gen_random_uuid(), '55555555-5555-5555-5555-555555555555', v_org_id, 3.5, 3.5, 35, 35, 4.0, 0, 0, 0) RETURNING id INTO v_p5;
+  -- Generate some completed matches for Mens
+  FOR i IN 1..5 LOOP
+    v_player_id := v_player_ids[i];
+    v_opponent_id := v_player_ids[i+5];
+    
+    INSERT INTO matches (id, skill_level_id, home_player_id, away_player_id, status, score, winner_id, verified_by_opponent, created_at)
+    VALUES (gen_random_uuid(), v_mens_level_id, v_player_id, v_opponent_id, 'completed', '6-4 6-4', v_player_id, true, now() - (i || ' days')::interval);
+  END LOOP;
 
-  INSERT INTO players (id, profile_id, organization_id, initial_ntrp_singles, initial_ntrp_doubles, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles, flag_count) 
-  VALUES (gen_random_uuid(), '66666666-6666-6666-6666-666666666666', v_org_id, 3.0, 3.0, 30, 30, 4.0, 0, 0, 0) RETURNING id INTO v_p6;
+  -- Generate some scheduled matches for Mens
+  FOR i IN 1..5 LOOP
+    v_player_id := v_player_ids[i];
+    v_opponent_id := v_player_ids[((i+2) % 10) + 1];
+    
+    IF v_player_id != v_opponent_id THEN
+      INSERT INTO matches (id, skill_level_id, home_player_id, away_player_id, status, scheduled_at)
+      VALUES (gen_random_uuid(), v_mens_level_id, v_player_id, v_opponent_id, 'scheduled', now() + (i || ' days')::interval);
+    END IF;
+  END LOOP;
 
-  INSERT INTO players (id, profile_id, organization_id, initial_ntrp_singles, initial_ntrp_doubles, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles, flag_count) 
-  VALUES (gen_random_uuid(), '77777777-7777-7777-7777-777777777777', v_org_id, 4.0, 4.0, 40, 40, 4.0, 0, 0, 0) RETURNING id INTO v_p7;
+  -- Generate some completed matches for Womens
+  FOR i IN 1..5 LOOP
+    v_player_id := v_womens_player_ids[i];
+    v_opponent_id := v_womens_player_ids[i+5];
+    
+    INSERT INTO matches (id, skill_level_id, home_player_id, away_player_id, status, score, winner_id, verified_by_opponent, created_at)
+    VALUES (gen_random_uuid(), v_womens_level_id, v_player_id, v_opponent_id, 'completed', '6-2 6-3', v_player_id, true, now() - (i || ' days')::interval);
+  END LOOP;
 
-  INSERT INTO players (id, profile_id, organization_id, initial_ntrp_singles, initial_ntrp_doubles, tfr_singles, tfr_doubles, rating_deviation, match_count_singles, match_count_doubles, flag_count) 
-  VALUES (gen_random_uuid(), '88888888-8888-8888-8888-888888888888', v_org_id, 3.5, 3.5, 35, 35, 4.0, 0, 0, 0) RETURNING id INTO v_p8;
+  -- Generate some scheduled matches for Womens
+  FOR i IN 1..5 LOOP
+    v_player_id := v_womens_player_ids[i];
+    v_opponent_id := v_womens_player_ids[((i+3) % 10) + 1];
+    
+    IF v_player_id != v_opponent_id THEN
+      INSERT INTO matches (id, skill_level_id, home_player_id, away_player_id, status, scheduled_at)
+      VALUES (gen_random_uuid(), v_womens_level_id, v_player_id, v_opponent_id, 'scheduled', now() + (i || ' days')::interval);
+    END IF;
+  END LOOP;
 
-  -- Mens Matches
-  INSERT INTO matches (id, skill_level_id, home_player_id, away_player_id, status, score, winner_id, verified_by_opponent) VALUES
-    (gen_random_uuid(), v_mens_level_id, v_p1, v_p2, 'completed', '6-4 6-4', v_p1, true),
-    (gen_random_uuid(), v_mens_level_id, v_p3, v_p4, 'completed', '6-7(3) 6-4 1-0', v_p3, true),
-    (gen_random_uuid(), v_mens_level_id, v_p1, v_p3, 'completed', '2-6 2-6', v_p3, true),
-    (gen_random_uuid(), v_mens_level_id, v_p2, v_p4, 'completed', '6-3 6-3', v_p2, true),
-    (gen_random_uuid(), v_mens_level_id, v_p1, v_p4, 'scheduled', NULL, NULL, false),
-    (gen_random_uuid(), v_mens_level_id, v_p2, v_p3, 'scheduled', NULL, NULL, false);
-
-  -- Womens Matches
-  INSERT INTO matches (id, skill_level_id, home_player_id, away_player_id, status, score, winner_id, verified_by_opponent) VALUES
-    (gen_random_uuid(), v_womens_level_id, v_p5, v_p6, 'completed', '6-2 6-2', v_p5, true),
-    (gen_random_uuid(), v_womens_level_id, v_p7, v_p8, 'completed', '4-6 4-6', v_p7, true),
-    (gen_random_uuid(), v_womens_level_id, v_p5, v_p7, 'completed', '6-4 3-6 0-1', v_p7, true),
-    (gen_random_uuid(), v_womens_level_id, v_p6, v_p8, 'completed', '6-0 6-0', v_p6, true),
-    (gen_random_uuid(), v_womens_level_id, v_p5, v_p8, 'scheduled', NULL, NULL, false),
-    (gen_random_uuid(), v_womens_level_id, v_p6, v_p7, 'scheduled', NULL, NULL, false);
-
-  RAISE NOTICE 'Seed complete!';
+  RAISE NOTICE 'Seed complete with 20 players and initial schedule!';
 END $$;
-
--- ============================================================================
--- VERIFY
--- ============================================================================
-SELECT 'Orgs' as info, * FROM organizations WHERE slug = 'seattle-test';
-SELECT 'Seasons' as info, * FROM seasons WHERE name = 'Spring 2026';
-SELECT 'Players' as info, p.full_name, pl.tfr_singles FROM players pl JOIN profiles p ON pl.profile_id = p.id;
-SELECT 'Matches' as info, COUNT(*) FROM matches;

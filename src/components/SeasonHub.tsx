@@ -37,6 +37,8 @@ interface SeasonHubData {
     status: string
     season_start: string
     season_end: string
+    registration_start: string
+    registration_end: string
     organization?: { name: string }
   }
   divisions: Division[]
@@ -80,6 +82,11 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
   const [playerRank, setPlayerRank] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [ratingMove, setRatingMove] = useState<RatingMove | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Get skill levels for selected division
   const divisionSkillLevels = selectedDivisionId 
@@ -166,7 +173,11 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
     <div className="mb-8">
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         {/* Season Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-5">
+        <div className={`bg-gradient-to-r px-6 py-5 ${
+          data.season.status === 'registration_open' 
+            ? 'from-emerald-600 to-teal-700' 
+            : 'from-indigo-600 to-indigo-700'
+        }`}>
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-white">{data.season.name}</h2>
@@ -191,18 +202,39 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
             </div>
           </div>
           
+          {/* Registration Info */}
+          {(data.season.status === 'registration_open' || data.season.status === 'upcoming') && (
+            <div className="mt-4 p-3 bg-white/10 rounded-xl border border-white/20 backdrop-blur-sm">
+              <div className="flex items-center gap-2 text-indigo-100 mb-1">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 00-2 2z" />
+                </svg>
+                <span className="text-xs font-bold uppercase tracking-wider">Registration Info</span>
+              </div>
+              <p className="text-white font-medium text-sm">
+                {mounted ? (
+                  <>
+                    Opens: {new Date(data.season.registration_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    <span className="mx-2 text-white/40">|</span>
+                    Closes: {new Date(data.season.registration_end).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </>
+                ) : '---'}
+              </p>
+            </div>
+          )}
+          
           {/* Progress Bar */}
           {data.season.status === 'active' && (
             <div className="mt-4">
               <div className="flex justify-between text-xs text-indigo-100 mb-1">
-                <span>{new Date(data.season.season_start).toLocaleDateString()}</span>
-                <span>{progress}% Complete</span>
-                <span>{new Date(data.season.season_end).toLocaleDateString()}</span>
+                <span>{mounted ? new Date(data.season.season_start).toLocaleDateString() : '---'}</span>
+                <span>{mounted ? `${progress}% Complete` : 'Calculating...'}</span>
+                <span>{mounted ? new Date(data.season.season_end).toLocaleDateString() : '---'}</span>
               </div>
               <div className="w-full h-2 bg-indigo-800 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-white rounded-full transition-all"
-                  style={{ width: `${progress}%` }}
+                  style={{ width: mounted ? `${progress}%` : '0%' }}
                 />
               </div>
             </div>

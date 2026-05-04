@@ -128,9 +128,26 @@ export default async function SeasonsPage() {
                   </span>
                 </div>
                 
-                <div className="flex flex-wrap gap-4 text-sm text-slate-500 mb-4">
+                <div className="flex flex-wrap gap-4 text-sm text-slate-500 mb-6">
                   <div>Registration: {new Date(season.registration_start).toLocaleDateString()} - {new Date(season.registration_end).toLocaleDateString()}</div>
                   <div>Season: {new Date(season.season_start).toLocaleDateString()} - {new Date(season.season_end).toLocaleDateString()}</div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Link 
+                    href={`/seasons/${season.id}`}
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+                  >
+                    View Details
+                  </Link>
+                  {season.status === 'registration_open' && (
+                    <Link 
+                      href={`/seasons/${season.id}/register`}
+                      className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
+                    >
+                      Register
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}

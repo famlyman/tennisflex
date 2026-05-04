@@ -215,8 +215,10 @@ async function getDashboardData(userId: string, email?: string | null) {
         }
       })
 
-    // Season Hub Data - Get current active/completed season
-    const currentSeason = (allOrgSeasons || []).find((s: any) => s.status === 'active' || s.status === 'completed')
+    // Season Hub Data - Get current registration_open or active season
+    const currentSeason = (allOrgSeasons || []).find((s: any) => s.status === 'registration_open') || 
+                         (allOrgSeasons || []).find((s: any) => s.status === 'active') ||
+                         (allOrgSeasons || []).find((s: any) => s.status === 'completed')
     
     let divisionPulse: any[] = []
     

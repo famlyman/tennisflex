@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
 interface Match {
@@ -17,8 +18,16 @@ interface NextMatchHeroProps {
 }
 
 export default function NextMatchHero({ match }: NextMatchHeroProps) {
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const scheduledDate = match.scheduled_at ? new Date(match.scheduled_at) : null
-  const isToday = scheduledDate ? scheduledDate.toDateString() === new Date().toDateString() : false
+  
+  // Use a stable value for SSR, then update on client
+  const isToday = mounted && scheduledDate ? scheduledDate.toDateString() === new Date().toDateString() : false
 
   return (
     <div className="mb-8 relative overflow-hidden bg-slate-900 rounded-3xl shadow-xl border border-slate-800">
@@ -54,14 +63,14 @@ export default function NextMatchHero({ match }: NextMatchHeroProps) {
             <div>
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Date</p>
               <p className="text-white font-bold">
-                {scheduledDate ? scheduledDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }) : 'To be scheduled'}
+                {mounted && scheduledDate ? scheduledDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }) : 'To be scheduled'}
               </p>
             </div>
             {scheduledDate && (
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Time</p>
                 <p className="text-white font-bold">
-                  {scheduledDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                  {mounted ? scheduledDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '--:--'}
                 </p>
               </div>
             )}

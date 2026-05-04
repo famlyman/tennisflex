@@ -22,6 +22,12 @@ interface YourMatchesCardProps {
 }
 
 export default function YourMatchesCard({ matches, playerId }: YourMatchesCardProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   if (matches.length === 0) {
     return null
   }
@@ -57,7 +63,7 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                 </p>
                 {match.scheduled_at && (
                   <p className="text-[10px] font-bold text-emerald-600 mt-1 uppercase tracking-tight">
-                    Scheduled: {new Date(match.scheduled_at).toLocaleDateString()}
+                    Scheduled: {mounted ? new Date(match.scheduled_at).toLocaleDateString() : '---'}
                   </p>
                 )}
               </div>

@@ -144,8 +144,13 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
   const [winnerId, setWinnerId] = useState<string | null>(match.winner_id)
   const [submittingScore, setSubmittingScore] = useState(false)
   const [scheduling, setScheduling] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const supabase = getSupabaseClient()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (match.score) {
@@ -384,18 +389,24 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
           </div>
 
           <div className="hub-calendar">
-            <Calendar
-              onClickDay={(value) => {
-                if (value instanceof Date) {
-                  const dStr = formatISO(value)
-                  if (match.status === 'completed') return
-                  toggleAvailability(dStr)
-                }
-              }}
-              tileClassName={getTileClassName}
-              minDate={new Date()}
-              locale="en-US"
-            />
+            {mounted ? (
+              <Calendar
+                onClickDay={(value) => {
+                  if (value instanceof Date) {
+                    const dStr = formatISO(value)
+                    if (match.status === 'completed') return
+                    toggleAvailability(dStr)
+                  }
+                }}
+                tileClassName={getTileClassName}
+                minDate={new Date()}
+                locale="en-US"
+              />
+            ) : (
+              <div className="h-[300px] flex items-center justify-center bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="text-slate-400 text-sm">Loading calendar...</p>
+              </div>
+            )}
           </div>
 
           <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">

@@ -257,6 +257,14 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
               <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${season.status === 'active' ? 'bg-white/20 text-white backdrop-blur-sm' : statusColors[season.status] || statusColors.upcoming}`}>
                 {statusLabels[season.status] || season.status}
               </span>
+              {season.status === 'registration_open' && (
+                <Link 
+                  href={`/seasons/${seasonId}/register`}
+                  className="px-6 py-2 bg-emerald-500 text-white rounded-lg font-bold hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-900/20"
+                >
+                  Register to Play
+                </Link>
+              )}
               {isCoordinator && season.status === 'upcoming' && (
                 <div className="flex gap-2 mt-2">
                   <CoordinatorActionButton action="open-registration" seasonId={seasonId} variant="green">
