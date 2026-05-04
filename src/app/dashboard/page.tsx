@@ -558,6 +558,72 @@ export default async function Dashboard() {
         {!isCoordinator && heroMatch && (
           <NextMatchHero match={heroMatch} />
         )}
+        
+        {/* Season Hub Section - For Players */}
+        {dashboardData.seasonHubData && !isCoordinator && (
+          <SeasonHub 
+            data={dashboardData.seasonHubData}
+            playerId={dashboardData.player?.id}
+            playerTfr={dashboardData.player?.tfr_singles}
+            playerMatches={dashboardData.player?.match_count_singles}
+          />
+        )}
+
+        {/* Coordinator Stats Section */}
+        {isCoordinator && (
+          <div className="grid md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Active Seasons</h3>
+              <p className="text-3xl font-bold text-indigo-600 mb-1">{dashboardData.coordinatorData.activeSeasonCount}</p>
+              <p className="text-sm text-slate-500">running</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Total Players</h3>
+              <p className="text-3xl font-bold text-indigo-600 mb-1">{dashboardData.coordinatorData.playerCount}</p>
+              <p className="text-sm text-slate-500">registered</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Matches Played</h3>
+              <p className="text-3xl font-bold text-indigo-600 mb-1">{dashboardData.coordinatorData.totalMatches}</p>
+              <p className="text-sm text-slate-500">completed</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Pending</h3>
+              <p className="text-3xl font-bold text-amber-600 mb-1">{dashboardData.coordinatorData.pendingMatches}</p>
+              <p className="text-sm text-slate-500">awaiting scores</p>
+            </div>
+          </div>
+        )}
+
+        {/* Player Matches Card */}
+        {dashboardData.playerMatches && dashboardData.playerMatches.length > 0 && (
+          <div className="mb-8">
+            <YourMatchesCard matches={dashboardData.playerMatches} playerId={dashboardData.player?.id} />
+          </div>
+        )}
+
+        {/* Coordinator Seasons List */}
+        {isCoordinator && dashboardData.coordinatorData.seasons.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-8">
+            <h2 className="text-xl font-bold mb-4">Manage Seasons</h2>
+            <div className="space-y-3">
+              {dashboardData.coordinatorData.seasons.map((season: any) => (
+                <div key={season.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <p className="font-medium text-slate-900">{season.name}</p>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${season.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {season.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-500">{season.organization?.name || 'Unknown'} • {season.divisions?.length || 0} divisions</p>
+                  </div>
+                  <Link href={`/seasons/${season.id}`} className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors">View</Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-8">
@@ -619,74 +685,6 @@ export default async function Dashboard() {
             )}
           </div>
         </div>
-        
-        {/* Season Hub Section - For Players */}
-        {dashboardData.seasonHubData && !isCoordinator && (
-          <SeasonHub 
-            data={dashboardData.seasonHubData}
-            playerId={dashboardData.player?.id}
-            playerTfr={dashboardData.player?.tfr_singles}
-            playerMatches={dashboardData.player?.match_count_singles}
-          />
-        )}
-
-        {/* Coordinator Stats Section */}
-        {isCoordinator && (
-          <div className="grid md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Active Seasons</h3>
-              <p className="text-3xl font-bold text-indigo-600 mb-1">{dashboardData.coordinatorData.activeSeasonCount}</p>
-              <p className="text-sm text-slate-500">running</p>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Total Players</h3>
-              <p className="text-3xl font-bold text-indigo-600 mb-1">{dashboardData.coordinatorData.playerCount}</p>
-              <p className="text-sm text-slate-500">registered</p>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Matches Played</h3>
-              <p className="text-3xl font-bold text-indigo-600 mb-1">{dashboardData.coordinatorData.totalMatches}</p>
-              <p className="text-sm text-slate-500">completed</p>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Pending</h3>
-              <p className="text-3xl font-bold text-amber-600 mb-1">{dashboardData.coordinatorData.pendingMatches}</p>
-              <p className="text-sm text-slate-500">awaiting scores</p>
-            </div>
-          </div>
-        )}
-
-        {/* Player Matches Card - shown below Season Hub */}
-
-        {/* Player Matches Card */}
-        {dashboardData.playerMatches && dashboardData.playerMatches.length > 0 && (
-          <div className="mb-8">
-            <YourMatchesCard matches={dashboardData.playerMatches} playerId={dashboardData.player?.id} />
-          </div>
-        )}
-
-        {/* Coordinator Seasons List */}
-        {isCoordinator && dashboardData.coordinatorData.seasons.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4">Manage Seasons</h2>
-            <div className="space-y-3">
-              {dashboardData.coordinatorData.seasons.map((season: any) => (
-                <div key={season.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <p className="font-medium text-slate-900">{season.name}</p>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${season.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {season.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-500">{season.organization?.name || 'Unknown'} • {season.divisions?.length || 0} divisions</p>
-                  </div>
-                  <Link href={`/seasons/${season.id}`} className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors">View</Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </main>
     </div>
   )
