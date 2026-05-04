@@ -3,6 +3,13 @@
 This document outlines the logical progression for the Tennis-Flex platform following the completion of the core Phase 1-23 implementation.
 
 ## ✅ Recently Completed
+- [x] **Hydration Fixes (Error #418):** Resolved React hydration mismatches across `NextMatchHero`, `SeasonHub`, `MatchHubClient`, and `YourMatchesCard` by deferring time-dependent rendering to the client.
+- [x] **Registration UX Enhancements:** 
+    - `SeasonHub` now displays registration opening/closing dates.
+    - Dashboard prioritizes `registration_open` seasons in the Season Hub.
+    - `/seasons` page is now actionable with "View Details" and "Register" buttons.
+    - Added "Register to Play" button to the season detail page.
+- [x] **Build Validation:** Fixed missing React hook imports in `YourMatchesCard.tsx` causing build failures.
 - [x] **TFR Rating Display:** Standardized whole-number TFR ratings (10-80 scale) across the entire app using `Math.round`.
 - [x] **Dynamic Leaderboard:** Dashboard leaderboard now automatically focuses on the user's most recent completed match.
 - [x] **Win/Loss Logic:** Fixed reversed win/loss reporting and ensured immediate database updates on score submission.

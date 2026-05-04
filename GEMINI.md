@@ -16,13 +16,14 @@
 ---
 
 ## Current Status
-The project has transitioned from the **Planning phase** to **Active Development**. Most core features for individual play are implemented and being stabilized.
+The project has transitioned from the **Planning phase** to **Active Development**. Core features are being stabilized with a focus on hydration performance and registration UX.
 
-### Key Accomplishments (as of May 3, 2026)
-- **Unified Dashboard:** Dynamic player/coordinator views with automated leaderboard context.
+### Key Accomplishments (as of May 4, 2026)
+- **Hydration & Performance:** Resolved critical Error #418 hydration mismatches by standardizing client-side mounting for time-dependent UI.
+- **Registration UX:** Enhanced discovery flow with clear registration windows, prioritized open seasons, and actionable season lists.
+- **Unified Dashboard:** Dynamic player/coordinator views with automated leaderboard context and season status tracking.
 - **TFR Algorithm:** Fully implemented with whole-number display rounding and automated updates on score submission.
 - **Match Hub:** Real-time coordination with chat, scheduling, and verified score submission.
-- **PWA Ready:** Manifest and service worker configured for mobile-first experience.
 
 ---
 
