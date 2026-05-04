@@ -43,14 +43,6 @@ interface SeasonHubData {
   playerSkillLevelId: string | null
 }
 
-interface RatingMove {
-  playerId: string
-  playerName: string
-  oldRating: number
-  newRating: number
-  matches: number
-}
-
 interface SeasonHubProps {
   data: SeasonHubData
   playerId: string
@@ -66,26 +58,39 @@ const DIVISION_LABELS: Record<string, string> = {
   mixed_doubles: "Mixed Doubles",
 }
 
+interface RatingMove {
+  playerId: string
+  playerName: string
+  oldRating: number
+  newRating: number
+  matches: number
+}
+
+// Fetch rating moves for the player
+async function fetchRatingMoves(playerId: string, seasonId: string): Promise<RatingMove | null> {
+  try {
+    const res = await fetch(`/api/profile/stats?player_id=${playerId}&season_id=${seasonId}`)
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.ratingMove || null
+  } catch {
+    return null
+  }
+}
+
 export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: SeasonHubProps) {
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>('')
-  const [leaderboardsBySkillLevel, setLeaderboardsBySkillLevel] = useState<Record<string, any>>({})
+  const [selectedSkillLevelId, setSelectedSkillLevelId] = useState<string>(data.playerSkillLevelId || '')
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [playerRank, setPlayerRank] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
-  const [ratingMove, setRatingMove] = useState<RatingMove | null>(null)
 
   // Get skill levels for selected division
   const divisionSkillLevels = selectedDivisionId 
     ? data.skillLevels.filter(sl => sl.division_id === selectedDivisionId)
-    : data.skillLevels
+    : data.skillLevels // Show all if no division selected
 
-  // Create a map of skillLevelId -> division info
-  const skillLevelDivisionMap: Record<string, any> = {}
-  data.skillLevels.forEach(sl => {
-    const div = data.divisions.find(d => d.id === sl.division_id)
-    if (div) {
-      skillLevelDivisionMap[sl.id] = div
-    }
-  })
+  const showAllDivisions = false // Always show specific division view
 
   // Fetch leaderboards for all skill levels in the division
   useEffect(() => {
@@ -96,6 +101,8 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
       setPlayerRank(null)
     }
   }, [selectedDivisionId])
+
+  const [leaderboardsBySkillLevel, setLeaderboardsBySkillLevel] = useState<Record<string, any>>({})
 
   async function fetchAllLeaderboards(skillLevels: SkillLevel[]) {
     setLoading(true)
@@ -111,6 +118,8 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
           results[sl.id] = {
             skillLevel: sl,
             leaderboard: leaderboard.slice(0, 5),
+            division: data.division || data.skillLevel?.division || 
+              (typeof sl === 'object' && 'division' in sl ? (sl as any).division : null)
           }
           // Find player rank
           if (!playerRankFound) {
@@ -131,22 +140,53 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
     }
   }
 
-  // Fetch rating moves for the player
+  // Fetch player's rating moves
   useEffect(() => {
-    async function fetchRatingMoves() {
-      if (!playerId || !data.season?.id) return
-      try {
-        const res = await fetch(`/api/profile/stats?player_id=${playerId}&season_id=${data.season.id}`)
+    if (playerId && data.season?.id) {
+      fetchRatingMoves(playerId, data.season.id).then(setRatingMove)
+    }
+  }, [playerId, data.season?.id])
+
+  const [leaderboardsBySkillLevel, setLeaderboardsBySkillLevel] = useState<Record<string, any>>({})
+  const [ratingMove, setRatingMove] = useState<RatingMove | null>(null)
+
+  async function fetchAllLeaderboards(skillLevels: SkillLevel[], isAllView: boolean) {
+    setLoading(true)
+    try {
+      const results: Record<string, any> = {}
+      let playerRankFound: number | null = null
+
+      for (const sl of skillLevels) {
+        const res = await fetch(`/api/leaderboard/${sl.id}`)
         if (res.ok) {
           const data = await res.json()
-          setRatingMove(data.ratingMove || null)
+          const leaderboard = data.leaderboard || []
+          // Get division info from the API response or from props
+          const division = data.division || data.skillLevel?.division || 
+            (typeof sl === 'object' && 'division' in sl ? (sl as any).division : null)
+          results[sl.id] = {
+            skillLevel: sl,
+            leaderboard: isAllView ? (leaderboard.length > 0 ? [leaderboard[0]] : []) : leaderboard.slice(0, 5),
+            division: division,
+          }
+          // Find player rank
+          if (!playerRankFound) {
+            const rank = leaderboard.findIndex((e: any) => e.player_id === playerId)
+            if (rank !== -1) {
+              playerRankFound = rank + 1
+            }
+          }
         }
-      } catch (err) {
-        console.error('Failed to fetch rating moves:', err)
       }
+      
+      setLeaderboardsBySkillLevel(results)
+      setPlayerRank(playerRankFound)
+    } catch (err) {
+      console.error('Failed to fetch leaderboards:', err)
+    } finally {
+      setLoading(false)
     }
-    fetchRatingMoves()
-  }, [playerId, data.season?.id])
+  }
 
   // Calculate progress
   const now = new Date().getTime()
@@ -294,7 +334,7 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
               {divisionSkillLevels.map((sl) => {
                 const data = leaderboardsBySkillLevel[sl.id]
                 if (!data || !data.leaderboard || data.leaderboard.length === 0) return null
-                
+
                 return (
                   <div key={sl.id}>
                     <p className="text-sm font-medium text-indigo-600 mb-1">{sl.name}</p>
