@@ -13,6 +13,7 @@ interface Match {
   opponent_name: string
   opponent_id?: string
   season_id?: string
+  h2h?: { wins: number; losses: number }
 }
 
 interface YourMatchesCardProps {
@@ -37,6 +38,11 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                   <p className="font-bold text-slate-900 text-sm">
                     vs {match.opponent_name}
                   </p>
+                  {match.h2h && (
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                      H2H: {match.h2h.wins}W-{match.h2h.losses}L
+                    </span>
+                  )}
                   {match.status === 'completed' && match.verified_by_opponent && (
                     <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[9px] font-bold uppercase tracking-wider rounded border border-blue-200">
                       <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">

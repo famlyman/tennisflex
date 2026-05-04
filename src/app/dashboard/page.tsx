@@ -6,6 +6,8 @@ import { createAdminClient } from '@/utils/supabase'
 import NotificationBell from '@/components/NotificationBell'
 import YourMatchesCard from '@/components/YourMatchesCard'
 import SeasonHub from '@/components/SeasonHub'
+import NextMatchHero from '@/components/NextMatchHero'
+import ReadyToPlayToggle from '@/components/ReadyToPlayToggle'
 
 interface MatchData {
   id: string
@@ -14,6 +16,7 @@ interface MatchData {
   skill_level_name: string
   division_type: string
   opponent_name: string
+  h2h?: { wins: number; losses: number }
 }
 
 export const dynamic = 'force-dynamic'
@@ -215,6 +218,8 @@ async function getDashboardData(userId: string, email?: string | null) {
     // Season Hub Data - Get current active/completed season
     const currentSeason = (allOrgSeasons || []).find((s: any) => s.status === 'active' || s.status === 'completed')
     
+    let divisionPulse: any[] = []
+    
     if (currentSeason) {
       // Get all divisions for this season
       const { data: seasonDivisions } = await adminClient
@@ -268,6 +273,28 @@ async function getDashboardData(userId: string, email?: string | null) {
         if (activeReg) playerSkillLevelId = activeReg.skill_level_id
       }
 
+      // Division Pulse: Latest 3 results in the player's skill level
+      if (playerSkillLevelId) {
+        const { data: pulseMatches } = await adminClient
+          .from('matches')
+          .select(`
+            id, score, winner_id, home_player_id, away_player_id,
+            home_player:players!matches_home_player_id_fkey (profile:profiles(full_name)),
+            away_player:players!matches_away_player_id_fkey (profile:profiles(full_name))
+          `)
+          .eq('skill_level_id', playerSkillLevelId)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false })
+          .limit(3)
+        
+        divisionPulse = (pulseMatches || []).map((m: any) => ({
+          id: m.id,
+          winner_name: m.winner_id === m.home_player_id ? m.home_player?.profile?.full_name : m.away_player?.profile?.full_name,
+          loser_name: m.winner_id === m.home_player_id ? m.away_player?.profile?.full_name : m.home_player?.profile?.full_name,
+          score: m.score
+        }))
+      }
+
       seasonHubData = {
         season: currentSeason,
         divisions: seasonDivisions || [],
@@ -279,6 +306,34 @@ async function getDashboardData(userId: string, email?: string | null) {
           pendingMatches: (totalMatches || 0) - (completedMatches || 0),
         },
         playerSkillLevelId,
+        divisionPulse
+      }
+    }
+
+    // Add H2H Context to upcomingMatches
+    for (const match of upcomingMatches) {
+      const dbMatch = (matches || []).find(m => m.id === match.id)
+      const opponentId = dbMatch?.home_player_id === playerIds[0] 
+        ? dbMatch?.away_player_id 
+        : dbMatch?.home_player_id
+
+      if (opponentId) {
+        const h2hMatches = (matches || []).filter(m => 
+          m.status === 'completed' &&
+          ((playerIds.includes(m.home_player_id) && m.away_player_id === opponentId) ||
+           (playerIds.includes(m.away_player_id) && m.home_player_id === opponentId))
+        )
+        
+        let wins = 0
+        let losses = 0
+        h2hMatches.forEach(m => {
+          if (playerIds.includes(m.winner_id)) wins++
+          else if (m.winner_id) losses++
+        })
+        
+        if (h2hMatches.length > 0) {
+          match.h2h = { wins, losses }
+        }
       }
     }
 
@@ -408,184 +463,6 @@ async function getDashboardData(userId: string, email?: string | null) {
     upcomingMatches,
     seasonHubData,
   }
-  
-  if (playerIds.length > 0) {
-    // Fetch all organization seasons (from all organizations user is a player in)
-    const orgIdsForPlayer = allPlayers?.map(p => p.organization_id) || []
-    const { data: orgSeasons } = await adminClient
-      .from('seasons')
-      .select(`*, organization:organizations!seasons_organization_id_fkey (id, name)`)
-      .in('organization_id', orgIdsForPlayer)
-      .order('created_at', { ascending: false })
-    allOrgSeasons = orgSeasons || []
-
-    // Fetch matches for ALL player records
-    const matchFilter = playerIds.map(id => `home_player_id.eq.${id},away_player_id.eq.${id}`).join(',')
-    const { data: matches } = await adminClient
-      .from('matches')
-      .select(`
-        *,
-        skill_level:skill_levels!matches_skill_level_id_fkey (
-          id, name, division:divisions!skill_levels_division_id_fkey (id, name, type, season_id)
-        ),
-        home_player:players!matches_home_player_id_fkey (
-          id, profile:profiles!players_profile_id_fkey (full_name)
-        ),
-        away_player:players!matches_away_player_id_fkey (
-          id, profile:profiles!players_profile_id_fkey (full_name)
-        )
-      `)
-      .or(matchFilter)
-      .order('created_at', { ascending: false })
-
-    playerMatches = (matches || []).map((match: any) => {
-      const matchedPlayerId = playerIds.find(id => match.home_player_id === id || match.away_player_id === id)
-      const isHome = match.home_player_id === matchedPlayerId
-      const opponent = isHome ? match.away_player : match.home_player
-      return {
-        ...match,
-        opponent_name: opponent?.profile?.full_name || 'Unknown'
-      }
-    })
-
-    upcomingMatches = (matches || [])
-      .filter((m: any) => m.status !== 'completed')
-      .map((m: any) => {
-        const matchedPlayerId = playerIds.find(id => m.home_player_id === id || m.away_player_id === id)
-        return {
-          id: m.id,
-          scheduled_at: m.scheduled_at,
-          status: m.status,
-          verified_by_opponent: m.verified_by_opponent,
-          skill_level_name: m.skill_level?.name,
-          skill_level_id: m.skill_level?.id,
-          season_id: m.skill_level?.division?.season_id,
-          division_type: m.skill_level?.division?.type,
-          opponent_name: m.home_player_id === matchedPlayerId 
-            ? m.away_player?.profile?.full_name 
-            : m.home_player?.profile?.full_name,
-        }
-      })
-
-    // Leaderboard
-    // Priority:
-    // 1. Skill level of the most recent completed match
-    // 2. Skill level of the first active registration
-    let targetSkillLevelId: string | null = null
-    let targetDivision: any = null
-    let targetSeason: any = null
-    let targetSkillLevelObj: any = null
-
-    // Find the most recent completed match for this user
-    const mostRecentMatch = (matches || []).find((m: any) => m.status === 'completed')
-    
-    if (mostRecentMatch) {
-      targetSkillLevelId = mostRecentMatch.skill_level_id
-      targetSkillLevelObj = mostRecentMatch.skill_level
-      targetDivision = mostRecentMatch.skill_level?.division
-      targetSeason = (allOrgSeasons || []).find(s => s.id === targetDivision?.season_id)
-    } else if (playerRegistrations.length > 0) {
-      const primaryReg = playerRegistrations[0]
-      targetSkillLevelId = primaryReg.skill_level_id
-      targetDivision = primaryReg.division
-      targetSeason = primaryReg.season
-    }
-
-    if (targetSkillLevelId) {
-      // Fetch skill level info if we only have the ID
-      if (!targetSkillLevelObj) {
-        const { data: sl } = await adminClient
-          .from('skill_levels')
-          .select('id, name, min_rating, max_rating')
-          .eq('id', targetSkillLevelId)
-          .single()
-        targetSkillLevelObj = sl
-      }
-
-      if (targetSkillLevelObj) {
-        // 1. Get all players for this organization as a base
-        const { data: allOrglayers } = await adminClient
-          .from('players')
-          .select('id, profile:profiles!players_profile_id_fkey(full_name)')
-          .eq('organization_id', primaryPlayer?.organization_id || orgIds[0])
-
-        // 2. Get registered player IDs for this skill level
-        const { data: registrations } = await adminClient
-          .from('season_registrations')
-          .select('player_id')
-          .eq('skill_level_id', targetSkillLevelId)
-          .eq('status', 'active')
-        
-        const registeredPlayerIds = new Set((registrations || []).map(r => r.player_id))
-        
-        // 3. Filter players who are either registered OR were in the most recent match
-        const eligiblePlayers = (allOrglayers || []).filter((p: any) => 
-          registeredPlayerIds.has(p.id) || 
-          (mostRecentMatch && (mostRecentMatch.home_player_id === p.id || mostRecentMatch.away_player_id === p.id))
-        )
-
-        // 4. Fetch ALL completed matches for this skill level
-        const { data: skillLevelMatches } = await adminClient
-          .from('matches')
-          .select('id, home_player_id, away_player_id, winner_id, status')
-          .eq('skill_level_id', targetSkillLevelId)
-          .eq('status', 'completed')
-
-        const leaderboard = eligiblePlayers.map((p: any) => {
-          const pid = p.id
-          const pMatches = (skillLevelMatches || []).filter((m: any) => m.home_player_id === pid || m.away_player_id === pid)
-          let wins = 0
-          let losses = 0
-          pMatches.forEach((m: any) => {
-            if (m.winner_id === pid) wins++
-            else if (m.winner_id) losses++
-          })
-          
-          // Ensure we correctly extract the name from the profile relation
-          const profileData = p.profile as any
-          const fullName = Array.isArray(profileData) 
-            ? profileData[0]?.full_name 
-            : profileData?.full_name
-
-          return { 
-            player_id: pid, 
-            player_name: fullName || 'Unknown Player', 
-            wins, 
-            losses, 
-            matches: pMatches.length 
-          }
-        })
-
-        // Sort by wins (desc), then win percentage, then total matches
-        leaderboard.sort((a, b) => {
-          if (b.wins !== a.wins) return b.wins - a.wins
-          const aWinRate = a.matches > 0 ? a.wins / a.matches : 0
-          const bWinRate = b.matches > 0 ? b.wins / b.matches : 0
-          if (bWinRate !== aWinRate) return bWinRate - aWinRate
-          return b.matches - a.matches
-        })
-
-        leaderboardData = {
-          division: targetDivision,
-          season: targetSeason,
-          skillLevel: targetSkillLevelObj,
-          leaderboard: leaderboard.slice(0, 10),
-        }
-      }
-    }
-  }
-
-  return {
-    profile,
-    isCoordinator,
-    coordinatorData,
-    player: primaryPlayer,
-    playerRegistrations,
-    playerMatches,
-    seasons: allOrgSeasons,
-    leaderboardData,
-    upcomingMatches,
-  }
 }
 
 export default async function Dashboard() {
@@ -622,6 +499,11 @@ export default async function Dashboard() {
   const isCoordinator = dashboardData.isCoordinator
   const isPlatformOwner = dashboardData.profile?.role === 'platform_owner'
 
+  // Find the single best match for the Hero widget (the most immediate scheduled one)
+  const heroMatch = [...dashboardData.upcomingMatches]
+    .filter(m => m.scheduled_at)
+    .sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime())[0]
+
   return (
     <div className="min-h-screen bg-slate-50">
       <nav className="bg-white border-b border-slate-200 px-6 py-4">
@@ -654,14 +536,28 @@ export default async function Dashboard() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Welcome back, {fullName}!</h1>
-          <p className="text-slate-600 mt-1">
-            {isCoordinator 
-              ? 'Manage your seasons and track your own play from here.' 
-              : 'Browse seasons and track your TFR ratings.'}
-          </p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Welcome back, {fullName}!</h1>
+            <p className="text-slate-600 mt-1">
+              {isCoordinator 
+                ? 'Manage your seasons and track your own play from here.' 
+                : 'Browse seasons and track your TFR ratings.'}
+            </p>
+          </div>
+          
+          {!isCoordinator && dashboardData.player && (
+            <ReadyToPlayToggle 
+              initialStatus={(dashboardData.player as any).is_ready_to_play ?? true} 
+              playerId={dashboardData.player.id} 
+            />
+          )}
         </div>
+
+        {/* Next Match Hero Section */}
+        {!isCoordinator && heroMatch && (
+          <NextMatchHero match={heroMatch} />
+        )}
 
         {/* Quick Actions */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-8">

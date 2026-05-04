@@ -23,6 +23,13 @@ interface LeaderboardEntry {
   matches: number
 }
 
+interface PulseMatch {
+  id: string
+  winner_name: string
+  loser_name: string
+  score: string
+}
+
 interface SeasonHubData {
   season: {
     id: string
@@ -41,6 +48,7 @@ interface SeasonHubData {
     pendingMatches: number
   }
   playerSkillLevelId: string | null
+  divisionPulse?: PulseMatch[]
 }
 
 interface RatingMove {
@@ -290,6 +298,30 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
                     {playerMatches || 0} matches
                   </p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Division Pulse - Recent Results */}
+          {data.divisionPulse && data.divisionPulse.length > 0 && (
+            <div className="mb-6 bg-slate-50/50 rounded-xl p-4 border border-slate-100">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <h3 className="font-bold text-slate-400 text-[10px] uppercase tracking-[0.2em]">Division Pulse</h3>
+              </div>
+              <div className="space-y-2">
+                {data.divisionPulse.map((pulse) => (
+                  <div key={pulse.id} className="flex items-center justify-between group">
+                    <p className="text-sm text-slate-600 truncate">
+                      <span className="font-bold text-slate-900">{pulse.winner_name}</span>
+                      <span className="mx-1 text-slate-400 text-xs italic">def.</span>
+                      {pulse.loser_name}
+                    </p>
+                    <span className="text-[10px] font-black bg-white px-1.5 py-0.5 rounded border border-slate-100 text-slate-500 ml-2">
+                      {pulse.score}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
