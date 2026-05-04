@@ -66,40 +66,50 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
   const [loading, setLoading] = useState(false)
 
   // Get skill levels for selected division
-  const divisionSkillLevels = data.skillLevels.filter(sl => sl.division_id === selectedDivisionId)
+  const divisionSkillLevels = selectedDivisionId 
+    ? data.skillLevels.filter(sl => sl.division_id === selectedDivisionId)
+    : data.skillLevels // Show all if no division selected
 
-  // Auto-select first skill level when division changes
+  // Fetch leaderboards for all skill levels in the division
   useEffect(() => {
     if (divisionSkillLevels.length > 0) {
-      setSelectedSkillLevelId(divisionSkillLevels[0].id)
+      fetchAllLeaderboards(divisionSkillLevels)
     } else {
-      setSelectedSkillLevelId('')
-    }
-  }, [selectedDivisionId, divisionSkillLevels])
-
-  // Fetch leaderboard when skill level changes
-  useEffect(() => {
-    if (selectedSkillLevelId) {
-      fetchLeaderboard(selectedSkillLevelId)
-    } else {
-      setLeaderboard([])
+      setLeaderboardsBySkillLevel({})
       setPlayerRank(null)
     }
-  }, [selectedSkillLevelId])
+  }, [selectedDivisionId])
 
-  async function fetchLeaderboard(skillLevelId: string) {
+  const [leaderboardsBySkillLevel, setLeaderboardsBySkillLevel] = useState<Record<string, any>>({})
+
+  async function fetchAllLeaderboards(skillLevels: SkillLevel[]) {
     setLoading(true)
     try {
-      const res = await fetch(`/api/leaderboard/${skillLevelId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setLeaderboard(data.leaderboard || [])
-        // Find player rank
-        const rank = data.leaderboard?.findIndex((e: any) => e.player_id === playerId)
-        setPlayerRank(rank !== -1 ? rank + 1 : null)
+      const results: Record<string, any> = {}
+      let playerRankFound: number | null = null
+
+      for (const sl of skillLevels) {
+        const res = await fetch(`/api/leaderboard/${sl.id}`)
+        if (res.ok) {
+          const data = await res.json()
+          results[sl.id] = {
+            skillLevel: sl,
+            leaderboard: data.leaderboard || [],
+          }
+          // Find player rank
+          if (!playerRankFound) {
+            const rank = data.leaderboard?.findIndex((e: any) => e.player_id === playerId)
+            if (rank !== -1) {
+              playerRankFound = rank + 1
+            }
+          }
+        }
       }
+      
+      setLeaderboardsBySkillLevel(results)
+      setPlayerRank(playerRankFound)
     } catch (err) {
-      console.error('Failed to fetch leaderboard:', err)
+      console.error('Failed to fetch leaderboards:', err)
     } finally {
       setLoading(false)
     }
@@ -204,25 +214,6 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
             ))}
           </div>
 
-          {/* Skill Level Tabs (shown when division selected) */}
-          {selectedDivisionId && divisionSkillLevels.length > 0 && (
-            <div className="flex gap-2 mb-4 overflow-x-auto">
-              {divisionSkillLevels.map((sl) => (
-                <button
-                  key={sl.id}
-                  onClick={() => setSelectedSkillLevelId(sl.id)}
-                  className={`px-3 py-1 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
-                    selectedSkillLevelId === sl.id 
-                      ? 'bg-indigo-100 text-indigo-700' 
-                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  {sl.name}
-                </button>
-              ))}
-            </div>
-          )}
-
           {/* Player's Standing */}
           {playerRank && (
             <div className="bg-indigo-50 rounded-lg p-4 mb-4">
@@ -231,7 +222,7 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
                 <div>
                   <p className="text-2xl font-bold text-slate-900">#{playerRank}</p>
                   <p className="text-xs text-slate-500">
-                    {leaderboard.find(e => e.player_id === playerId)?.wins || 0}W - {leaderboard.find(e => e.player_id === playerId)?.losses || 0}L
+                    Overall across all divisions
                   </p>
                 </div>
                 <div className="text-right">
@@ -246,29 +237,36 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
             </div>
           )}
 
-          {/* Leaderboard Preview */}
+          {/* Stacked Leaderboards by Skill Level */}
           {loading ? (
             <div className="text-center py-4 text-slate-500 text-sm">Loading...</div>
-          ) : leaderboard.length > 0 ? (
-            <div>
-              <p className="text-xs text-slate-500 mb-2">
-                {selectedSkillLevelId && data.skillLevels.find(sl => sl.id === selectedSkillLevelId)?.name}
-              </p>
-              <div className="space-y-1">
-                {leaderboard.slice(0, 10).map((entry, idx) => (
-                  <div key={entry.player_id} className="flex items-center gap-2 text-sm">
-                    <span className={`w-5 text-center font-medium ${idx === 0 ? 'text-amber-500' : 'text-slate-400'}`}>
-                      {idx + 1}
-                    </span>
-                    <span className={`flex-1 truncate ${entry.player_id === playerId ? 'font-semibold text-indigo-600' : 'text-slate-900'}`}>
-                      {entry.player_name}
-                    </span>
-                    <span className="text-slate-500">{entry.wins}W-{entry.losses}L</span>
+          ) : Object.keys(leaderboardsBySkillLevel).length > 0 ? (
+            <div className="space-y-4">
+              {divisionSkillLevels.map((sl) => {
+                const data = leaderboardsBySkillLevel[sl.id]
+                if (!data || !data.leaderboard || data.leaderboard.length === 0) return null
+                
+                return (
+                  <div key={sl.id}>
+                    <p className="text-sm font-medium text-indigo-600 mb-2">{sl.name}</p>
+                    <div className="space-y-1">
+                      {data.leaderboard.slice(0, 5).map((entry: any, idx: number) => (
+                        <div key={entry.player_id} className="flex items-center gap-2 text-sm">
+                          <span className={`w-5 text-center font-medium ${idx === 0 ? 'text-amber-500' : 'text-slate-400'}`}>
+                            {idx + 1}
+                          </span>
+                          <span className={`flex-1 truncate ${entry.player_id === playerId ? 'font-semibold text-indigo-600' : 'text-slate-900'}`}>
+                            {entry.player_name}
+                          </span>
+                          <span className="text-slate-500">{entry.wins}W-{entry.losses}L</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
+                )
+              })}
             </div>
-          ) : selectedSkillLevelId ? (
+          ) : selectedDivisionId ? (
             <p className="text-slate-500 text-sm text-center py-4">No players yet in this division.</p>
           ) : null}
         </div>

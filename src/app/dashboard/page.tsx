@@ -729,32 +729,6 @@ export default async function Dashboard() {
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-900">Leaderboard</h3>
-              <Link href="/leaderboard" className="text-sm text-indigo-600 hover:underline">Full →</Link>
-            </div>
-            {dashboardData.leaderboardData ? (
-              <div>
-                <p className="text-xs text-slate-500 mb-2">
-                  {dashboardData.leaderboardData.season?.name} • {dashboardData.leaderboardData.division?.name || dashboardData.leaderboardData.division?.type?.replace('_', ' ')}
-                </p>
-                <p className="text-sm font-medium text-indigo-600 mb-3">{dashboardData.leaderboardData.skillLevel?.name}</p>
-                <div className="space-y-1">
-                  {dashboardData.leaderboardData.leaderboard?.slice(0, 5).map((entry: any, idx: number) => (
-                    <div key={entry.player_id} className="flex items-center gap-2 text-sm">
-                      <span className={`w-5 text-center font-medium ${idx === 0 ? 'text-amber-500' : 'text-slate-400'}`}>{idx + 1}</span>
-                      <span className="flex-1 truncate text-slate-900 font-medium">{entry.player_name}</span>
-                      <span className="text-slate-500">{entry.wins}W-{entry.losses}L</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm">Join a season to appear on the leaderboard!</p>
-            )}
-          </div>
-
           {dashboardData.playerRegistrations.length > 0 && (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
               <div className="flex items-center justify-between mb-4">
@@ -778,6 +752,31 @@ export default async function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* Quick Actions Card */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
+            <div className="space-y-3">
+              <Link href="/seasons" className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <span className="text-sm font-medium text-slate-900">Browse Seasons</span>
+              </Link>
+              <Link href="/leaderboard" className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span className="text-sm font-medium text-slate-900">Full Leaderboard</span>
+              </Link>
+              <Link href="/profile" className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span className="text-sm font-medium text-slate-900">Edit Profile</span>
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Player Matches Card */}
