@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase'
 import NotificationBell from '@/components/NotificationBell'
 import YourMatchesCard from '@/components/YourMatchesCard'
+import SeasonHub from '@/components/SeasonHub'
 
 interface MatchData {
   id: string
@@ -106,6 +107,7 @@ async function getDashboardData(userId: string, email?: string | null) {
   let leaderboardData: any = null
   let upcomingMatches: MatchData[] = []
   let allOrgSeasons: any[] = []
+  let seasonHubData: any = null
   
   const { data: allPlayers } = await adminClient
     .from('players')
@@ -152,6 +154,261 @@ async function getDashboardData(userId: string, email?: string | null) {
     }))
   }
 
+  if (playerIds.length > 0) {
+    // Fetch all organization seasons (from all organizations user is a player in)
+    const orgIdsForPlayer = allPlayers?.map(p => p.organization_id) || []
+    const { data: orgSeasons } = await adminClient
+      .from('seasons')
+      .select(`*, organization:organizations!seasons_organization_id_fkey (id, name)`)
+      .in('organization_id', orgIdsForPlayer)
+      .order('created_at', { ascending: false })
+    allOrgSeasons = orgSeasons || []
+
+    // Fetch matches for ALL player records
+    const matchFilter = playerIds.map(id => `home_player_id.eq.${id},away_player_id.eq.${id}`).join(',')
+    const { data: matches } = await adminClient
+      .from('matches')
+      .select(`
+        *,
+        skill_level:skill_levels!matches_skill_level_id_fkey (
+          id, name, division:divisions!skill_levels_division_id_fkey (id, name, type, season_id)
+        ),
+        home_player:players!matches_home_player_id_fkey (
+          id, profile:profiles!players_profile_id_fkey (full_name)
+        ),
+        away_player:players!matches_away_player_id_fkey (
+          id, profile:profiles!players_profile_id_fkey (full_name)
+        )
+      `)
+      .or(matchFilter)
+      .order('created_at', { ascending: false })
+
+    playerMatches = (matches || []).map((match: any) => {
+      const matchedPlayerId = playerIds.find(id => match.home_player_id === id || match.away_player_id === id)
+      const isHome = match.home_player_id === matchedPlayerId
+      const opponent = isHome ? match.away_player : match.home_player
+      return {
+        ...match,
+        opponent_name: opponent?.profile?.full_name || 'Unknown'
+      }
+    })
+
+    upcomingMatches = (matches || [])
+      .filter((m: any) => m.status !== 'completed')
+      .map((m: any) => {
+        const matchedPlayerId = playerIds.find(id => m.home_player_id === id || m.away_player_id === id)
+        return {
+          id: m.id,
+          scheduled_at: m.scheduled_at,
+          status: m.status,
+          verified_by_opponent: m.verified_by_opponent,
+          skill_level_name: m.skill_level?.name,
+          skill_level_id: m.skill_level?.id,
+          season_id: m.skill_level?.division?.season_id,
+          division_type: m.skill_level?.division?.type,
+          opponent_name: m.home_player_id === matchedPlayerId 
+            ? m.away_player?.profile?.full_name 
+            : m.home_player?.profile?.full_name,
+        }
+      })
+
+    // Season Hub Data - Get current active/completed season
+    const currentSeason = (allOrgSeasons || []).find((s: any) => s.status === 'active' || s.status === 'completed')
+    
+    if (currentSeason) {
+      // Get all divisions for this season
+      const { data: seasonDivisions } = await adminClient
+        .from('divisions')
+        .select('id, name, type')
+        .eq('season_id', currentSeason.id)
+        .order('type', { ascending: true })
+
+      // Get all skill levels for all divisions
+      const divisionIds = (seasonDivisions || []).map((d: any) => d.id)
+      const { data: skillLevels } = divisionIds.length > 0
+        ? await adminClient
+            .from('skill_levels')
+            .select('id, name, division_id')
+            .in('division_id', divisionIds)
+            .order('name', { ascending: true })
+        : { data: [] }
+
+      // Get season stats
+      const skillLevelIds = (skillLevels || []).map((sl: any) => sl.id)
+      
+      // Total players registered in this season
+      const { count: totalPlayers } = await adminClient
+        .from('season_registrations')
+        .select('*', { count: 'exact', head: true })
+        .eq('season_id', currentSeason.id)
+
+      // Total matches
+      const { count: totalMatches } = skillLevelIds.length > 0
+        ? await adminClient
+            .from('matches')
+            .select('*', { count: 'exact', head: true })
+            .in('skill_level_id', skillLevelIds)
+        : { count: 0 }
+
+      const { count: completedMatches } = skillLevelIds.length > 0
+        ? await adminClient
+            .from('matches')
+            .select('*', { count: 'exact', head: true })
+            .in('skill_level_id', skillLevelIds)
+            .eq('status', 'completed')
+        : { count: 0 }
+
+      // Find player's current skill level (most recent match or registration)
+      let playerSkillLevelId: string | null = null
+      const mostRecentMatch = (matches || []).find((m: any) => m.status === 'completed')
+      if (mostRecentMatch) {
+        playerSkillLevelId = mostRecentMatch.skill_level_id
+      } else if (playerRegistrations.length > 0) {
+        const activeReg = playerRegistrations.find((r: any) => r.season_id === currentSeason.id && r.skill_level_id)
+        if (activeReg) playerSkillLevelId = activeReg.skill_level_id
+      }
+
+      seasonHubData = {
+        season: currentSeason,
+        divisions: seasonDivisions || [],
+        skillLevels: skillLevels || [],
+        stats: {
+          totalPlayers: totalPlayers || 0,
+          totalMatches: totalMatches || 0,
+          completedMatches: completedMatches || 0,
+          pendingMatches: (totalMatches || 0) - (completedMatches || 0),
+        },
+        playerSkillLevelId,
+      }
+    }
+
+    // Leaderboard
+    // Priority:
+    // 1. Skill level of the most recent completed match
+    // 2. Skill level of the first active registration
+    let targetSkillLevelId: string | null = null
+    let targetDivision: any = null
+    let targetSeason: any = null
+    let targetSkillLevelObj: any = null
+
+    // Find the most recent completed match for this user
+    const mostRecentMatch = (matches || []).find((m: any) => m.status === 'completed')
+    
+    if (mostRecentMatch) {
+      targetSkillLevelId = mostRecentMatch.skill_level_id
+      targetSkillLevelObj = mostRecentMatch.skill_level
+      targetDivision = mostRecentMatch.skill_level?.division
+      targetSeason = (allOrgSeasons || []).find(s => s.id === targetDivision?.season_id)
+    } else if (playerRegistrations.length > 0) {
+      const primaryReg = playerRegistrations[0]
+      targetSkillLevelId = primaryReg.skill_level_id
+      targetDivision = primaryReg.division
+      targetSeason = primaryReg.season
+    }
+
+    if (targetSkillLevelId) {
+      // Fetch skill level info if we only have the ID
+      if (!targetSkillLevelObj) {
+        const { data: sl } = await adminClient
+          .from('skill_levels')
+          .select('id, name, min_rating, max_rating')
+          .eq('id', targetSkillLevelId)
+          .single()
+        targetSkillLevelObj = sl
+      }
+
+      if (targetSkillLevelObj) {
+        // 1. Get all players for this organization as a base
+        const { data: allOrglayers } = await adminClient
+          .from('players')
+          .select('id, profile:profiles!players_profile_id_fkey(full_name)')
+          .eq('organization_id', primaryPlayer?.organization_id || orgIds[0])
+
+        // 2. Get registered player IDs for this skill level
+        const { data: registrations } = await adminClient
+          .from('season_registrations')
+          .select('player_id')
+          .eq('skill_level_id', targetSkillLevelId)
+          .in('status', ['active', 'completed'])
+        
+        const registeredPlayerIds = new Set((registrations || []).map(r => r.player_id))
+        
+        // 3. Filter players who are either registered OR were in the most recent match
+        const eligiblePlayers = (allOrglayers || []).filter((p: any) => 
+          registeredPlayerIds.has(p.id) || 
+          (mostRecentMatch && (mostRecentMatch.home_player_id === p.id || mostRecentMatch.away_player_id === p.id))
+        )
+
+        // 4. Fetch ALL completed matches for this skill level
+        const { data: skillLevelMatches } = await adminClient
+          .from('matches')
+          .select('id, home_player_id, away_player_id, winner_id, status')
+          .eq('skill_level_id', targetSkillLevelId)
+          .eq('status', 'completed')
+
+        const leaderboard = eligiblePlayers.map((p: any) => {
+          const pid = p.id
+          const pMatches = (skillLevelMatches || []).filter((m: any) => m.home_player_id === pid || m.away_player_id === pid)
+          let wins = 0
+          let losses = 0
+          pMatches.forEach((m: any) => {
+            if (m.winner_id === pid) wins++
+            else if (m.winner_id) losses++
+          })
+          
+          // Ensure we correctly extract the name from the profile relation
+          const profileData = p.profile as any
+          const fullName = Array.isArray(profileData) 
+            ? profileData[0]?.full_name 
+            : profileData?.full_name
+
+          return { 
+            player_id: pid, 
+            player_name: fullName || 'Unknown Player', 
+            wins, 
+            losses, 
+            matches: pMatches.length 
+          }
+        })
+
+        // Sort by wins (desc), then win percentage, then total matches
+        leaderboard.sort((a, b) => {
+          if (b.wins !== a.wins) return b.wins - a.wins
+          const aWinRate = a.matches > 0 ? a.wins / a.matches : 0
+          const bWinRate = b.matches > 0 ? b.wins / b.matches : 0
+          if (bWinRate !== aWinRate) return bWinRate - aWinRate
+          return b.matches - a.matches
+        })
+
+        // Find player's rank
+        const playerRank = leaderboard.findIndex((entry: any) => playerIds.includes(entry.player_id))
+        const playerEntry = playerRank !== -1 ? leaderboard[playerRank] : null
+
+        leaderboardData = {
+          division: targetDivision,
+          season: targetSeason,
+          skillLevel: targetSkillLevelObj,
+          leaderboard: leaderboard.slice(0, 10),
+          playerRank: playerRank !== -1 ? playerRank + 1 : null,
+          playerEntry,
+        }
+      }
+    }
+  }
+
+  return {
+    profile,
+    isCoordinator,
+    coordinatorData,
+    player: primaryPlayer,
+    playerRegistrations,
+    playerMatches,
+    seasons: allOrgSeasons,
+    leaderboardData,
+    upcomingMatches,
+    seasonHubData,
+  }
+  
   if (playerIds.length > 0) {
     // Fetch all organization seasons (from all organizations user is a player in)
     const orgIdsForPlayer = allPlayers?.map(p => p.organization_id) || []
@@ -406,6 +663,16 @@ export default async function Dashboard() {
           </p>
         </div>
         
+        {/* Season Hub Section - For Players */}
+        {dashboardData.seasonHubData && !isCoordinator && (
+          <SeasonHub 
+            data={dashboardData.seasonHubData}
+            playerId={dashboardData.player?.id}
+            playerTfr={dashboardData.player?.tfr_singles}
+            playerMatches={dashboardData.player?.match_count_singles}
+          />
+        )}
+
         {/* Coordinator Stats Section */}
         {isCoordinator && (
           <div className="grid md:grid-cols-4 gap-6 mb-8">
