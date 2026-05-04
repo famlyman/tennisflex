@@ -699,33 +699,7 @@ export default async function Dashboard() {
           </div>
         )}
 
-        {/* Player Section - Quick Actions only */}
-        <div className="mb-8">
-          {/* Quick Actions Card */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              <Link href="/seasons" className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <span className="text-sm font-medium text-slate-900">Browse Seasons</span>
-              </Link>
-              <Link href="/leaderboard" className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <span className="text-sm font-medium text-slate-900">Full Leaderboard</span>
-              </Link>
-              <Link href="/profile" className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <span className="text-sm font-medium text-slate-900">Edit Profile</span>
-              </Link>
-            </div>
-          </div>
-        </div>
+        {/* Player Matches Card - shown below Season Hub */}
 
         {/* Player Matches Card */}
         {dashboardData.playerMatches && dashboardData.playerMatches.length > 0 && (
@@ -787,64 +761,42 @@ export default async function Dashboard() {
           </div>
         )}
 
-        {/* Quick Actions (Combined) */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-8">
-          <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {isPlatformOwner && (
-              <Link href="/admin/chapters" className="p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
-                <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center mb-3">
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                </div>
-                <p className="font-semibold text-slate-900">Manage Flexes</p>
-                <p className="text-sm text-slate-500">Approve/deny Flex requests</p>
-              </Link>
-            )}
-            
-            {isCoordinator && (
-              <>
-                <Link href="/seasons/create" className="p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors">
-                  <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center mb-3">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                  </div>
-                  <p className="font-semibold text-slate-900">Create Season</p>
-                  <p className="text-sm text-slate-500">Start a new season</p>
-                </Link>
-                <Link href="/flags" className="p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
+        {/* Quick Actions for Coordinators/Admin */}
+        {(isCoordinator || isPlatformOwner) && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-8">
+            <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {isPlatformOwner && (
+                <Link href="/admin/chapters" className="p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
                   <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center mb-3">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21a2 2 0 012 2v16m-13 0h6m-6 0a1 1 0 001 1h4a1 1 0 001-1m-7 0a1 1 0 011-1h2a1 1 0 011 1m-7 0h6M5 5v4h4V5H5z" /></svg>
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                   </div>
-                  <p className="font-semibold text-slate-900">Review Flags</p>
-                  <p className="text-sm text-slate-500">Anti-sandbagging reports</p>
+                  <p className="font-semibold text-slate-900">Manage Flexes</p>
+                  <p className="text-sm text-slate-500">Approve/deny Flex requests</p>
                 </Link>
-              </>
-            )}
-
-            <Link href="/seasons" className="p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors">
-              <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center mb-3">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              </div>
-              <p className="font-semibold text-slate-900">Browse Seasons</p>
-              <p className="text-sm text-slate-500">Find a league near you</p>
-            </Link>
-            
-            <Link href="/profile" className="p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-              <div className="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center mb-3">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-              </div>
-              <p className="font-semibold text-slate-900">Edit Profile</p>
-              <p className="text-sm text-slate-500">Update your NTRP ratings</p>
-            </Link>
-
-            <Link href="/leaderboard" className="p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-              <div className="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center mb-3">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-              </div>
-              <p className="font-semibold text-slate-900">Leaderboards</p>
-              <p className="text-sm text-slate-500">View current standings</p>
-            </Link>
+              )}
+              
+              {isCoordinator && (
+                <>
+                  <Link href="/seasons/create" className="p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors">
+                    <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center mb-3">
+                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                    </div>
+                    <p className="font-semibold text-slate-900">Create Season</p>
+                    <p className="text-sm text-slate-500">Start a new season</p>
+                  </Link>
+                  <Link href="/flags" className="p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
+                    <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center mb-3">
+                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21a2 2 0 012 2v16m-13 0h6m-6 0a1 1 0 001 1h4a1 1 0 001-1m-7 0a1 1 0 011-1h2a1 1 0 011 1m-7 0h6M5 5v4h4V5H5z" /></svg>
+                    </div>
+                    <p className="font-semibold text-slate-900">Review Flags</p>
+                    <p className="text-sm text-slate-500">Anti-sandbagging reports</p>
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   )
