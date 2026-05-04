@@ -51,12 +51,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const orgId = season.organization_id
     console.log('Found orgId:', orgId)
 
-    // Get registrations for this skill level
-    const { data: registrations } = await adminClient
-      .from('season_registrations')
-      .select('player_id')
-      .eq('skill_level_id', skillLevelId)
-      .eq('status', 'active')
+     // Get registrations for this skill level (include completed for ended seasons)
+     const { data: registrations } = await adminClient
+       .from('season_registrations')
+       .select('player_id')
+       .eq('skill_level_id', skillLevelId)
+       .in('status', ['active', 'completed'])
 
     console.log('Found registrations:', registrations?.length)
 

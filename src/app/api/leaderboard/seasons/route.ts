@@ -42,16 +42,16 @@ export async function GET() {
 
   if (coordinatorOrgs && coordinatorOrgs.length > 0) {
     const orgIds = coordinatorOrgs.map(c => c.organization_id)
-    const { data: seasons } = await adminClient
-      .from('seasons')
-      .select(`
-        id,
-        name,
-        organization:organizations!seasons_organization_id_fkey (name)
-      `)
-      .in('organization_id', orgIds)
-      .in('status', ['active', 'registration_open'])
-      .order('name', { ascending: true })
+     const { data: seasons } = await adminClient
+       .from('seasons')
+       .select(`
+         id,
+         name,
+         organization:organizations!seasons_organization_id_fkey (name)
+       `)
+       .in('organization_id', orgIds)
+       .in('status', ['active', 'registration_open', 'completed'])
+       .order('name', { ascending: true })
 
     return NextResponse.json({ seasons: seasons || [] })
   }
@@ -64,16 +64,16 @@ export async function GET() {
     .single()
 
   if (playerData) {
-    const { data: seasons } = await adminClient
-      .from('seasons')
-      .select(`
-        id,
-        name,
-        organization:organizations!seasons_organization_id_fkey (name)
-      `)
-      .eq('organization_id', playerData.organization_id)
-      .eq('status', 'active')
-      .order('name', { ascending: true })
+     const { data: seasons } = await adminClient
+       .from('seasons')
+       .select(`
+         id,
+         name,
+         organization:organizations!seasons_organization_id_fkey (name)
+       `)
+       .eq('organization_id', playerData.organization_id)
+       .in('status', ['active', 'completed'])
+       .order('name', { ascending: true })
 
     return NextResponse.json({ seasons: seasons || [] })
   }
