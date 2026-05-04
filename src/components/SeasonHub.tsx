@@ -166,13 +166,21 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
                 {data.season.organization?.name}
               </p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-              data.season.status === 'active' 
-                ? 'bg-emerald-500 text-white' 
-                : 'bg-slate-200 text-slate-700'
-            }`}>
-              {data.season.status.replace('_', ' ')}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                data.season.status === 'active' 
+                  ? 'bg-emerald-500 text-white' 
+                  : 'bg-slate-200 text-slate-700'
+              }`}>
+                {data.season.status.replace('_', ' ')}
+              </span>
+              <Link 
+                href={`/seasons/${data.season.id}`}
+                className="px-4 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-medium transition-colors backdrop-blur-sm border border-white/20"
+              >
+                View
+              </Link>
+            </div>
           </div>
           
           {/* Progress Bar */}

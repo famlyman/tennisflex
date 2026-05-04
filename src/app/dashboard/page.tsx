@@ -662,6 +662,67 @@ export default async function Dashboard() {
               : 'Browse seasons and track your TFR ratings.'}
           </p>
         </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-8">
+          <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {!isCoordinator && (
+              <>
+                <Link href="/seasons" className="p-4 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-colors">
+                  <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  </div>
+                  <p className="font-semibold text-slate-900">Join Season</p>
+                  <p className="text-sm text-slate-500">Register for new play</p>
+                </Link>
+                <Link href="/leaderboard" className="p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors">
+                  <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  </div>
+                  <p className="font-semibold text-slate-900">Leaderboard</p>
+                  <p className="text-sm text-slate-500">Check standings</p>
+                </Link>
+                <Link href="/profile" className="p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
+                  <div className="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  </div>
+                  <p className="font-semibold text-slate-900">My Profile</p>
+                  <p className="text-sm text-slate-500">Manage your account</p>
+                </Link>
+              </>
+            )}
+
+            {isPlatformOwner && (
+              <Link href="/admin/chapters" className="p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
+                <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center mb-3">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                </div>
+                <p className="font-semibold text-slate-900">Manage Flexes</p>
+                <p className="text-sm text-slate-500">Approve/deny Flex requests</p>
+              </Link>
+            )}
+            
+            {isCoordinator && (
+              <>
+                <Link href="/seasons/create" className="p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors">
+                  <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  </div>
+                  <p className="font-semibold text-slate-900">Create Season</p>
+                  <p className="text-sm text-slate-500">Start a new season</p>
+                </Link>
+                <Link href="/flags" className="p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
+                  <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21a2 2 0 012 2v16m-13 0h6m-6 0a1 1 0 001 1h4a1 1 0 001-1m-7 0a1 1 0 011-1h2a1 1 0 011 1m-7 0h6M5 5v4h4V5H5z" /></svg>
+                  </div>
+                  <p className="font-semibold text-slate-900">Review Flags</p>
+                  <p className="text-sm text-slate-500">Anti-sandbagging reports</p>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
         
         {/* Season Hub Section - For Players */}
         {dashboardData.seasonHubData && !isCoordinator && (
@@ -727,73 +788,6 @@ export default async function Dashboard() {
                   <Link href={`/seasons/${season.id}`} className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors">View</Link>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Player Available Seasons List */}
-        {!isCoordinator && dashboardData.seasons.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4">Available Seasons</h2>
-            <div className="space-y-3">
-              {dashboardData.seasons.map((season: any) => {
-                const isOpen = season.status === 'registration_open'
-                return (
-                  <div key={season.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <p className="font-medium text-slate-900">{season.name}</p>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${season.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                          {isOpen ? 'Registration Open' : season.status}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-500">{season.organization?.name}</p>
-                    </div>
-                    {isOpen ? (
-                      <Link href={`/seasons/${season.id}/register`} className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">Register</Link>
-                    ) : (
-                      <Link href={`/seasons/${season.id}`} className="px-3 py-1.5 text-sm bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors">View</Link>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Quick Actions for Coordinators/Admin */}
-        {(isCoordinator || isPlatformOwner) && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-8">
-            <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {isPlatformOwner && (
-                <Link href="/admin/chapters" className="p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
-                  <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center mb-3">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                  </div>
-                  <p className="font-semibold text-slate-900">Manage Flexes</p>
-                  <p className="text-sm text-slate-500">Approve/deny Flex requests</p>
-                </Link>
-              )}
-              
-              {isCoordinator && (
-                <>
-                  <Link href="/seasons/create" className="p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors">
-                    <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center mb-3">
-                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                    </div>
-                    <p className="font-semibold text-slate-900">Create Season</p>
-                    <p className="text-sm text-slate-500">Start a new season</p>
-                  </Link>
-                  <Link href="/flags" className="p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
-                    <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center mb-3">
-                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21a2 2 0 012 2v16m-13 0h6m-6 0a1 1 0 001 1h4a1 1 0 001-1m-7 0a1 1 0 011-1h2a1 1 0 011 1m-7 0h6M5 5v4h4V5H5z" /></svg>
-                    </div>
-                    <p className="font-semibold text-slate-900">Review Flags</p>
-                    <p className="text-sm text-slate-500">Anti-sandbagging reports</p>
-                  </Link>
-                </>
-              )}
             </div>
           </div>
         )}
