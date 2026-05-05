@@ -10,7 +10,8 @@ interface Match {
   skill_level_name: string
   division_type: string
   opponent_name: string
-  opponent_location: string | null
+  match_location: string | null
+  is_home: boolean
   h2h?: { wins: number, losses: number }
 }
 
@@ -30,8 +31,8 @@ export default function NextMatchHero({ match }: NextMatchHeroProps) {
   // Use a stable value for SSR, then update on client
   const isToday = mounted && scheduledDate ? scheduledDate.toDateString() === new Date().toDateString() : false
 
-  const googleMapsUrl = match.opponent_location 
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.opponent_location)}`
+  const googleMapsUrl = match.match_location 
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.match_location)}`
     : null
 
   return (
@@ -105,8 +106,10 @@ export default function NextMatchHero({ match }: NextMatchHeroProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <div className="flex flex-col items-start leading-tight">
-                <span className="text-[10px] uppercase tracking-widest text-slate-500 font-black">Home Court</span>
-                <span className="truncate max-w-[120px]">{match.opponent_location}</span>
+                <span className="text-[10px] uppercase tracking-widest text-slate-500 font-black">
+                  {match.is_home ? 'Your Home Court' : "Opponent's Court"}
+                </span>
+                <span className="truncate max-w-[120px]">{match.match_location}</span>
               </div>
             </a>
           ) : (
@@ -118,7 +121,12 @@ export default function NextMatchHero({ match }: NextMatchHeroProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              No Location
+              <div className="flex flex-col items-start leading-tight">
+                <span className="text-[10px] uppercase tracking-widest text-slate-500 font-black">
+                  {match.is_home ? 'Your Home Court' : "Opponent's Court"}
+                </span>
+                <span className="truncate max-w-[120px]">Not Set</span>
+              </div>
             </button>
           )}
         </div>

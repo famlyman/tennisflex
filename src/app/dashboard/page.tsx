@@ -16,7 +16,8 @@ interface MatchData {
   skill_level_name: string
   division_type: string
   opponent_name: string
-  opponent_location: string | null
+  match_location: string | null
+  is_home: boolean
   h2h?: { wins: number; losses: number }
 }
 
@@ -194,7 +195,8 @@ async function getDashboardData(userId: string, email?: string | null) {
       return {
         ...match,
         opponent_name: opponent?.profile?.full_name || 'Unknown',
-        opponent_location: opponent?.profile?.location || null
+        match_location: match.home_player?.profile?.location || null,
+        is_home: isHome
       }
     })
 
@@ -202,7 +204,8 @@ async function getDashboardData(userId: string, email?: string | null) {
       .filter((m: any) => m.status !== 'completed')
       .map((m: any) => {
         const matchedPlayerId = playerIds.find(id => m.home_player_id === id || m.away_player_id === id)
-        const opponent = m.home_player_id === matchedPlayerId ? m.away_player : m.home_player
+        const isHome = m.home_player_id === matchedPlayerId
+        const opponent = isHome ? m.away_player : m.home_player
         return {
           id: m.id,
           scheduled_at: m.scheduled_at,
@@ -213,7 +216,8 @@ async function getDashboardData(userId: string, email?: string | null) {
           season_id: m.skill_level?.division?.season_id,
           division_type: m.skill_level?.division?.type,
           opponent_name: opponent?.profile?.full_name,
-          opponent_location: opponent?.profile?.location || null,
+          match_location: m.home_player?.profile?.location || null,
+          is_home: isHome,
         }
       })
 
