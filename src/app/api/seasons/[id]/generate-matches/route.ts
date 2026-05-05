@@ -129,20 +129,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // Seed from season ID for reproducibility
   const baseSeed = hashString(seasonId)
   
-  // Check for existing matches in this season
+  // Get all existing matches in this season to avoid duplicates
   const skillLevelIds = (skillLevels || []).map(sl => sl.id)
-  if (skillLevelIds.length > 0) {
-    const { count: existingMatches } = await adminClient
-      .from('matches')
-      .select('*', { count: 'exact', head: true })
-      .in('skill_level_id', skillLevelIds)
-    
-    if (existingMatches && existingMatches > 0) {
-      return NextResponse.json({ 
-        error: `Season already has ${existingMatches} matches. Complete or delete existing matches first.` 
-      }, { status: 400 })
-    }
-  }
+  const { data: existingMatches } = await adminClient
+    .from('matches')
+    .select('home_player_id, away_player_id, skill_level_id')
+    .in('skill_level_id', skillLevelIds)
+
+  const existingPairings = new Set(
+    existingMatches?.map(m => {
+      const pair = [m.home_player_id, m.away_player_id].sort()
+      return `${m.skill_level_id}:${pair[0]}:${pair[1]}`
+    }) || []
+  )
   
   // Process each skill level
   for (const skillLevel of skillLevels || []) {
@@ -155,12 +154,54 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       matchesBySkillLevel[skillLevel.id] = 0
       continue
     }
+
+    // Incremental Logic:
+    // We want each player to have approx 4 matches total.
+    // 1. Count how many matches each player currently has
+    const playerMatchCounts: Record<string, number> = {}
+    playersInLevel.forEach(pid => {
+      playerMatchCounts[pid] = (existingMatches || []).filter(m => 
+        m.skill_level_id === skillLevel.id && (m.home_player_id === pid || m.away_player_id === pid)
+      ).length
+    })
+
+    const targetMatches = 4
+    const newMatchesForLevel: [string, string][] = []
+
+    // 2. Try to fill up to targetMatches for players who are short
+    // We shuffle players to ensure fair distribution for who gets matched first
+    const shuffledPlayers = shuffle(playersInLevel, baseSeed)
+
+    for (const p1 of shuffledPlayers) {
+      if (playerMatchCounts[p1] >= targetMatches) continue
+
+      // Find potential opponents for p1
+      const potentialOpponents = shuffledPlayers
+        .filter(p2 => p2 !== p1) // Not themselves
+        .filter(p2 => {
+          // Not already matched in this season
+          const pair = [p1, p2].sort()
+          return !existingPairings.has(`${skillLevel.id}:${pair[0]}:${pair[1]}`)
+        })
+        .sort((a, b) => (playerMatchCounts[a] || 0) - (playerMatchCounts[b] || 0)) // Prioritize players with fewest matches
+
+      for (const p2 of potentialOpponents) {
+        if (playerMatchCounts[p1] >= targetMatches) break
+        if (playerMatchCounts[p2] >= targetMatches) continue
+
+        // Create match
+        newMatchesForLevel.push([p1, p2])
+        
+        // Update local state to avoid duplicates in this run
+        const pair = [p1, p2].sort()
+        existingPairings.add(`${skillLevel.id}:${pair[0]}:${pair[1]}`)
+        playerMatchCounts[p1]++
+        playerMatchCounts[p2]++
+      }
+    }
     
-    // Generate 4 matches per player (1 per round, 4 rounds total)
-    const allPairs = generateMatchesRoundRobin(playersInLevel, baseSeed)
-    
-    // Create matches
-    for (const [homePlayer, awayPlayer] of allPairs) {
+    // Create matches in DB
+    for (const [homePlayer, awayPlayer] of newMatchesForLevel) {
       const { error: matchError } = await adminClient
         .from('matches')
         .insert({
@@ -175,7 +216,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }
     }
     
-    matchesBySkillLevel[skillLevel.id] = allPairs.length
+    matchesBySkillLevel[skillLevel.id] = newMatchesForLevel.length
   }
 
   // Update season status if still upcoming/registration_open
