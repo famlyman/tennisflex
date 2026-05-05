@@ -16,6 +16,7 @@ interface MatchData {
   skill_level_name: string
   division_type: string
   opponent_name: string
+  opponent_location: string | null
   h2h?: { wins: number; losses: number }
 }
 
@@ -177,10 +178,10 @@ async function getDashboardData(userId: string, email?: string | null) {
           id, name, division:divisions!skill_levels_division_id_fkey (id, name, type, season_id)
         ),
         home_player:players!matches_home_player_id_fkey (
-          id, profile:profiles!players_profile_id_fkey (full_name)
+          id, profile:profiles!players_profile_id_fkey (full_name, location)
         ),
         away_player:players!matches_away_player_id_fkey (
-          id, profile:profiles!players_profile_id_fkey (full_name)
+          id, profile:profiles!players_profile_id_fkey (full_name, location)
         )
       `)
       .or(matchFilter)
@@ -192,7 +193,8 @@ async function getDashboardData(userId: string, email?: string | null) {
       const opponent = isHome ? match.away_player : match.home_player
       return {
         ...match,
-        opponent_name: opponent?.profile?.full_name || 'Unknown'
+        opponent_name: opponent?.profile?.full_name || 'Unknown',
+        opponent_location: opponent?.profile?.location || null
       }
     })
 
@@ -200,6 +202,7 @@ async function getDashboardData(userId: string, email?: string | null) {
       .filter((m: any) => m.status !== 'completed')
       .map((m: any) => {
         const matchedPlayerId = playerIds.find(id => m.home_player_id === id || m.away_player_id === id)
+        const opponent = m.home_player_id === matchedPlayerId ? m.away_player : m.home_player
         return {
           id: m.id,
           scheduled_at: m.scheduled_at,
@@ -209,9 +212,8 @@ async function getDashboardData(userId: string, email?: string | null) {
           skill_level_id: m.skill_level?.id,
           season_id: m.skill_level?.division?.season_id,
           division_type: m.skill_level?.division?.type,
-          opponent_name: m.home_player_id === matchedPlayerId 
-            ? m.away_player?.profile?.full_name 
-            : m.home_player?.profile?.full_name,
+          opponent_name: opponent?.profile?.full_name,
+          opponent_location: opponent?.profile?.location || null,
         }
       })
 
