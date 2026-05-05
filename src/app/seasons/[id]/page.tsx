@@ -53,7 +53,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   const allOrgIds = Array.from(new Set([...coordinatorOrgIds, ...playerOrgIds]))
 
   // Query each org separately
-  let allSeasons: any[] = []
+  const allSeasons: any[] = []
   const seenSeasonIds = new Set()
   
   for (const orgId of allOrgIds) {
@@ -81,6 +81,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
         <div className="text-center">
           <div className="text-slate-500 mb-4">Season not found or access denied</div>
           <div className="text-sm text-slate-400">Your orgs: {allOrgIds.join(', ')}</div>
+          <div className="text-sm text-slate-400">Available seasons: {allSeasons.length}</div>
         </div>
       </div>
     )
@@ -190,19 +191,6 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   })) || []
 
   const seasonWithDivisions = { ...season, divisions: divisionsWithLevels }
-
-  if (!season) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-slate-500 mb-4">Season not found or access denied</div>
-          <div className="text-sm text-slate-400">Your orgs: {orgIds.join(', ')}</div>
-          <div className="text-sm text-slate-400">Available seasons: {allSeasons.length}</div>
-          <div className="text-sm text-slate-400">Querying orgs individually...</div>
-        </div>
-      </div>
-    )
-  }
 
   const statusColors: Record<string, string> = {
     upcoming: 'bg-slate-100 text-slate-600',
