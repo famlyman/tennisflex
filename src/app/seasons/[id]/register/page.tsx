@@ -143,6 +143,8 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
         matchingLevel,
         skillLevelName: matchingLevel?.name || null,
         skill_level_id: matchingLevel?.id || null,
+        min_rating: matchingLevel?.min_rating || null,
+        max_rating: matchingLevel?.max_rating || null,
       }
     })
     .filter((d: any) => d.matchingLevel !== null) || []
@@ -225,6 +227,7 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
               organizationId={seasonData.organization_id}
               seasonId={seasonId}
               existingRegistrations={existingRegsWithDetails}
+              userGender={userGender}
             />
           </div>
         ) : isRegisteredForSeason ? (
@@ -245,6 +248,7 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
             divisions={userDivisions}
             organizationId={seasonData.organization_id}
             seasonId={seasonId}
+            userGender={userGender}
           />
         )}
       </main>

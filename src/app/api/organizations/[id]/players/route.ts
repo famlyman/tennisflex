@@ -35,19 +35,25 @@ export async function GET(
     .eq('organization_id', organizationId)
     .neq('profile_id', user.id) // Exclude current user
 
-  // Get profile names
+  // Get profile names and gender
   const profileIds = players?.map(p => p.profile_id).filter(Boolean) || []
   const { data: profiles } = await adminClient
     .from('profiles')
-    .select('id, full_name')
+    .select('id, full_name, gender')
     .in('id', profileIds)
 
-  const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || [])
+  const profileMap = new Map(profiles?.map(p => [p.id, { name: p.full_name, gender: p.gender }]) || [])
 
-  const playersWithNames = players?.map(p => ({
-    id: p.id,
-    name: profileMap.get(p.profile_id) || 'Unknown'
-  })) || []
+  const playersWithDetails = players?.map(p => {
+    const profile = profileMap.get(p.profile_id)
+    return {
+      id: p.id,
+      name: profile?.name || 'Unknown',
+      gender: profile?.gender || null,
+      rating_singles: p.initial_ntrp_singles,
+      rating_doubles: p.initial_ntrp_doubles
+    }
+  }) || []
 
-  return NextResponse.json({ players: playersWithNames })
+  return NextResponse.json({ players: playersWithDetails })
 }

@@ -10,6 +10,8 @@ interface Division {
   rating: number
   skillLevelName: string | null
   skill_level_id: string | null
+  min_rating: number | null
+  max_rating: number | null
 }
 
 interface ExistingRegistration {
@@ -20,16 +22,26 @@ interface ExistingRegistration {
   partner_status?: string
 }
 
+interface Partner {
+  id: string
+  name: string
+  gender: string | null
+  rating_singles: number | null
+  rating_doubles: number | null
+}
+
 export default function RegistrationForm({ 
   divisions, 
   organizationId, 
   seasonId,
-  existingRegistrations = []
+  existingRegistrations = [],
+  userGender = null
 }: { 
   divisions: Division[]
   organizationId: string
   seasonId: string
   existingRegistrations?: ExistingRegistration[]
+  userGender?: string | null
 }) {
   const [selectedDivisions, setSelectedDivisions] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +49,7 @@ export default function RegistrationForm({
   
   // Partner selection state
   const [doublesPartners, setDoublesPartners] = useState<Record<string, { type: 'existing' | 'invite', playerId?: string, email?: string }>>({})
-  const [availablePartners, setAvailablePartners] = useState<{ id: string; name: string }[]>([])
+  const [availablePartners, setAvailablePartners] = useState<Partner[]>([])
   const [partnerSearch, setPartnerSearch] = useState<Record<string, string>>({})
   const [showPartnerDropdown, setShowPartnerDropdown] = useState<Record<string, boolean>>({})
 
@@ -99,10 +111,31 @@ export default function RegistrationForm({
   }
 
   const filteredPartners = (divisionId: string) => {
+    const division = divisions.find(d => d.id === divisionId)
+    if (!division) return []
+
     const search = partnerSearch[divisionId]?.toLowerCase() || ''
-    return availablePartners.filter(p => 
-      p.name.toLowerCase().includes(search)
-    ).slice(0, 5)
+    
+    return availablePartners.filter(p => {
+      // 1. Search name
+      if (search && !p.name.toLowerCase().includes(search)) return false
+
+      // 2. Filter by Rating
+      const rating = division.category === 'singles' ? p.rating_singles : p.rating_doubles
+      if (rating === null) return false // No rating set for this category
+      if (division.min_rating && rating < division.min_rating) return false
+      if (division.max_rating && rating > division.max_rating) return false
+
+      // 3. Filter by Gender
+      if (division.type === 'mens_doubles' && p.gender !== 'male') return false
+      if (division.type === 'womens_doubles' && p.gender !== 'female') return false
+      if (division.type === 'mixed_doubles') {
+        if (userGender === 'male' && p.gender !== 'female') return false
+        if (userGender === 'female' && p.gender !== 'male') return false
+      }
+
+      return true
+    }).slice(0, 20)
   }
 
   const getDivisionLabel = (type: string): string => {
@@ -267,18 +300,29 @@ export default function RegistrationForm({
                             onFocus={() => setShowPartnerDropdown(prev => ({ ...prev, [division.id]: true }))}
                             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                           />
-                          {showPartnerDropdown[division.id] && filteredPartners(division.id).length > 0 && (
+                          {showPartnerDropdown[division.id] && (
                             <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-auto">
-                              {filteredPartners(division.id).map(p => (
-                                <button
-                                  key={p.id}
-                                  type="button"
-                                  onClick={() => handlePartnerSelect(division.id, p.id, p.name)}
-                                  className="w-full text-left px-3 py-2 hover:bg-indigo-50 text-sm"
-                                >
-                                  {p.name}
-                                </button>
-                              ))}
+                              {filteredPartners(division.id).length > 0 ? (
+                                filteredPartners(division.id).map(p => (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => handlePartnerSelect(division.id, p.id, p.name)}
+                                    className="w-full text-left px-3 py-2 hover:bg-indigo-50 text-sm"
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <span>{p.name}</span>
+                                      <span className="text-xs text-slate-400">
+                                        Rating: {division.category === 'singles' ? p.rating_singles : p.rating_doubles}
+                                      </span>
+                                    </div>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-3 py-3 text-sm text-slate-500 italic">
+                                  No eligible partners found matching this skill level and gender criteria.
+                                </div>
+                              )}
                             </div>
                           )}
                           {partner?.playerId && (
