@@ -21,6 +21,7 @@ interface PlayerData {
   losses_singles: number
   wins_doubles: number
   losses_doubles: number
+  awards?: any[]
 }
 
 export default function ProfilePage() {
@@ -47,6 +48,7 @@ export default function ProfilePage() {
   const [initialNtrpSingles, setInitialNtrpSingles] = useState('')
   const [initialNtrpDoubles, setInitialNtrpDoubles] = useState('')
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
+  const [awards, setAwards] = useState<any[]>([])
   
   const router = useRouter()
   const supabase = getSupabaseClient()
@@ -116,6 +118,15 @@ export default function ProfilePage() {
           if (playerResult.initial_ntrp_doubles) {
             setInitialNtrpDoubles(playerResult.initial_ntrp_doubles.toString())
           }
+
+          // Fetch awards for this player
+          const { data: playerAwards } = await supabase
+            .from('awards')
+            .select('*')
+            .eq('player_id', playerResult.id)
+            .order('created_at', { ascending: false })
+          
+          if (playerAwards) setAwards(playerAwards)
         } else {
           const { data: coords } = await supabase
             .from('coordinators')
@@ -216,6 +227,13 @@ export default function ProfilePage() {
       setSaving(false)
     }
   }, [supabase, fullName, phone, location, playPrefs, initialNtrpSingles, initialNtrpDoubles, playerData, gender, avatarFile, avatarPreview])
+
+  const handleApplyRating = (singles: string, doubles: string) => {
+    setInitialNtrpSingles(singles)
+    setInitialNtrpDoubles(doubles)
+    setSuccess(`Verified ratings applied: ${singles} Singles / ${doubles} Doubles. Don't forget to save!`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const getInitials = (name: string) => {
     return name
@@ -337,6 +355,37 @@ export default function ProfilePage() {
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 text-center">
               <p className="text-2xl sm:text-3xl font-bold text-indigo-600">{winRate}%</p>
               <p className="text-sm text-slate-500 mt-1">Win Rate</p>
+            </div>
+          </div>
+        )}
+
+        {/* Awards Section */}
+        {awards.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582a1 1 0 01.586.928v4.741c0 3.118-2.422 5.836-5.54 6.39l-.454.08a1 1 0 01-.192 0l-.454-.08c-3.118-.554-5.54-3.272-5.54-6.39V6.833a1 1 0 01.586-.928L9 4.323V3a1 1 0 011-1zm0 3.75l-3 1.2v3.741c0 2.227 1.73 4.168 3.957 4.564l.043.007.043-.007c2.227-.396 3.957-2.337 3.957-4.564V6.95l-3-1.2z" clipRule="evenodd" />
+              </svg>
+              Awards & Achievements
+            </h2>
+            <div className="flex flex-wrap gap-3">
+              {awards.map((award) => (
+                <div 
+                  key={award.id} 
+                  className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl shadow-sm"
+                  title={`${award.award_type} - Awarded on ${new Date(award.created_at).toLocaleDateString()}`}
+                >
+                  <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-white">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-amber-900">{award.title}</p>
+                    <p className="text-[10px] text-amber-700 uppercase font-black tracking-widest">{award.award_type}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -597,6 +646,8 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            <RatingCalculator onApply={handleApplyRating} />
+
             <button
               type="submit"
               disabled={saving}
@@ -611,9 +662,6 @@ export default function ProfilePage() {
                 'Save Changes'
               )}
             </button>
-
-            <RatingCalculator />
-
           </form>
         </div>
       </main>

@@ -15,13 +15,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     }
     
-    const tfr = Math.round(parseFloat(result.dynamicRating) * 10);
+    const singlesRating = result.singlesRating || result.dynamicRating;
+    const doublesRating = result.doublesRating;
     
     return NextResponse.json({ 
       name: result.name,
       location: result.location,
+      gender: result.gender,
+      singlesRating,
+      doublesRating,
       dynamicRating: result.dynamicRating,
-      tfr,
+      tfr: Math.round(parseFloat(singlesRating || '0') * 10),
     });
   } catch (error) {
     console.error('[API] Tennisrecord error:', error);

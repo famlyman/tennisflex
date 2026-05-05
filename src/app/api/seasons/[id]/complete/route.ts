@@ -147,6 +147,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       })
 
     standings[skillLevelId] = sorted
+
+    // 3.1 Award the winner
+    if (sorted.length > 0) {
+      const winner = sorted[0];
+      // Only award if they have at least one win
+      if (winner.wins > 0) {
+        await adminClient.from('awards').upsert({
+          player_id: winner.playerId,
+          season_id: seasonId,
+          skill_level_id: skillLevelId,
+          award_type: 'winner',
+          title: `${season.name} Winner`
+        }, { onConflict: 'player_id,season_id,award_type' });
+      }
+    }
   }
 
   // 4. Update season status to completed
