@@ -336,8 +336,29 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
     }
   }
 
-  async function scheduleMatch(dateStr: string) {
-    const displayDate = formatDate(dateStr + 'T12:00:00', { weekday: 'long', month: 'long', day: 'numeric' })
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedTime, setSelectedTime] = useState('12:00')
+
+  const timeOptions = []
+  for (let i = 7; i <= 21; i++) {
+    const hour = i > 12 ? i - 12 : i
+    const ampm = i >= 12 ? 'PM' : 'AM'
+    timeOptions.push({ label: `${hour}:00 ${ampm}`, value: `${String(i).padStart(2, '0')}:00` })
+    if (i !== 21) {
+      timeOptions.push({ label: `${hour}:30 ${ampm}`, value: `${String(i).padStart(2, '0')}:30` })
+    }
+  }
+
+  async function scheduleMatch(dateStr: string, timeStr: string) {
+    const fullDateTime = `${dateStr}T${timeStr}:00`
+    const displayDate = formatDate(fullDateTime, { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    })
+    
     if (!confirm(`Schedule this match for ${displayDate}?`)) return
 
     setScheduling(true)
@@ -345,7 +366,7 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
       const res = await fetch(`/api/matches/${match.id}/schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduled_at: `${dateStr}T12:00:00Z` })
+        body: JSON.stringify({ scheduled_at: `${fullDateTime}Z` })
       })
       
       if (res.ok) {
@@ -407,7 +428,16 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                   if (value instanceof Date) {
                     const dStr = formatISO(value)
                     if (match.status === 'completed') return
-                    toggleAvailability(dStr)
+                    
+                    const isOverlap = myAvailability.some(a => a.date === dStr) && 
+                                    opponentAvailability.some(o => o.date === dStr)
+                    
+                    if (isOverlap) {
+                      setSelectedDate(dStr)
+                    } else {
+                      setSelectedDate(null)
+                      toggleAvailability(dStr)
+                    }
                   }
                 }}
                 tileClassName={getTileClassName}
@@ -421,12 +451,49 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
             )}
           </div>
 
+          {selectedDate && (
+            <div className="mt-6 p-6 bg-indigo-600 rounded-3xl text-white animate-in slide-in-from-top-4 duration-300">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-indigo-200 mb-1">Schedule Overlap</p>
+                  <p className="text-lg font-bold">{formatDate(selectedDate + 'T12:00:00', { month: 'long', day: 'numeric' })}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedTime}
+                    onChange={(e) => setSelectedTime(e.target.value)}
+                    className="bg-indigo-700 text-white border-none rounded-xl px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-white outline-none"
+                  >
+                    {timeOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => scheduleMatch(selectedDate, selectedTime)}
+                    disabled={scheduling}
+                    className="bg-white text-indigo-600 px-6 py-2 rounded-xl text-sm font-black uppercase tracking-tight hover:bg-indigo-50 transition-colors"
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => setSelectedDate(null)}
+                    className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
             <h3 className="text-sm font-bold text-slate-900 mb-2">Instructions</h3>
             <ul className="text-sm text-slate-600 space-y-1 list-disc list-inside">
               <li>Click a date to mark yourself as available.</li>
               <li>Coordinate the specific time in the chat.</li>
-              <li>Once you agree, click an <span className="text-purple-600 font-bold">Overlap</span> date and select "Confirm Time".</li>
+              <li>Once you agree, click an <span className="text-purple-600 font-bold">Overlap</span> date to select a time and confirm.</li>
             </ul>
           </div>
         </div>
@@ -439,10 +506,9 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
               <button 
                 onClick={() => {
                   const overlap = myAvailability.find(a => opponentAvailability.some(o => o.date === a.date))
-                  if (overlap) scheduleMatch(overlap.date)
+                  if (overlap) setSelectedDate(overlap.date)
                   else alert('Select an overlapping date first!')
                 }}
-                disabled={scheduling}
                 className="flex flex-col items-center justify-center p-4 rounded-2xl bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition-colors group"
               >
                 <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">

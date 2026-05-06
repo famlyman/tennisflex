@@ -63,10 +63,12 @@ function FloatingElement({ children, delay = 0, className = "" }: { children: Re
 function ChapterCard({ 
   name, 
   slug,
+  region,
   status = "active" 
 }: { 
   name: string
   slug?: string
+  region?: string
   status?: "active" | "coming" 
 }) {
   const isActive = status === "active" && slug;
@@ -93,14 +95,14 @@ function ChapterCard({
                 {name}
               </h3>
               <p className={`text-sm ${isActive ? "text-slate-500" : "text-slate-400"}`}>
-                {isActive ? "View Flex" : "Coming soon"}
+                {isActive ? region || "Active Flex" : "Coming soon"}
               </p>
             </div>
           </div>
           {isActive && (
             <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span>Active Flex</span>
+              <span>Available Now</span>
             </div>
           )}
         </div>
@@ -115,6 +117,7 @@ interface HomeClientProps {
 
 export default function HomeClient({ organizations }: HomeClientProps) {
   const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -123,6 +126,12 @@ export default function HomeClient({ organizations }: HomeClientProps) {
   if (!mounted) return null;
 
   const activeOrgs = organizations || [];
+  
+  const filteredOrgs = activeOrgs.filter(org => 
+    org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (org.region && org.region.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   const hasOrganizations = activeOrgs.length > 0;
 
   return (
@@ -404,27 +413,75 @@ export default function HomeClient({ organizations }: HomeClientProps) {
         <section id="flexes" className="px-6 py-24 bg-white">
           <div className="max-w-5xl mx-auto">
             <AnimatedSection>
-              <div className="text-center mb-16">
+              <div className="text-center mb-12">
                 <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4">
                   Choose Your Flex
                 </h2>
-                <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto mb-8">
                   Local tennis communities across the country. Find one near you.
                 </p>
+                
+                <div className="max-w-md mx-auto relative group">
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input 
+                    type="text"
+                    placeholder="Search by city, state, or name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-12 pr-16 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:bg-white focus:border-indigo-500 focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
+                  />
+                  <button
+                    onClick={() => {
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(async (position) => {
+                          try {
+                            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`);
+                            const data = await res.json();
+                            const city = data.address.city || data.address.town || data.address.village || data.address.county;
+                            if (city) setSearchQuery(city);
+                          } catch (err) {
+                            console.error("Location detection failed", err);
+                          }
+                        });
+                      }
+                    }}
+                    className="absolute inset-y-2 right-2 px-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:shadow-sm transition-all"
+                    title="Find my location"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </AnimatedSection>
 
             {hasOrganizations ? (
-              <div className="grid md:grid-cols-2 gap-6">
-                {activeOrgs.map((org) => (
-                  <ChapterCard 
-                    key={org.id}
-                    name={org.name}
-                    slug={org.slug}
-                    status="active"
-                  />
-                ))}
-              </div>
+              filteredOrgs.length > 0 ? (
+                <div className="grid md:grid-cols-2 gap-6">
+                  {filteredOrgs.map((org) => (
+                    <ChapterCard 
+                      key={org.id}
+                      name={org.name}
+                      slug={org.slug}
+                      region={org.region}
+                      status="active"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                  <p className="text-slate-500 mb-4 font-medium">No Flexes found in this area yet.</p>
+                  <Link href="/register?type=request" className="text-indigo-600 font-bold hover:underline">
+                    Request a Flex for your city →
+                  </Link>
+                </div>
+              )
             ) : (
               <div className="grid md:grid-cols-2 gap-6">
                 <ChapterCard 

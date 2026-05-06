@@ -273,13 +273,15 @@ async function getDashboardData(userId: string, email?: string | null) {
 
       // Find player's current skill level (most recent match or registration)
       let playerSkillLevelId: string | null = null
-      const mostRecentMatch = (matches || []).find((m: any) => m.status === 'completed')
+      const mostRecentMatch = (playerMatches || []).find((m: any) => m.status === 'completed')
       if (mostRecentMatch) {
         playerSkillLevelId = mostRecentMatch.skill_level_id
       } else if (playerRegistrations.length > 0) {
         const activeReg = playerRegistrations.find((r: any) => r.season_id === currentSeason.id && r.skill_level_id)
         if (activeReg) playerSkillLevelId = activeReg.skill_level_id
       }
+
+      console.log('DEBUG: playerSkillLevelId for Pulse:', playerSkillLevelId)
 
       // Division Pulse: Latest 3 results in the player's skill level
       if (playerSkillLevelId) {
@@ -295,6 +297,8 @@ async function getDashboardData(userId: string, email?: string | null) {
           .order('created_at', { ascending: false })
           .limit(3)
         
+        console.log('DEBUG: pulseMatches found:', pulseMatches?.length)
+
         divisionPulse = (pulseMatches || []).map((m: any) => ({
           id: m.id,
           winner_name: m.winner_id === m.home_player_id ? m.home_player?.profile?.full_name : m.away_player?.profile?.full_name,
