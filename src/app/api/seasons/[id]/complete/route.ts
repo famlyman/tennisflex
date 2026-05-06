@@ -138,12 +138,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }
     }
 
-    // Sort by wins, then sets difference
+    // Sort by wins, then win percentage, then total matches
     const sorted = Object.entries(playerStats)
-      .map(([playerId, stats]) => ({ playerId, ...stats }))
+      .map(([playerId, stats]) => ({ 
+        playerId, 
+        ...stats, 
+        matches: stats.wins + stats.losses 
+      }))
       .sort((a, b) => {
         if (b.wins !== a.wins) return b.wins - a.wins
-        return (b.setsW - b.setsL) - (a.setsW - a.setsL)
+        const aWinRate = a.matches > 0 ? a.wins / a.matches : 0
+        const bWinRate = b.matches > 0 ? b.wins / b.matches : 0
+        if (bWinRate !== aWinRate) return bWinRate - aWinRate
+        return b.matches - a.matches
       })
 
     standings[skillLevelId] = sorted

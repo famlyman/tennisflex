@@ -155,12 +155,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
      }
    })
 
-  // Sort by wins (desc), then sets difference (desc)
+  // Sort by wins (desc), then win percentage, then total matches
   leaderboard.sort((a: any, b: any) => {
     if (b.wins !== a.wins) return b.wins - a.wins
-    const aSetsDiff = a.sets_won - a.sets_lost
-    const bSetsDiff = b.sets_won - b.sets_lost
-    return bSetsDiff - aSetsDiff
+    const aWinRate = a.matches_played > 0 ? a.wins / a.matches_played : 0
+    const bWinRate = b.matches_played > 0 ? b.wins / b.matches_played : 0
+    if (bWinRate !== aWinRate) return bWinRate - aWinRate
+    return b.matches_played - a.matches_played
   })
 
   // Add rank
