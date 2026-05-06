@@ -313,7 +313,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-slate-500">TFR-S Rating</div>
-                    <div className="text-2xl font-bold text-indigo-600">43 <span className="text-sm font-normal text-slate-500">→ +3</span></div>
+                    <div className="text-2xl font-bold text-indigo-600">43 <span className="text-sm font-normal text-slate-500">→ +1</span></div>
                   </div>
                   <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                     Upgraded
@@ -341,7 +341,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-slate-200">
                       <span className="text-slate-600">Confidence</span>
-                      <span className="text-sm font-medium text-green-600">★ Established (20+ matches)</span>
+                      <span className="text-sm font-medium text-green-600">★ Established (10+ matches)</span>
                     </div>
                     <div className="flex justify-between items-center py-3">
                       <span className="text-slate-600">Rating Range</span>
@@ -369,7 +369,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-slate-200">
                       <span className="text-slate-600">Confidence</span>
-                      <span className="text-sm font-medium text-yellow-600">● Developing (12 matches)</span>
+                      <span className="text-sm font-medium text-yellow-600">● Developing (5-9 matches)</span>
                     </div>
                     <div className="flex justify-between items-center py-3">
                       <span className="text-slate-600">Rating Range</span>
@@ -392,7 +392,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                     <h4 className="font-semibold text-slate-900 mb-1">How ratings work</h4>
                     <p className="text-slate-600 text-sm">
                       Win against higher-rated opponents for bigger gains. Close losses lose little, 
-                      blowouts lose more. Play 20+ matches to earn an Established badge.
+                      blowouts lose more. Play 10+ matches to earn an Established badge.
                     </p>
                   </div>
                 </div>

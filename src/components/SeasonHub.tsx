@@ -287,25 +287,29 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
 
           {/* Player's Rating Move */}
           {ratingMove && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-              <p className="text-sm text-amber-700 font-medium mb-1">Rating Update! 🎾</p>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                  <span className="text-lg">🎾</span>
+                </div>
+                <div>
+                  <div className="font-bold text-slate-900 text-sm">Rating Update!</div>
+                  <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Recent Activity</div>
+                </div>
+              </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg font-bold text-slate-900">
-                    {Math.round(ratingMove.oldRating)} → {Math.round(ratingMove.newRating)}
-                    <span className="text-sm font-normal text-emerald-600 ml-2">
-                      +{Math.round(ratingMove.newRating - ratingMove.oldRating)}
+                  <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">TFR Rating</div>
+                  <div className="text-2xl font-black text-indigo-600">
+                    {Math.round(ratingMove.newRating)} 
+                    <span className={`text-sm font-normal ml-2 ${ratingMove.newRating >= ratingMove.oldRating ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {ratingMove.newRating >= ratingMove.oldRating ? '↑' : '↓'}
+                      {Math.abs(Math.round(ratingMove.newRating - ratingMove.oldRating))}
                     </span>
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Based on {ratingMove.matches} matches
-                  </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-slate-900">
-                    {playerTfr ? Math.round(playerTfr) : '--'} TFR
-                  </p>
-                  <p className="text-xs text-slate-500">Current</p>
+                <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase tracking-wider">
+                  Updated
                 </div>
               </div>
             </div>
@@ -313,22 +317,26 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
 
           {/* Player's Standing */}
           {playerRank && !ratingMove && (
-            <div className="bg-indigo-50 rounded-lg p-4 mb-4">
-              <p className="text-sm text-indigo-600 font-medium mb-1">Your Standing</p>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                  <span className="text-lg">🏆</span>
+                </div>
+                <div>
+                  <div className="font-bold text-slate-900 text-sm">Your Standing</div>
+                  <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Season Progress</div>
+                </div>
+              </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-slate-900">#{playerRank}</p>
-                  <p className="text-xs text-slate-500">
-                    Overall across all divisions
-                  </p>
+                  <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Current Rank</div>
+                  <div className="text-2xl font-black text-indigo-600">#{playerRank}</div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-slate-900">
-                    {playerTfr ? Math.round(playerTfr) : '--'} TFR
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {playerMatches || 0} matches
-                  </p>
+                  <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Current TFR</div>
+                  <div className="text-lg font-black text-slate-900">
+                    {playerTfr ? Math.round(playerTfr) : '--'}
+                  </div>
                 </div>
               </div>
             </div>
