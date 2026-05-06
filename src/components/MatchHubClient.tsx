@@ -350,8 +350,12 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
   }
 
   async function scheduleMatch(dateStr: string, timeStr: string) {
-    const fullDateTime = `${dateStr}T${timeStr}:00`
-    const displayDate = formatDate(fullDateTime, { 
+    // Create a local date object from the inputs
+    // Using the 'YYYY-MM-DDTHH:mm' format without 'Z' tells the browser it's local time
+    const localDate = new Date(`${dateStr}T${timeStr}:00`);
+    const utcISOString = localDate.toISOString();
+
+    const displayDate = formatDate(localDate, { 
       weekday: 'long', 
       month: 'long', 
       day: 'numeric',
@@ -366,7 +370,7 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
       const res = await fetch(`/api/matches/${match.id}/schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduled_at: `${fullDateTime}Z` })
+        body: JSON.stringify({ scheduled_at: utcISOString })
       })
       
       if (res.ok) {

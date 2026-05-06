@@ -24,6 +24,7 @@ interface YourMatchesCardProps {
 
 export default function YourMatchesCard({ matches, playerId }: YourMatchesCardProps) {
   const [mounted, setMounted] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -33,11 +34,24 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
     return null
   }
 
+  const visibleMatches = isExpanded ? matches : matches.slice(0, 2)
+  const hasMore = matches.length > 2
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-      <h3 className="text-lg font-semibold text-slate-900 mb-4">Your Matches</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-slate-900">Your Matches</h3>
+        {hasMore && (
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 uppercase tracking-wider px-2 py-1 bg-indigo-50 rounded-lg transition-colors"
+          >
+            {isExpanded ? 'Show Less' : `Show All (${matches.length})`}
+          </button>
+        )}
+      </div>
       <div className="space-y-3">
-        {matches.map((match) => (
+        {visibleMatches.map((match) => (
           <div key={match.id} className="p-4 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -64,7 +78,13 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                 </p>
                 {match.scheduled_at && (
                   <p className="text-[10px] font-bold text-emerald-600 mt-1 uppercase tracking-tight">
-                    Scheduled: {mounted ? new Date(match.scheduled_at).toLocaleDateString() : '---'}
+                    {mounted ? new Date(match.scheduled_at).toLocaleString(undefined, {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit'
+                    }) : '---'}
                   </p>
                 )}
               </div>
@@ -78,6 +98,14 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
           </div>
         ))}
       </div>
+      {hasMore && (
+        <button 
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full mt-4 py-2 text-xs font-bold text-slate-400 hover:text-indigo-600 border-t border-slate-100 transition-colors uppercase tracking-widest"
+        >
+          {isExpanded ? 'Show Fewer Matches' : 'See More Matches'}
+        </button>
+      )}
     </div>
   )
 }

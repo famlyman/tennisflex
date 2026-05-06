@@ -200,6 +200,25 @@ async function getDashboardData(userId: string, email?: string | null) {
       }
     })
 
+    // Sort: Scheduled matches first (by date), then by status/creation
+    playerMatches.sort((a: any, b: any) => {
+      // Completed matches to the end
+      if (a.status === 'completed' && b.status !== 'completed') return 1
+      if (a.status !== 'completed' && b.status === 'completed') return -1
+
+      // Scheduled matches to the front
+      if (a.scheduled_at && !b.scheduled_at) return -1
+      if (!a.scheduled_at && b.scheduled_at) return 1
+
+      // Both scheduled: sort by date (closest first)
+      if (a.scheduled_at && b.scheduled_at) {
+        return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
+      }
+
+      // Neither scheduled: sort by creation
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+
     upcomingMatches = (matches || [])
       .filter((m: any) => m.status !== 'completed')
       .map((m: any) => {
