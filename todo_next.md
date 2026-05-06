@@ -3,25 +3,26 @@
 This document outlines the logical progression for the Tennis-Flex platform following the completion of the core Phase 1-23 implementation.
 
 ## ✅ Recently Completed
+- [x] **Hybrid Promotion System:** Launched a native-first monetization engine with Direct, Affiliate, and Placeholder support.
+- [x] **Location Discovery:** Implemented real-time search and geolocation for finding local chapters.
+- [x] **TFR Standardization:** Unified sorting logic and whole-number displays across the entire platform.
+- [x] **Timezone Fix:** Resolved the 4-hour offset in match scheduling.
 - [x] **Doubles Team Support:** Overhauled match generation and Match Hub to support 2v2 play (Men's, Women's, and Mixed).
 - [x] **NTRP Verification:** Connected TennisRecord scraper to player profiles, allowing one-click rating verification.
-- [x] **Season Awards:** Automated badge granting for winners on season completion.
-- [x] **Incremental Matchmaking:** Non-destructive match updates for late-season registrations.
-- [x] **Location Awareness:** Matches now prioritize "Home" court and provide navigation links.
-- [x] **Registration UX:** Intelligent partner selection dropdown with rating/gender filtering.
 
-## 🚀 Priority 1: Technical Debt & Build Quality
-**Goal:** Stabilize the codebase for reliable deployments.
+## 🚀 Priority 1: Infrastructure & DB Sync
+**Goal:** Finalize the database schema and resolve technical debt.
+- [ ] **DB Migration (Manual):** Execute `supabase/awards.sql` to resolve 404 errors on the profile page.
+- [ ] **DB Migration (Manual):** Execute `supabase/promotions.sql` to enable the promotional engine.
 - [ ] **Lint & Type Cleanup:** Resolve ~130 ESLint errors (mostly `any` types and formatting).
-- [ ] **Build Validation:** Ensure all components are type-safe and follow React 19 standards.
 
-## 🏁 Priority 2: Monetization (Stripe Integration)
+## 💰 Priority 2: Monetization (Stripe Integration)
 **Goal:** Enable fee collection for coordinators.
 - [ ] **Stripe Connect:** Implement multi-tenant payment flow.
 - [ ] **Platform Fees:** Logic for service fee deduction.
 
 ---
-*Updated: May 5, 2026 - Doubles support and NTRP verification implemented*
+*Updated: May 6, 2026 - Hybrid Promotion System and Location Discovery implemented*
 
 ## 🧪 Priority 3: Testing & Quality Assurance
 **Goal:** Ensure platform stability and multi-tenant security.
