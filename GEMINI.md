@@ -18,12 +18,13 @@
 ## Current Status
 The project has transitioned from the **Planning phase** to **Active Development**. Core features are being stabilized with a focus on hydration performance and registration UX.
 
-### Key Accomplishments (as of May 4, 2026)
-- **Hydration & Performance:** Resolved critical Error #418 hydration mismatches by standardizing client-side mounting for time-dependent UI.
-- **Registration UX:** Enhanced discovery flow with clear registration windows, prioritized open seasons, and actionable season lists.
-- **Unified Dashboard:** Dynamic player/coordinator views with automated leaderboard context and season status tracking.
-- **TFR Algorithm:** Fully implemented with whole-number display rounding and automated updates on score submission.
-- **Match Hub:** Real-time coordination with chat, scheduling, and verified score submission.
+### Key Accomplishments (as of May 5, 2026)
+- **Doubles Team Support:** Overhauled match generation and Match Hub to support 2v2 play (Men's, Women's, and Mixed).
+- **Intelligent Registration:** Implemented filtered partner selection for doubles based on rating and gender constraints.
+- **NTRP Verification:** Connected TennisRecord scraper to player profiles, allowing one-click rating verification and application.
+- **Automated Awards:** Built a season completion engine that automatically grants "Season Winner" badges and notifies players.
+- **Incremental Matchmaking:** Match generation is now non-destructive, allowing late-registration support without overwriting existing data.
+- **Location Awareness:** Matches now prioritize the "Home" player's court and provide direct navigation links.
 
 ---
 

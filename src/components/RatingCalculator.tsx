@@ -58,7 +58,7 @@ export function RatingCalculator({ onApply }: Props) {
     <div className="max-w-md mx-auto p-6 bg-slate-50 rounded-2xl border border-slate-200 shadow-sm mt-8">
       <h3 className="text-lg text-slate-900 font-bold mb-2">Verify NTRP Rating</h3>
       <p className="text-xs text-slate-500 mb-6 uppercase tracking-wider font-black">
-        Connect to TennisRecord.com
+        Enter your name and city/state as it appears on USTA - TennisLink to verify your rating.
       </p>
       
       <div className="space-y-4">

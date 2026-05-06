@@ -3,37 +3,25 @@
 This document outlines the logical progression for the Tennis-Flex platform following the completion of the core Phase 1-23 implementation.
 
 ## ✅ Recently Completed
-- [x] **Hydration Fixes (Error #418):** Resolved React hydration mismatches across `NextMatchHero`, `SeasonHub`, `MatchHubClient`, and `YourMatchesCard` by deferring time-dependent rendering to the client.
-- [x] **Registration UX Enhancements:** 
-    - `SeasonHub` now displays registration opening/closing dates.
-    - Dashboard prioritizes `registration_open` seasons in the Season Hub.
-    - `/seasons` page is now actionable with "View Details" and "Register" buttons.
-    - Added "Register to Play" button to the season detail page.
-- [x] **Build Validation:** Fixed missing React hook imports in `YourMatchesCard.tsx` causing build failures.
-- [x] **TFR Rating Display:** Standardized whole-number TFR ratings (10-80 scale) across the entire app using `Math.round`.
-- [x] **Dynamic Leaderboard:** Dashboard leaderboard now automatically focuses on the user's most recent completed match.
-- [x] **Win/Loss Logic:** Fixed reversed win/loss reporting and ensured immediate database updates on score submission.
-- [x] **UI Contrast Fix:** Enforced dark text (`text-slate-900`) for player names on the leaderboard per enterprise readability standards.
-- [x] **Match Score Integration:** Integrated score submission directly into the Match Hub with verified badges.
-- [x] **Verification System:** Added opponent score verification across the platform.
-- [x] **Season Hub:** New dashboard component with division tabs, stacked leaderboards (Top 5), rating move indicators.
-- [x] **Dashboard Cleanup:** Removed redundant TFR Rating, Registrations cards; simplified Quick Actions to coordinators only.
-- [x] **Leaderboard API Fixes:** Include completed seasons, fetch completed registrations for accurate display.
-- [x] **Rating Move Tracking:** `/api/profile/stats` now returns rating changes for season display.
+- [x] **Doubles Team Support:** Overhauled match generation and Match Hub to support 2v2 play (Men's, Women's, and Mixed).
+- [x] **NTRP Verification:** Connected TennisRecord scraper to player profiles, allowing one-click rating verification.
+- [x] **Season Awards:** Automated badge granting for winners on season completion.
+- [x] **Incremental Matchmaking:** Non-destructive match updates for late-season registrations.
+- [x] **Location Awareness:** Matches now prioritize "Home" court and provide navigation links.
+- [x] **Registration UX:** Intelligent partner selection dropdown with rating/gender filtering.
 
-## 🚀 Priority 1: NTRP Verification (Scraper Integration)
-**Goal:** Replace or augment self-reported skill levels with verified data.
-- [x] **Scraper API:** Connect `scraper/tennisrecord.ts` to `/api/tennisrecord`.
-- [ ] **UI/UX:** Add a "Verify with TennisRecord" button during player onboarding/profile editing.
-- [ ] **Data Sync:** Auto-populate `initial_ntrp_singles` and `initial_ntrp_doubles` from scraped data.
-- [ ] **Anti-Sandbagging:** Flag players whose self-reported rating significantly deviates from their scraped dynamic rating.
+## 🚀 Priority 1: Technical Debt & Build Quality
+**Goal:** Stabilize the codebase for reliable deployments.
+- [ ] **Lint & Type Cleanup:** Resolve ~130 ESLint errors (mostly `any` types and formatting).
+- [ ] **Build Validation:** Ensure all components are type-safe and follow React 19 standards.
 
-## 🏁 Priority 2: Season Completion Workflow
-**Goal:** Automate the transition from an active season to a completed one.
-- [ ] **Batch Processing:** Create a "Close Season" utility to handle matches with no scores.
-- [ ] **Final Standings:** Generate a static snapshot of the leaderboard at the moment of closure.
-- [ ] **Awards/Badges:** Implement "Season Winner" badges on player profiles.
-- [ ] **Transition:** Auto-invite active players to the "Registration Open" phase of the subsequent season.
+## 🏁 Priority 2: Monetization (Stripe Integration)
+**Goal:** Enable fee collection for coordinators.
+- [ ] **Stripe Connect:** Implement multi-tenant payment flow.
+- [ ] **Platform Fees:** Logic for service fee deduction.
+
+---
+*Updated: May 5, 2026 - Doubles support and NTRP verification implemented*
 
 ## 🧪 Priority 3: Testing & Quality Assurance
 **Goal:** Ensure platform stability and multi-tenant security.
