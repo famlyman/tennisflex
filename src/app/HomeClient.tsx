@@ -313,7 +313,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-slate-500">TFR-S Rating</div>
-                    <div className="text-2xl font-bold text-indigo-600">42.5 <span className="text-sm font-normal text-slate-500">→ +6</span></div>
+                    <div className="text-2xl font-bold text-indigo-600">43 <span className="text-sm font-normal text-slate-500">→ +3</span></div>
                   </div>
                   <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                     Upgraded
@@ -337,7 +337,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center py-3 border-b border-slate-200">
                       <span className="text-slate-600">Your Rating</span>
-                      <span className="text-2xl font-bold text-indigo-600">42.5</span>
+                      <span className="text-2xl font-bold text-indigo-600">43</span>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-slate-200">
                       <span className="text-slate-600">Confidence</span>
@@ -345,7 +345,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                     </div>
                     <div className="flex justify-between items-center py-3">
                       <span className="text-slate-600">Rating Range</span>
-                      <span className="text-slate-500">10 - 165</span>
+                      <span className="text-slate-500">10 - 80</span>
                     </div>
                   </div>
                 </div>
@@ -365,7 +365,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center py-3 border-b border-slate-200">
                       <span className="text-slate-600">Your Rating</span>
-                      <span className="text-2xl font-bold text-orange-600">38.0</span>
+                      <span className="text-2xl font-bold text-orange-600">38</span>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-slate-200">
                       <span className="text-slate-600">Confidence</span>
@@ -373,7 +373,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                     </div>
                     <div className="flex justify-between items-center py-3">
                       <span className="text-slate-600">Rating Range</span>
-                      <span className="text-slate-500">10 - 165</span>
+                      <span className="text-slate-500">10 - 80</span>
                     </div>
                   </div>
                 </div>
