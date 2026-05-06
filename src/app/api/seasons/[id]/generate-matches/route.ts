@@ -97,7 +97,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // Get all divisions and skill levels for this season
   const { data: divisions } = await adminClient
     .from('divisions')
-    .select('id')
+    .select('id, type')
     .eq('season_id', seasonId)
 
   const divisionIds = divisions?.map(d => d.id) || []
