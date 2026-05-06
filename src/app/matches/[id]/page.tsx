@@ -47,7 +47,13 @@ export default async function MatchPage({ params }: MatchPageProps) {
       home_player:players!matches_home_player_id_fkey (
         *, profile:profiles!players_profile_id_fkey (*)
       ),
+      home_partner:players!matches_home_partner_id_fkey (
+        *, profile:profiles!players_profile_id_fkey (*)
+      ),
       away_player:players!matches_away_player_id_fkey (
+        *, profile:profiles!players_profile_id_fkey (*)
+      ),
+      away_partner:players!matches_away_partner_id_fkey (
         *, profile:profiles!players_profile_id_fkey (*)
       )
     `)
@@ -59,8 +65,13 @@ export default async function MatchPage({ params }: MatchPageProps) {
   }
 
   // Determine if current user is one of the players
-  const isHome = match.home_player?.profile_id === user.id
-  const isAway = match.away_player?.profile_id === user.id
+  const isHomePlayer = match.home_player?.profile_id === user.id
+  const isHomePartner = match.home_partner?.profile_id === user.id
+  const isAwayPlayer = match.away_player?.profile_id === user.id
+  const isAwayPartner = match.away_partner?.profile_id === user.id
+
+  const isHome = isHomePlayer || isHomePartner
+  const isAway = isAwayPlayer || isAwayPartner
 
   if (!isHome && !isAway) {
     // Check if user is a coordinator for this organization
@@ -76,7 +87,17 @@ export default async function MatchPage({ params }: MatchPageProps) {
     }
   }
 
-  const currentPlayer = isHome ? match.home_player : match.away_player
+  const isDoubles = match.skill_level?.division?.type?.includes('doubles')
+  
+  const homeTeamNames = isDoubles && match.home_partner
+    ? `${match.home_player?.profile?.full_name} & ${match.home_partner?.profile?.full_name}`
+    : match.home_player?.profile?.full_name
+
+  const awayTeamNames = isDoubles && match.away_partner
+    ? `${match.away_player?.profile?.full_name} & ${match.away_partner?.profile?.full_name}`
+    : match.away_player?.profile?.full_name
+
+  const currentPlayer = isHomePlayer ? match.home_player : (isHomePartner ? match.home_partner : (isAwayPlayer ? match.away_player : match.away_partner))
   const opponent = isHome ? match.away_player : match.home_player
 
   return (
@@ -105,7 +126,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
                   </span>
                 </div>
                 <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-                  {isHome ? `vs ${match.away_player?.profile?.full_name}` : `vs ${match.home_player?.profile?.full_name}`}
+                  {isHome ? `vs ${awayTeamNames}` : `vs ${homeTeamNames}`}
                 </h1>
               </div>
             </div>

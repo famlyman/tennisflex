@@ -148,6 +148,18 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const supabase = getSupabaseClient()
 
+  const isDoubles = match.skill_level?.division?.type?.includes('doubles')
+
+  const getTeamLabel = (player: any, partner: any) => {
+    if (isDoubles && partner) {
+      return `${player?.profile?.full_name?.split(' ')[0]} & ${partner?.profile?.full_name?.split(' ')[0]}`
+    }
+    return player?.profile?.full_name
+  }
+
+  const opponentPartner = match.home_player_id === opponent.id ? match.home_partner : match.away_partner
+  const opponentLabel = getTeamLabel(opponent, opponentPartner)
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -502,8 +514,10 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
               {opponent.profile?.full_name?.charAt(0)}
             </div>
             <div>
-              <h3 className="font-bold text-slate-900">{opponent.profile?.full_name}</h3>
-              <p className="text-xs text-slate-500">TFR: {Math.round(opponent.tfr_singles)} • Singles</p>
+              <h3 className="font-bold text-slate-900">{opponentLabel}</h3>
+              <p className="text-xs text-slate-500">
+                TFR: {Math.round((isDoubles ? opponent.tfr_doubles : opponent.tfr_singles) || 0)} • {isDoubles ? 'Doubles' : 'Singles'}
+              </p>
             </div>
           </div>
 
@@ -631,8 +645,8 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                         : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200'
                     }`}
                   >
-                    <div className="truncate">{match.home_player?.profile?.full_name?.split(' ')[0]}</div>
-                    <div className="text-[10px] opacity-60">Home</div>
+                    <div className="truncate">{getTeamLabel(match.home_player, match.home_partner)}</div>
+                    <div className="text-[10px] opacity-60">Home Team</div>
                   </button>
                   <button
                     onClick={() => setWinnerId(match.away_player_id)}
@@ -642,8 +656,8 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                         : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200'
                     }`}
                   >
-                    <div className="truncate">{match.away_player?.profile?.full_name?.split(' ')[0]}</div>
-                    <div className="text-[10px] opacity-60">Away</div>
+                    <div className="truncate">{getTeamLabel(match.away_player, match.away_partner)}</div>
+                    <div className="text-[10px] opacity-60">Away Team</div>
                   </button>
                 </div>
               </div>

@@ -115,7 +115,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // Get registrations for this season
   const { data: registrations } = await adminClient
     .from('season_registrations')
-    .select('player_id, skill_level_id, division_id')
+    .select('player_id, skill_level_id, division_id, partner_id, partner_status')
     .eq('season_id', seasonId)
     .eq('status', 'active')
 
@@ -133,11 +133,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const skillLevelIds = (skillLevels || []).map(sl => sl.id)
   const { data: existingMatches } = await adminClient
     .from('matches')
-    .select('home_player_id, away_player_id, skill_level_id')
+    .select('home_player_id, away_player_id, skill_level_id, home_partner_id, away_partner_id')
     .in('skill_level_id', skillLevelIds)
 
   const existingPairings = new Set(
     existingMatches?.map(m => {
+      // For pairings, we use the primary player IDs as the unique key
       const pair = [m.home_player_id, m.away_player_id].sort()
       return `${m.skill_level_id}:${pair[0]}:${pair[1]}`
     }) || []
@@ -145,74 +146,83 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   
   // Process each skill level
   for (const skillLevel of skillLevels || []) {
-    // Get players registered for this skill level
-    const playersInLevel = registrations
-      .filter(r => r.skill_level_id === skillLevel.id)
-      .map(r => r.player_id)
+    // Determine if this is a doubles division
+    const division = divisions?.find(d => d.id === skillLevel.division_id)
+    const isDoubles = division?.type?.includes('doubles')
+
+    // Get registrations for this skill level
+    let registrationsInLevel = registrations.filter(r => r.skill_level_id === skillLevel.id)
     
-    if (playersInLevel.length < 2) {
+    if (isDoubles) {
+      // For doubles, only include registrations that have a confirmed partner
+      registrationsInLevel = registrationsInLevel.filter(r => r.partner_id && r.partner_status === 'confirmed')
+    }
+
+    if (registrationsInLevel.length < 2) {
       matchesBySkillLevel[skillLevel.id] = 0
       continue
     }
 
     // Incremental Logic:
-    // We want each player to have approx 4 matches total.
-    // 1. Count how many matches each player currently has
-    const playerMatchCounts: Record<string, number> = {}
-    playersInLevel.forEach(pid => {
-      playerMatchCounts[pid] = (existingMatches || []).filter(m => 
-        m.skill_level_id === skillLevel.id && (m.home_player_id === pid || m.away_player_id === pid)
+    // We want each registration (player or team) to have approx 4 matches total.
+    const matchCounts: Record<string, number> = {}
+    registrationsInLevel.forEach(reg => {
+      matchCounts[reg.player_id] = (existingMatches || []).filter(m => 
+        m.skill_level_id === skillLevel.id && (m.home_player_id === reg.player_id || m.away_player_id === reg.player_id)
       ).length
     })
 
     const targetMatches = 4
-    const newMatchesForLevel: [string, string][] = []
+    const newMatchesForLevel = []
 
-    // 2. Try to fill up to targetMatches for players who are short
-    // We shuffle players to ensure fair distribution for who gets matched first
-    const shuffledPlayers = shuffle(playersInLevel, baseSeed)
+    // Shuffle for fair distribution
+    const shuffledRegs = shuffle(registrationsInLevel, baseSeed)
 
-    for (const p1 of shuffledPlayers) {
-      if (playerMatchCounts[p1] >= targetMatches) continue
+    for (const r1 of shuffledRegs) {
+      if (matchCounts[r1.player_id] >= targetMatches) continue
 
-      // Find potential opponents for p1
-      const potentialOpponents = shuffledPlayers
-        .filter(p2 => p2 !== p1) // Not themselves
-        .filter(p2 => {
-          // Not already matched in this season
-          const pair = [p1, p2].sort()
+      // Find potential opponents for r1
+      const potentialOpponents = shuffledRegs
+        .filter(r2 => r2.player_id !== r1.player_id) 
+        .filter(r2 => {
+          // Not already matched
+          const pair = [r1.player_id, r2.player_id].sort()
           return !existingPairings.has(`${skillLevel.id}:${pair[0]}:${pair[1]}`)
         })
-        .sort((a, b) => (playerMatchCounts[a] || 0) - (playerMatchCounts[b] || 0)) // Prioritize players with fewest matches
+        .sort((a, b) => (matchCounts[a.player_id] || 0) - (matchCounts[b.player_id] || 0))
 
-      for (const p2 of potentialOpponents) {
-        if (playerMatchCounts[p1] >= targetMatches) break
-        if (playerMatchCounts[p2] >= targetMatches) continue
+      for (const r2 of potentialOpponents) {
+        if (matchCounts[r1.player_id] >= targetMatches) break
+        if (matchCounts[r2.player_id] >= targetMatches) continue
 
-        // Create match
-        newMatchesForLevel.push([p1, p2])
+        // Create match object
+        newMatchesForLevel.push({
+          skill_level_id: skillLevel.id,
+          home_player_id: r1.player_id,
+          home_partner_id: r1.partner_id,
+          away_player_id: r2.player_id,
+          away_partner_id: r2.partner_id,
+          status: 'scheduled'
+        })
         
-        // Update local state to avoid duplicates in this run
-        const pair = [p1, p2].sort()
+        // Update local state
+        const pair = [r1.player_id, r2.player_id].sort()
         existingPairings.add(`${skillLevel.id}:${pair[0]}:${pair[1]}`)
-        playerMatchCounts[p1]++
-        playerMatchCounts[p2]++
+        matchCounts[r1.player_id]++
+        matchCounts[r2.player_id]++
       }
     }
     
     // Create matches in DB
-    for (const [homePlayer, awayPlayer] of newMatchesForLevel) {
+    if (newMatchesForLevel.length > 0) {
       const { error: matchError } = await adminClient
         .from('matches')
-        .insert({
-          skill_level_id: skillLevel.id,
-          home_player_id: homePlayer,
-          away_player_id: awayPlayer,
-          status: 'scheduled'
-        })
+        .insert(newMatchesForLevel)
       
       if (!matchError) {
-        matchesCreated++
+        matchesCreated += newMatchesForLevel.length
+      } else {
+        console.error('Match creation error:', matchError)
       }
     }
     
