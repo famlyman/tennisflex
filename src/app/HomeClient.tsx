@@ -65,11 +65,13 @@ function ChapterCard({
   name, 
   slug,
   region,
+  distance,
   status = "active" 
 }: { 
   name: string
   slug?: string
   region?: string
+  distance?: number
   status?: "active" | "coming" 
 }) {
   const isActive = status === "active" && slug;
@@ -91,14 +93,21 @@ function ChapterCard({
             }`}>
               {isActive ? "TF" : "?"}
             </div>
-            <div>
-              <h3 className="font-bold text-lg text-slate-900 group-hover:text-indigo-600 transition-colors">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-lg text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
                 {name}
               </h3>
               <p className={`text-sm ${isActive ? "text-slate-500" : "text-slate-400"}`}>
                 {isActive ? region || "Active Flex" : "Coming soon"}
               </p>
             </div>
+            {distance !== undefined && (
+              <div className="text-right">
+                <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
+                  {distance} mi
+                </span>
+              </div>
+            )}
           </div>
           {isActive && (
             <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
@@ -119,6 +128,7 @@ interface HomeClientProps {
 export default function HomeClient({ organizations }: HomeClientProps) {
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [userLocation, setUserLocation] = useState<{lat: number, lon: number} | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -127,11 +137,41 @@ export default function HomeClient({ organizations }: HomeClientProps) {
   if (!mounted) return null;
 
   const activeOrgs = organizations || [];
-  
-  const filteredOrgs = activeOrgs.filter(org => 
-    org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (org.region && org.region.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+
+  // Haversine formula to calculate distance in miles
+  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 3958.8; // Radius of the Earth in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const filteredOrgs = activeOrgs.map(org => {
+    if (userLocation && org.latitude && org.longitude) {
+      return { ...org, distance: getDistance(userLocation.lat, userLocation.lon, org.latitude, org.longitude) };
+    }
+    return { ...org, distance: Infinity };
+  }).filter(org => {
+    const matchesSearch = org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (org.region && org.region.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const isNearby = userLocation && org.distance <= 50;
+    
+    return matchesSearch || isNearby;
+  });
+
+  // Sort: If we have user location, show closest first. Otherwise alphabetical.
+  filteredOrgs.sort((a, b) => {
+    if (userLocation && a.distance !== b.distance) {
+      return (a.distance || Infinity) - (b.distance || Infinity);
+    }
+    return a.name.localeCompare(b.name);
+  });
 
   const hasOrganizations = activeOrgs.length > 0;
 
@@ -200,25 +240,25 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                   </p>
                 </AnimatedSection>
 
-                {/* <AnimatedSection delay={300}>
+                <AnimatedSection delay={300}>
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Link 
-                      href="/register?type=player" 
+                      href="#flexes" 
                       className="inline-flex items-center justify-center px-8 py-4 bg-indigo-600 text-white rounded-full text-lg font-semibold hover:bg-indigo-700 transition-all hover:shadow-xl hover:shadow-indigo-500/30 hover:-translate-y-0.5"
                     >
-                      Your Game, Your Time
+                      Find Your Flex
                       <svg className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </Link>
                     <Link 
                       href="/register?type=request" 
                       className="inline-flex items-center justify-center px-8 py-4 bg-white border-2 border-slate-200 text-slate-700 rounded-full text-lg font-semibold hover:border-indigo-500 hover:text-indigo-600 transition-all"
                     >
-                      Real Play, Real Easy
+                      Request a City
                     </Link>
                   </div>
-                </AnimatedSection> */}
+                </AnimatedSection>
 
                 <AnimatedSection delay={400}>
                   <div className="flex items-center gap-6 mt-10 text-sm text-slate-500">
@@ -439,8 +479,11 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                     onClick={() => {
                       if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(async (position) => {
+                          const { latitude: lat, longitude: lon } = position.coords;
+                          setUserLocation({ lat, lon });
+                          
                           try {
-                            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`);
+                            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
                             const data = await res.json();
                             const city = data.address.city || data.address.town || data.address.village || data.address.county;
                             if (city) setSearchQuery(city);
@@ -450,7 +493,11 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                         });
                       }
                     }}
-                    className="absolute inset-y-2 right-2 px-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:shadow-sm transition-all"
+                    className={`absolute inset-y-2 right-2 px-3 border rounded-xl transition-all ${
+                      userLocation 
+                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' 
+                        : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200'
+                    }`}
                     title="Find my location"
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -471,6 +518,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                       name={org.name}
                       slug={org.slug}
                       region={org.region}
+                      distance={org.distance !== Infinity ? Math.round(org.distance) : undefined}
                       status="active"
                     />
                   ))}

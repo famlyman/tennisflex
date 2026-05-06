@@ -16,6 +16,8 @@ export interface Organization {
   name: string
   slug: string
   region?: string
+  latitude?: number
+  longitude?: number
   created_at: string
 }
 
