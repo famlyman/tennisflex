@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Organization } from "@/types/database";
+import PromoCard from "@/components/PromoCard";
 
 function TennisBall({ className }: { className?: string }) {
   return (
@@ -533,6 +534,54 @@ export default function HomeClient({ organizations }: HomeClientProps) {
             </AnimatedSection>
           </div>
         </section>
+        <section className="px-6 py-24 bg-[#fafafa]">
+          <div className="max-w-6xl mx-auto">
+            <AnimatedSection>
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4">
+                  Flex Gear & Partners
+                </h2>
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+                  Equip yourself for the season and support the local businesses that make Tennis-Flex possible.
+                </p>
+              </div>
+            </AnimatedSection>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              <AnimatedSection delay={100}>
+                <PromoCard 
+                  type="affiliate"
+                  title="Penn Championship Balls"
+                  description="The #1 choice for league play. Stock up on a case of 24 cans before your first match."
+                  cta="Shop on Amazon"
+                  link="#"
+                  icon="🎾"
+                />
+              </AnimatedSection>
+              <AnimatedSection delay={200}>
+                <PromoCard 
+                  type="affiliate"
+                  title="Wilson Overgrips"
+                  description="Keep your racquet fresh and your grip firm. The most trusted overgrips on the tour."
+                  cta="View Gear"
+                  link="#"
+                  icon="🏸"
+                />
+              </AnimatedSection>
+              <AnimatedSection delay={300}>
+                <PromoCard 
+                  type="placeholder"
+                  title="Sponsor a Flex"
+                  description="Reach hundreds of active tennis players in your city. Partner with us today."
+                  cta="Get in Touch"
+                  link="/register?type=request"
+                  icon="🤝"
+                />
+              </AnimatedSection>
+            </div>
+          </div>
+        </section>
+
       </main>
 
       <footer className="px-6 py-12 bg-white border-t border-slate-100">

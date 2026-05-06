@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import PromoCard from './PromoCard'
 
 interface Division {
   id: string
@@ -405,6 +406,26 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
           ) : (
             <p className="text-slate-500 text-sm text-center py-4">No players yet in this division.</p>
           )}
+
+          {/* Sidebar Promotions */}
+          <div className="space-y-3 mt-8 pt-6 border-t border-slate-100">
+            <PromoCard 
+              type="affiliate"
+              compact={true}
+              title="Fresh Balls for Your Match?"
+              description="Get a case of Penn Championship delivered."
+              link="#"
+              icon="🎾"
+            />
+            <PromoCard 
+              type="placeholder"
+              compact={true}
+              title="Your Brand Here"
+              description="Reach every player in this division."
+              link="/register?type=request"
+              icon="🤝"
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import Link from 'next/link'
 import { getSupabaseClient } from '@/utils/client'
+import PromoCard from './PromoCard'
 
 // Helper to format dates
 const formatDate = (date: Date | string, options: Intl.DateTimeFormatOptions = {}) => {
@@ -570,6 +571,17 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                 </div>
                 <span className="text-sm font-bold text-slate-900">View Division</span>
               </Link>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-slate-100">
+              <PromoCard 
+                type="affiliate"
+                compact={true}
+                title="Need new strings?"
+                description="Coordinate your restringing before the match."
+                link="#"
+                icon="🏸"
+              />
             </div>
           </div>
         )}
