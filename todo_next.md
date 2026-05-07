@@ -3,38 +3,27 @@
 This document outlines the logical progression for the Tennis-Flex platform following the completion of the core Phase 1-23 implementation.
 
 ## ✅ Recently Completed
+- [x] **Infrastructure Sync:** Executed SQL migrations for awards, promotions, and coordinates.
+- [x] **Expansion Request Flow:** Restored specialized form for coordinators to request new Flex chapters.
+- [x] **Proximity Discovery:** 50-mile radius search using Haversine formula implemented.
 - [x] **Hybrid Promotion System:** Launched a native-first monetization engine with Direct, Affiliate, and Placeholder support.
-- [x] **Location Discovery:** Implemented real-time search and geolocation for finding local chapters.
-- [x] **TFR Standardization:** Unified sorting logic and whole-number displays across the entire platform.
-- [x] **Timezone Fix:** Resolved the 4-hour offset in match scheduling.
-- [x] **Doubles Team Support:** Overhauled match generation and Match Hub to support 2v2 play (Men's, Women's, and Mixed).
-- [x] **NTRP Verification:** Connected TennisRecord scraper to player profiles, allowing one-click rating verification.
 
-## 🚀 Priority 1: Infrastructure & DB Sync
-**Goal:** Finalize the database schema and resolve technical debt.
-- [ ] **DB Migration (Manual):** Execute `supabase/awards.sql` to resolve 404 errors on the profile page.
-- [ ] **DB Migration (Manual):** Execute `supabase/promotions.sql` to enable the promotional engine.
+## 🚀 Priority 1: Code Quality & Stability
+**Goal:** Clean up the codebase for professional handoff/launch.
 - [ ] **Lint & Type Cleanup:** Resolve ~130 ESLint errors (mostly `any` types and formatting).
-
-## 💰 Priority 2: Monetization (Stripe Integration)
-**Goal:** Enable fee collection for coordinators.
-- [ ] **Stripe Connect:** Implement multi-tenant payment flow.
-- [ ] **Platform Fees:** Logic for service fee deduction.
-
----
-*Updated: May 6, 2026 - Hybrid Promotion System and Location Discovery implemented*
-
-## 🧪 Priority 3: Testing & Quality Assurance
-**Goal:** Ensure platform stability and multi-tenant security.
-- [ ] **Build Validation:** Fix remaining lint/type errors across the codebase to ensure clean CI/CD.
+- [ ] **Build Validation:** Ensure all components are type-safe and follow React 19 standards.
 - [ ] **E2E Testing:** Implement Playwright tests for the registration -> match -> score flow.
-- [ ] **Multi-Tenancy Audit:** Verify RLS policies prevent data leakage between Organizations.
 
-## 💰 Priority 4: Monetization (Stripe Integration)
-**Goal:** Enable organizations to collect registration fees.
-- [ ] **Stripe Connect:** Implement a multi-tenant payment flow where Coordinators can link their own Stripe accounts.
-- [ ] **Checkout Flow:** Add a payment step to the `/register` process.
-- [ ] **Platform Fees:** Logic to deduct a "Tennis-Flex" service fee from registration totals.
+## 📊 Priority 2: Coordinator Analytics
+**Goal:** Provide actionable insights to league managers.
+- [ ] **Engagement Metrics:** Dashboard showing % of matches completed vs. pending.
+- [ ] **Flagging Heatmap:** Identify "problem players" who receive frequent rating flags.
+- [ ] **Growth Tracking:** Compare registration counts across historical seasons.
+
+## 📱 Priority 3: Mobile Expansion (PWA & Native)
+**Goal:** Enhance the mobile experience.
+- [ ] **PWA Optimization:** Improve offline support and add "Add to Home Screen" prompts.
+- [ ] **Push Notifications:** Implement native PWA push notifications for match updates.
 
 ## 📊 Priority 5: Coordinator Analytics
 **Goal:** Provide actionable insights to league managers.

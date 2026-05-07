@@ -20,6 +20,8 @@
 The project has transitioned from the **Planning phase** to **Active Development**. Core features are being stabilized with a focus on hydration performance and registration UX.
 
 ### Key Accomplishments (as of May 6, 2026)
+- **Proximity Discovery Engine:** Implemented the Haversine formula for a 50-mile radius search, allowing users to find local Flexes even if city names don't match exactly.
+- **Expansion Request Flow:** Restored the specialized "Request a Flex" form and API endpoint to handle coordinator applications separately from player registrations.
 - **Hybrid Promotion System:** Implemented a full promotion engine with a `promotions` table and a premium `PromoCard` component for monetization.
 - **Location-Based Discovery:** Added real-time search and one-click geolocation to the "Find Your Flex" landing page section.
 - **UI Unification:** Synchronized the aesthetic between the marketing landing page and the Player Dashboard (Season Hub) for a seamless "premium" feel.

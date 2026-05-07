@@ -36,6 +36,7 @@ export interface Profile {
     evenings: boolean
   } | null
   gender: 'male' | 'female' | 'other' | null
+  role?: string
   created_at: string
 }
 
