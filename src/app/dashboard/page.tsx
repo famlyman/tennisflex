@@ -656,6 +656,30 @@ export default async function Dashboard() {
           </div>
         )}
 
+        {/* Platform Owner Control Room - Quick Access */}
+        {isPlatformOwner && (
+          <div className="mb-8">
+            <Link 
+              href="/admin"
+              className="flex items-center justify-between p-6 bg-slate-900 rounded-3xl border border-slate-800 shadow-xl group hover:scale-[1.01] transition-all"
+            >
+              <div className="flex items-center gap-6">
+                <div className="w-14 h-14 bg-indigo-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/20 group-hover:bg-indigo-400 transition-colors">
+                  🎮
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-white tracking-tight">Admin Control Room</h2>
+                  <p className="text-slate-400 font-medium text-sm">Global oversight, expansions, and platform integrity.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-indigo-400 font-black uppercase tracking-widest text-[10px]">
+                Enter Control Room
+                <span className="text-2xl group-hover:translate-x-1 transition-transform">→</span>
+              </div>
+            </Link>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-8">
           <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
