@@ -407,6 +407,24 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
             <p className="text-slate-500 text-sm text-center py-4">No players yet in this division.</p>
           )}
 
+          {/* Support & Feedback */}
+          <div className="mt-8 pt-6 border-t border-slate-100">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Support & Feedback</h4>
+            <Link 
+              href="#" 
+              className="flex items-center justify-between p-3 bg-slate-50/50 rounded-xl hover:bg-slate-100 transition-all group border border-slate-100"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-sm">📫</span>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">Report an Issue</div>
+                  <div className="text-[9px] text-slate-500 font-medium">Goes directly to platform oversight</div>
+                </div>
+              </div>
+              <span className="text-slate-300 group-hover:text-indigo-500 transition-colors">→</span>
+            </Link>
+          </div>
+
           {/* Sidebar Promotions */}
           <div className="space-y-3 mt-8 pt-6 border-t border-slate-100">
             <PromoCard 
