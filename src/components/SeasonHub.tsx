@@ -84,6 +84,8 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
   const [loading, setLoading] = useState(false)
   const [ratingMove, setRatingMove] = useState<RatingMove | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [showComplaintModal, setShowComplaintModal] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -410,20 +412,99 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
           {/* Support & Feedback */}
           <div className="mt-8 pt-6 border-t border-slate-100">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Support & Feedback</h4>
-            <Link 
-              href="#" 
-              className="flex items-center justify-between p-3 bg-slate-50/50 rounded-xl hover:bg-slate-100 transition-all group border border-slate-100"
+            <button 
+              onClick={() => setShowComplaintModal(true)}
+              className="w-full flex items-center justify-between p-3 bg-slate-50/50 rounded-xl hover:bg-slate-100 transition-all group border border-slate-100"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 text-left">
                 <span className="text-sm">📫</span>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">Report an Issue</div>
-                  <div className="text-[9px] text-slate-500 font-medium">Goes directly to platform oversight</div>
+                  <div className="text-xs font-bold text-slate-900">Raise a Concern</div>
+                  <div className="text-[9px] text-slate-500 font-medium text-wrap">Escalates to Coordinator first</div>
                 </div>
               </div>
               <span className="text-slate-300 group-hover:text-indigo-500 transition-colors">→</span>
-            </Link>
+            </button>
           </div>
+
+      {/* Complaint Modal */}
+      {showComplaintModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowComplaintModal(false)} />
+          <div className="relative bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Raise a Concern</h3>
+            <p className="text-sm text-slate-500 mb-6">
+              Your message will be sent to the local Flex coordinator for review.
+            </p>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const subject = (e.currentTarget.elements.namedItem('subject') as HTMLInputElement).value;
+              const description = (e.currentTarget.elements.namedItem('description') as HTMLTextAreaElement).value;
+              
+              setSubmitting(true);
+              try {
+                const res = await fetch('/api/player/complaints', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    organization_id: data.organization.id,
+                    playerId,
+                    subject,
+                    description
+                  })
+                });
+                if (res.ok) {
+                  alert('Concern submitted to coordinator.');
+                  setShowComplaintModal(false);
+                }
+              } catch (err) {
+                alert('Failed to submit concern.');
+              } finally {
+                setSubmitting(false);
+              }
+            }}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Subject</label>
+                  <input 
+                    name="subject"
+                    required
+                    placeholder="e.g. Unresponsive opponent, Scoring dispute..." 
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Detailed Description</label>
+                  <textarea 
+                    name="description"
+                    required
+                    rows={4}
+                    placeholder="Provide as much detail as possible..." 
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
+                  />
+                </div>
+              </div>
+              <div className="mt-8 flex gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setShowComplaintModal(false)}
+                  className="flex-1 py-3 border border-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 disabled:opacity-50"
+                >
+                  {submitting ? 'Sending...' : 'Send to Coord'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
           {/* Sidebar Promotions */}
           <div className="space-y-3 mt-8 pt-6 border-t border-slate-100">

@@ -96,6 +96,22 @@ async function getDashboardData(userId: string, email?: string | null) {
       pendingMatches = pendingRes.count || 0
     }
 
+    // Fetch coordinator-level complaints
+    let orgComplaints: any[] = []
+    if (orgIds.length > 0) {
+      const { data: compData } = await adminClient
+        .from('complaints')
+        .select(`
+          *,
+          player:players(profile:profiles(full_name))
+        `)
+        .in('organization_id', orgIds)
+        .eq('assigned_to_role', 'coordinator')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+      orgComplaints = compData || []
+    }
+
     coordinatorData = {
       organizations: orgs || [],
       seasons: seasonsData || [],
@@ -103,6 +119,7 @@ async function getDashboardData(userId: string, email?: string | null) {
       activeSeasonCount: (seasonsData || []).filter(s => s.status === 'active' || s.status === 'registration_open').length,
       totalMatches,
       pendingMatches,
+      complaints: orgComplaints
     }
   }
 
@@ -622,6 +639,28 @@ export default async function Dashboard() {
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Pending</h3>
               <p className="text-3xl font-bold text-amber-600 mb-1">{dashboardData.coordinatorData.pendingMatches}</p>
               <p className="text-sm text-slate-500">awaiting scores</p>
+            </div>
+          </div>
+        )}
+
+        {/* Coordinator Complaints Section */}
+        {isCoordinator && dashboardData.coordinatorData.complaints.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-6 mb-8">
+            <h2 className="text-xl font-black text-slate-900 mb-4 flex items-center gap-2">
+              <span className="text-red-500">📫</span> Pending Player Concerns
+            </h2>
+            <div className="space-y-3">
+              {dashboardData.coordinatorData.complaints.map((comp: any) => (
+                <div key={comp.id} className="flex items-center justify-between p-4 bg-red-50/50 rounded-xl border border-red-100">
+                  <div className="flex-1">
+                    <p className="font-bold text-slate-900">{comp.subject}</p>
+                    <p className="text-xs text-slate-500">From {comp.player?.profile?.full_name} • {new Date(comp.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="px-3 py-1.5 text-xs font-black uppercase tracking-widest bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors">Resolve</button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
