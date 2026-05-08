@@ -34,6 +34,7 @@ interface PulseMatch {
 interface SeasonHubData {
   season: {
     id: string
+    organization_id: string
     name: string
     status: string
     season_start: string
@@ -448,7 +449,7 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    organization_id: data.organization.id,
+                    organization_id: data.season.organization_id,
                     playerId,
                     subject,
                     description
