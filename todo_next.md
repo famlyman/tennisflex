@@ -3,27 +3,27 @@
 This document outlines the logical progression for the Tennis-Flex platform following the completion of the core Phase 1-23 implementation.
 
 ## ✅ Recently Completed
+- [x] **Super Admin Control Room:** Centralized dashboard for global oversight (Integrity, Performance, Promotions, Expansion).
+- [x] **Expansion Pipeline:** Added manual Flex provisioning and restored chapter request forms.
 - [x] **Infrastructure Sync:** Executed SQL migrations for awards, promotions, and coordinates.
-- [x] **Expansion Request Flow:** Restored specialized form for coordinators to request new Flex chapters.
 - [x] **Proximity Discovery:** 50-mile radius search using Haversine formula implemented.
 - [x] **Hybrid Promotion System:** Launched a native-first monetization engine with Direct, Affiliate, and Placeholder support.
 
-## 🚀 Priority 1: Code Quality & Stability
-**Goal:** Clean up the codebase for professional handoff/launch.
+## 🚀 Priority 1: Technical Debt & Validation
+**Goal:** Stabilize the codebase for professional handoff/launch.
 - [ ] **Lint & Type Cleanup:** Resolve ~130 ESLint errors (mostly `any` types and formatting).
 - [ ] **Build Validation:** Ensure all components are type-safe and follow React 19 standards.
 - [ ] **E2E Testing:** Implement Playwright tests for the registration -> match -> score flow.
 
-## 📊 Priority 2: Coordinator Analytics
-**Goal:** Provide actionable insights to league managers.
-- [ ] **Engagement Metrics:** Dashboard showing % of matches completed vs. pending.
-- [ ] **Flagging Heatmap:** Identify "problem players" who receive frequent rating flags.
-- [ ] **Growth Tracking:** Compare registration counts across historical seasons.
-
-## 📱 Priority 3: Mobile Expansion (PWA & Native)
+## 📱 Priority 2: Mobile Expansion (PWA & Native)
 **Goal:** Enhance the mobile experience.
 - [ ] **PWA Optimization:** Improve offline support and add "Add to Home Screen" prompts.
 - [ ] **Push Notifications:** Implement native PWA push notifications for match updates.
+
+## 📊 Priority 3: Platform Analytics
+**Goal:** Advanced insights for the platform owner.
+- [ ] **Revenue Dashboard:** Track conversion rates for direct sponsors vs affiliate links.
+- [ ] **Growth Projections:** User acquisition trends across different regions.
 
 ## 📊 Priority 5: Coordinator Analytics
 **Goal:** Provide actionable insights to league managers.

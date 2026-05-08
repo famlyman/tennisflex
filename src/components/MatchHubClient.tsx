@@ -38,6 +38,7 @@ interface MatchHubClientProps {
   currentUserId: string
   currentPlayerId: string
   opponent: any
+  isPlatformOwner?: boolean
 }
 
 const calendarStyles = `
@@ -129,7 +130,7 @@ const calendarStyles = `
   }
 `
 
-export default function MatchHubClient({ match, currentUserId, currentPlayerId, opponent }: MatchHubClientProps) {
+export default function MatchHubClient({ match, currentUserId, currentPlayerId, opponent, isPlatformOwner }: MatchHubClientProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [myAvailability, setMyAvailability] = useState<Availability[]>([])
@@ -407,6 +408,19 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
       
       {/* Left Column: Calendar & Info */}
       <div className="lg:col-span-7 space-y-6">
+        {isPlatformOwner && (
+          <div className="bg-slate-900 text-indigo-400 p-4 rounded-2xl flex items-center justify-between border border-slate-800 shadow-xl">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🎮</span>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Super Admin Control</p>
+                <p className="text-sm font-bold text-white leading-tight">Bypassing restrictions (God Mode)</p>
+              </div>
+            </div>
+            <span className="px-2 py-1 bg-indigo-500/10 rounded-lg text-[9px] font-black border border-indigo-500/20">AUTHORIZED</span>
+          </div>
+        )}
+
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-slate-900">Coordination Calendar</h2>
@@ -504,25 +518,27 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
         </div>
 
         {/* Selected Date Actions */}
-        {match.status !== 'completed' && (
+        {(match.status !== 'completed' || isPlatformOwner) && (
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
             <h3 className="font-bold text-slate-900 mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={() => {
-                  const overlap = myAvailability.find(a => opponentAvailability.some(o => o.date === a.date))
-                  if (overlap) setSelectedDate(overlap.date)
-                  else alert('Select an overlapping date first!')
-                }}
-                className="flex flex-col items-center justify-center p-4 rounded-2xl bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition-colors group"
-              >
-                <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <span className="text-sm font-bold text-indigo-900">Schedule Best Date</span>
-              </button>
+              {match.status !== 'completed' && (
+                <button 
+                  onClick={() => {
+                    const overlap = myAvailability.find(a => opponentAvailability.some(o => o.date === a.date))
+                    if (overlap) setSelectedDate(overlap.date)
+                    else alert('Select an overlapping date first!')
+                  }}
+                  className="flex flex-col items-center justify-center p-4 rounded-2xl bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition-colors group"
+                >
+                  <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-bold text-indigo-900">Schedule Best Date</span>
+                </button>
+              )}
 
               <button 
                 onClick={() => setShowScoreModal(true)}
@@ -534,11 +550,11 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                   </svg>
                 </div>
                 <span className="text-sm font-bold text-emerald-900">
-                  {match.status === 'completed' ? 'Edit Score' : 'Submit Score'}
+                  {match.status === 'completed' ? 'Admin: Override Score' : 'Submit Score'}
                 </span>
               </button>
 
-              {match.status === 'completed' && !match.verified_by_opponent && (
+              {match.status === 'completed' && !match.verified_by_opponent && !isPlatformOwner && (
                 <button 
                   onClick={async () => {
                     try {

@@ -32,6 +32,15 @@ export async function POST(request: Request, { params }: { params: Promise<Route
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Get user profile to check for platform_owner role
+  const { data: profile } = await adminClient
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const isPlatformOwner = profile?.role === 'platform_owner'
+
   const body = await request.json()
   const { scheduled_at } = body
 
@@ -53,7 +62,7 @@ export async function POST(request: Request, { params }: { params: Promise<Route
   const isHome = match.home_player?.profile_id === user.id
   const isAway = match.away_player?.profile_id === user.id
 
-  if (!isHome && !isAway) {
+  if (!isHome && !isAway && !isPlatformOwner) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
   }
 

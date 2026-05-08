@@ -171,6 +171,15 @@ export async function PUT(request: Request, { params }: { params: Promise<RouteP
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Check for platform_owner role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const isPlatformOwner = profile?.role === 'platform_owner'
+
   const body = await request.json()
   const { score, winner_id } = body
 
@@ -221,7 +230,7 @@ export async function PUT(request: Request, { params }: { params: Promise<RouteP
 
   const isPlayer = userPlayer && (userPlayer.id === match.home_player_id || userPlayer.id === match.away_player_id)
 
-  if (!isCoordinator && !isPlayer) {
+  if (!isCoordinator && !isPlayer && !isPlatformOwner) {
     return NextResponse.json({ error: 'Not authorized to update this match' }, { status: 403 })
   }
 
@@ -237,7 +246,7 @@ export async function PUT(request: Request, { params }: { params: Promise<RouteP
       score,
       winner_id,
       status: 'completed',
-      verified_by_opponent: isCoordinator // Auto-verify if coordinator updates
+      verified_by_opponent: isCoordinator || isPlatformOwner // Auto-verify if coordinator or platform owner updates
     })
     .eq('id', matchId)
 
@@ -303,6 +312,15 @@ export async function DELETE(request: Request, { params }: { params: Promise<Rou
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Check for platform_owner role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const isPlatformOwner = profile?.role === 'platform_owner'
+
   const { data: match, error: matchError } = await adminSupabase
     .from('matches')
     .select(`
@@ -332,9 +350,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<Rou
     .select('*')
     .eq('profile_id', user.id)
     .eq('organization_id', orgId)
-    .single()
+    .maybeSingle()
 
-  if (!coordinator) {
+  if (!coordinator && !isPlatformOwner) {
     return NextResponse.json({ error: 'Only coordinators can delete matches' }, { status: 403 })
   }
 

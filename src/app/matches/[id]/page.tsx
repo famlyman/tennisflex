@@ -32,6 +32,15 @@ export default async function MatchPage({ params }: MatchPageProps) {
 
   const adminClient = createAdminClient()
 
+  // Get user profile to check for platform_owner role
+  const { data: profile } = await adminClient
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const isPlatformOwner = profile?.role === 'platform_owner'
+
   // Fetch match details with joined data
   const { data: match, error: matchError } = await adminClient
     .from('matches')
@@ -73,7 +82,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
   const isHome = isHomePlayer || isHomePartner
   const isAway = isAwayPlayer || isAwayPartner
 
-  if (!isHome && !isAway) {
+  if (!isHome && !isAway && !isPlatformOwner) {
     // Check if user is a coordinator for this organization
     const { data: coordinator } = await adminClient
       .from('coordinators')
@@ -165,6 +174,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
           currentUserId={user.id} 
           currentPlayerId={currentPlayer?.id}
           opponent={opponent}
+          isPlatformOwner={isPlatformOwner}
         />
       </main>
     </div>
