@@ -50,6 +50,7 @@ async function getDashboardData(userId: string, email?: string | null) {
     activeSeasonCount: 0,
     totalMatches: 0,
     pendingMatches: 0,
+    complaints: [] as any[]
   }
 
   if (isCoordinator && orgIds.length > 0) {
