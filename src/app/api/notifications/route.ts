@@ -22,7 +22,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { data: notifications, error } = await supabase
+  const { data: notifications } = await supabase
     .from('notifications')
     .select('*')
     .eq('user_id', user.id)

@@ -4,6 +4,18 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase'
 
+type SeasonData = {
+  id: string
+  name: string
+  organization_id: string
+  status: string
+  season_start: string
+  season_end: string
+  registration_start: string
+  registration_end: string
+  description?: string | null
+}
+
 export const dynamic = 'force-dynamic'
 
 export default async function SeasonsPage() {
@@ -44,7 +56,7 @@ export default async function SeasonsPage() {
     .select('organization_id')
     .eq('profile_id', session.user.id)
 
-  let seasonsData: any[] = []
+  let seasonsData: SeasonData[] = []
 
   if (coordinatorOrgs && coordinatorOrgs.length > 0) {
     const orgIds = coordinatorOrgs.map(c => c.organization_id)
@@ -109,7 +121,7 @@ export default async function SeasonsPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {seasons.map((season: any) => (
+            {seasons.map((season: SeasonData) => (
               <div key={season.id} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                   <div>

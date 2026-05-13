@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import PromoCard from './PromoCard'
 
@@ -22,6 +22,11 @@ interface LeaderboardEntry {
   wins: number
   losses: number
   matches: number
+}
+
+interface SkillLevelLeaderboard {
+  skillLevel: SkillLevel
+  leaderboard: LeaderboardEntry[]
 }
 
 interface PulseMatch {
@@ -51,7 +56,7 @@ interface SeasonHubData {
     completedMatches: number
     pendingMatches: number
   }
-  playerSkillLevelId: string | null
+  playerSkillLevelId: string | null | undefined
   divisionPulse?: PulseMatch[]
 }
 
@@ -78,9 +83,9 @@ const DIVISION_LABELS: Record<string, string> = {
   mixed_doubles: "Mixed Doubles",
 }
 
-export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: SeasonHubProps) {
+export default function SeasonHub({ data, playerId, playerTfr }: SeasonHubProps) {
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>('')
-  const [leaderboardsBySkillLevel, setLeaderboardsBySkillLevel] = useState<Record<string, any>>({})
+  const [leaderboardsBySkillLevel, setLeaderboardsBySkillLevel] = useState<Record<string, SkillLevelLeaderboard>>({})
   const [playerRank, setPlayerRank] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [ratingMove, setRatingMove] = useState<RatingMove | null>(null)
@@ -98,7 +103,7 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
     : data.skillLevels
 
   // Create a map of skillLevelId -> division info
-  const skillLevelDivisionMap: Record<string, any> = {}
+  const skillLevelDivisionMap: Record<string, Division> = {}
   data.skillLevels.forEach(sl => {
     const div = data.divisions.find(d => d.id === sl.division_id)
     if (div) {
@@ -107,19 +112,10 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
   })
 
   // Fetch leaderboards for all skill levels in the division
-  useEffect(() => {
-    if (divisionSkillLevels.length > 0) {
-      fetchAllLeaderboards(divisionSkillLevels)
-    } else {
-      setLeaderboardsBySkillLevel({})
-      setPlayerRank(null)
-    }
-  }, [selectedDivisionId])
-
-  async function fetchAllLeaderboards(skillLevels: SkillLevel[]) {
+  const fetchAllLeaderboards = useCallback(async (skillLevels: SkillLevel[]) => {
     setLoading(true)
     try {
-      const results: Record<string, any> = {}
+      const results: Record<string, SkillLevelLeaderboard> = {}
       let playerRankFound: number | null = null
 
       for (const sl of skillLevels) {
@@ -131,9 +127,8 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
             skillLevel: sl,
             leaderboard: leaderboard.slice(0, 5),
           }
-          // Find player rank
           if (!playerRankFound) {
-            const rank = leaderboard.findIndex((e: any) => e.player_id === playerId)
+            const rank = leaderboard.findIndex((e: LeaderboardEntry) => e.player_id === playerId)
             if (rank !== -1) {
               playerRankFound = rank + 1
             }
@@ -148,7 +143,16 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
     } finally {
       setLoading(false)
     }
-  }
+  }, [playerId])
+
+  useEffect(() => {
+    if (divisionSkillLevels.length > 0) {
+      fetchAllLeaderboards(divisionSkillLevels)
+    } else {
+      setLeaderboardsBySkillLevel({})
+      setPlayerRank(null)
+    }
+  }, [selectedDivisionId, divisionSkillLevels, fetchAllLeaderboards])
 
   // Fetch rating moves for the player
   useEffect(() => {
@@ -387,7 +391,7 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
                   <div key={sl.id}>
                     <p className="text-sm font-medium text-indigo-600 mb-1">{sl.name}</p>
                     <div className="space-y-1">
-                      {data.leaderboard.map((entry: any, idx: number) => (
+                      {data.leaderboard.map((entry: LeaderboardEntry, idx: number) => (
                         <div key={entry.player_id} className="flex items-center gap-2 text-sm">
                           <span className={`w-5 text-center font-medium ${idx === 0 ? 'text-amber-500' : 'text-slate-400'}`}>
                             {idx + 1}
@@ -459,7 +463,7 @@ export default function SeasonHub({ data, playerId, playerTfr, playerMatches }: 
                   alert('Concern submitted to coordinator.');
                   setShowComplaintModal(false);
                 }
-              } catch (err) {
+              } catch {
                 alert('Failed to submit concern.');
               } finally {
                 setSubmitting(false);

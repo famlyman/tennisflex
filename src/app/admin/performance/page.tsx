@@ -1,11 +1,10 @@
 import { createAdminClient } from '@/utils/supabase'
-import Link from 'next/link'
 
 export default async function AdminPerformancePage() {
   const adminClient = createAdminClient()
 
   // Fetch all complaints
-  const { data: complaints, error: compError } = await adminClient
+  const { data: complaints } = await adminClient
     .from('complaints')
     .select(`
       *,
@@ -98,7 +97,7 @@ export default async function AdminPerformancePage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {complaints.map((comp: any) => (
+              {complaints.map((comp) => (
                 <div key={comp.id} className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
                   <div className="flex flex-col lg:flex-row justify-between gap-6">
                     <div className="flex-1">

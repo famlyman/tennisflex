@@ -29,24 +29,6 @@ function shuffle<T>(array: T[], seed: number): T[] {
   return result
 }
 
-// Generate matches where each player plays 4 matches total
-// Implementation: 4 rounds, random pairing each round within the skill level
-function generateMatchesRoundRobin(players: string[], seed: number): [string, string][] {
-  const allPairs: [string, string][] = []
-  const rounds = 4
-  
-  for (let round = 0; round < rounds; round++) {
-    const shuffled = shuffle(players, seed + round * 1000)
-    
-    for (let i = 0; i + 1 < shuffled.length; i += 2) {
-      allPairs.push([shuffled[i], shuffled[i + 1]])
-    }
-    // If odd number of players, last player gets a bye (no match this round)
-  }
-  
-  return allPairs
-}
-
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: seasonId } = await params
   const cookieStore = await cookies()

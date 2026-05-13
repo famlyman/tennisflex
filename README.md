@@ -15,7 +15,23 @@ A multi-tenant tennis league management platform built with Next.js 16 and Supab
 - **Notifications & Match Chat** - In-app messaging system
 - **PWA Support** - Service worker, manifest, offline capabilities
 
-### Recent Updates (May 2026)
+### Recent Updates (May 13, 2026)
+
+#### Technical Debt Cleanup
+- **ESLint**: 139 errors → 0, 44 warnings → 0 across 45 files (no-explicit-any, unused-vars, exhaustive-deps, etc.)
+- **TypeScript**: Fixed build errors from Supabase type inference mismatches
+- **Run**: `npm run lint` now passes clean; TypeScript compilation succeeds
+
+#### E2E Testing
+- **Playwright** installed with 17 tests across 3 suites: auth, season registration, match-scoring
+- **Network mocking** layer intercepts Supabase and API calls for credential-free test runs
+- **Run**: `npm run test:e2e` or `npm run test:e2e:ui`
+
+#### Coordinator Analytics
+- **Match Engagement**: Per-season completion rates with progress bars
+- **Flagging Heatmap**: Sorted table of flagged players with color-coded severity
+- **Season Growth**: Registration counts trended across historical seasons
+- Integrated into coordinator dashboard
 
 #### Match Hub & Real-time Coordination
 - **Match Hub Page**: Dedicated workspace for coordinating specific matches (`/matches/[id]`).

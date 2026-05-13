@@ -189,7 +189,7 @@ export default function RegistrationForm({
         const data = await res.json()
         setError(data.error || 'Registration failed')
       }
-    } catch (err) {
+    } catch {
       setError('Something went wrong')
     } finally {
       setLoading(false)

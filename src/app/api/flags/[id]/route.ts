@@ -28,7 +28,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Flag not found' }, { status: 404 })
     }
     
-    const updates: any = {
+    const updates: Record<string, unknown> = {
       status,
       reviewed_at: new Date().toISOString()
     }
@@ -59,7 +59,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     
     if (status === 'upheld') {
-      const playerUpdates: any = {}
+      const playerUpdates: Record<string, unknown> = {}
       
       if (new_rating_singles !== undefined) {
         playerUpdates.tfr_singles = new_rating_singles
@@ -82,9 +82,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     
     return NextResponse.json({ flag: updatedFlag })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Flag update API error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }
 
@@ -115,8 +115,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
     
     return NextResponse.json({ flag })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Flag fetch error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }

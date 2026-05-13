@@ -1,11 +1,10 @@
 import { getOrganizationBySlug, getSeasonsByOrganization } from '@/actions/organizations'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Organization, Season } from '@/types/database'
+import { Season } from '@/types/database'
 
 function SeasonCard({ season }: { season: Season }) {
   const isRegistrationOpen = season.status === 'registration_open'
-  const isActive = season.status === 'active'
   
   const statusLabel = {
     upcoming: 'Coming Soon',

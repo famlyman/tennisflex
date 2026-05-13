@@ -15,7 +15,7 @@ interface LeaderboardEntry {
 export default function SkillLevelLeaderboardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: skillLevelId } = use(params)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
-  const [metadata, setMetadata] = useState<{ skillLevel: any, division: any } | null>(null)
+  const [metadata, setMetadata] = useState<{ skillLevel: { name: string }, division: { name: string } } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

@@ -42,7 +42,9 @@ export async function GET(request: Request) {
   }
  
   // Get completed matches
-  const { data: homeMatches } = await supabase
+  type MatchRow = { id: string; status: string; score: string | null; winner_id: string; home_player_id: string; away_player_id: string; created_at: string; skill_level: { name: string; division: { name: string; season: { name: string } } } }
+
+  const { data: homeRows } = await supabase
     .from('matches')
     .select(`
       id,
@@ -62,8 +64,8 @@ export async function GET(request: Request) {
     `)
     .eq('home_player_id', player.id)
     .eq('status', 'completed')
- 
-  const { data: awayMatches } = await supabase
+
+  const { data: awayRows } = await supabase
     .from('matches')
     .select(`
       id,
@@ -84,21 +86,23 @@ export async function GET(request: Request) {
     .eq('away_player_id', player.id)
     .eq('status', 'completed')
  
+  const homeMatches = homeRows as unknown as MatchRow[]
+  const awayMatches = awayRows as unknown as MatchRow[]
   // Combine and calculate stats
-  const allMatches = [...(homeMatches || []), ...(awayMatches || [])]
+  const allMatches = [...homeMatches, ...awayMatches]
   // Sort by most recent first
   allMatches.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
  
   let wins = 0
   let losses = 0
  
-  allMatches.forEach((m: any) => {
+  allMatches.forEach((m: { winner_id?: string }) => {
     const iWon = m.winner_id === player.id
     if (iWon) wins++
     else if (m.winner_id) losses++
   })
  
-  const recentMatches = allMatches.slice(0, 10).map((m: any) => {
+  const recentMatches = allMatches.slice(0, 10).map((m: { id: string; score?: string | null; winner_id?: string; home_player_id?: string; away_player_id?: string; skill_level?: { name?: string; division?: { season?: { name?: string } } } }) => {
     const isHome = m.home_player_id === player.id
     const iWon = m.winner_id === player.id
     
@@ -117,7 +121,7 @@ export async function GET(request: Request) {
   if (playerId && seasonId) {
     const adminClient = createAdminClient()
     // Get player's matches in this season
-    const { data: seasonMatches } = await adminClient
+    const { data: rawSeasonMatches } = await adminClient
       .from('matches')
       .select(`
         id,
@@ -131,7 +135,9 @@ export async function GET(request: Request) {
       .or(`home_player_id.eq.${playerId},away_player_id.eq.${playerId}`)
       .eq('status', 'completed')
     
-    const seasonMatchCount = (seasonMatches || []).filter((m: any) => 
+    type SeasonMatchRow = { skill_level?: { division?: { season_id?: string } } }
+    const seasonMatches = rawSeasonMatches as unknown as SeasonMatchRow[]
+    const seasonMatchCount = seasonMatches.filter(m => 
       m.skill_level?.division?.season_id === seasonId
     ).length
 

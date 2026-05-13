@@ -16,24 +16,19 @@ interface Division {
   display_name: string
 }
 
-interface SkillLevel {
-  id: string
-  name: string
+interface SkillLevelData {
+  skillLevel: { id: string; name: string }
+  divisionId: string
+  leaderboard: { player_id: string; player_name: string; wins: number; losses: number }[]
 }
 
-interface LeaderboardEntry {
-  rank: number
-  player_name: string
-  wins: number
-  losses: number
-  matches: number
-}
+
 
 export default function LeaderboardPage() {
   const [seasons, setSeasons] = useState<Season[]>([])
   const [divisions, setDivisions] = useState<Division[]>([])
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>('')
-  const [leaderboardData, setLeaderboardData] = useState<Record<string, any>>({})
+  const [leaderboardData, setLeaderboardData] = useState<Record<string, SkillLevelData>>({})
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -72,7 +67,7 @@ export default function LeaderboardPage() {
       const seasonDivs = divData.divisions || []
       setDivisions(seasonDivs)
 
-      const results: Record<string, any> = {}
+      const results: Record<string, SkillLevelData> = {}
 
       // 2. For each division, get skill levels and then their top 5
       for (const div of seasonDivs) {
@@ -99,8 +94,6 @@ export default function LeaderboardPage() {
       setLoading(false)
     }
   }
-
-  const selectedSeason = seasons.find(s => s.id === selectedSeasonId)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -166,7 +159,7 @@ export default function LeaderboardPage() {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {divSkillLevels.map((data: any) => (
+                    {divSkillLevels.map((data: SkillLevelData) => (
                       <div key={data.skillLevel.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
                         <div className="bg-slate-50 px-5 py-4 border-b border-slate-100 flex justify-between items-center">
                           <h3 className="font-bold text-slate-900">{data.skillLevel.name}</h3>
@@ -178,7 +171,7 @@ export default function LeaderboardPage() {
                             <p className="text-sm text-slate-400 italic py-4 text-center">No matches played yet</p>
                           ) : (
                             <div className="space-y-3">
-                              {data.leaderboard.map((player: any, idx: number) => (
+                              {data.leaderboard.map((player, idx: number) => (
                                 <div key={player.player_id} className="flex items-center justify-between group">
                                   <div className="flex items-center gap-3">
                                     <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${

@@ -4,10 +4,19 @@ import { useState, useEffect, useCallback } from 'react'
 
 export const dynamic = 'force-dynamic'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import { getSupabaseClient } from '@/utils/client'
-import { getConfidenceDisplay, getConfidenceBadge } from '@/utils/rating'
+import { getConfidenceDisplay } from '@/utils/rating'
 import { RatingCalculator } from '@/components/RatingCalculator'
+
+interface Award {
+  id: string
+  title: string
+  award_type: string
+  created_at: string
+  player_id: string
+}
 
 interface PlayerData {
   id: string
@@ -21,7 +30,7 @@ interface PlayerData {
   losses_singles: number
   wins_doubles: number
   losses_doubles: number
-  awards?: any[]
+  awards?: Award[]
 }
 
 export default function ProfilePage() {
@@ -48,7 +57,7 @@ export default function ProfilePage() {
   const [initialNtrpSingles, setInitialNtrpSingles] = useState('')
   const [initialNtrpDoubles, setInitialNtrpDoubles] = useState('')
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
-  const [awards, setAwards] = useState<any[]>([])
+  const [awards, setAwards] = useState<Award[]>([])
   
   const router = useRouter()
   const supabase = getSupabaseClient()
@@ -216,13 +225,13 @@ export default function ProfilePage() {
             })
             .eq('id', playerData.id)
         }
-      } catch (playerErr) {
+      } catch {
         // Silently ignore
       }
 
       setSuccess('Profile updated successfully!')
-    } catch (err: any) {
-      setError(err.message || 'Failed to save profile')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save profile')
     } finally {
       setSaving(false)
     }
@@ -280,7 +289,7 @@ export default function ProfilePage() {
              <div className="relative">
                <div className="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                  {avatarPreview ? (
-                   <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                    <Image src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" width={96} height={96} />
                  ) : (
                    <span className="text-3xl font-bold text-white">{getInitials(fullName)}</span>
                  )}

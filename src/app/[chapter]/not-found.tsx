@@ -7,7 +7,7 @@ export default function ChapterNotFound() {
         <div className="space-y-2">
           <h1 className="text-4xl font-bold">Flex Not Found</h1>
           <p className="text-gray-600">
-            This Flex doesn't exist or hasn't launched yet.
+            This Flex doesn&apos;t exist or hasn&apos;t launched yet.
           </p>
         </div>
         <Link

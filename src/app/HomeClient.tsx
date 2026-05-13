@@ -126,15 +126,8 @@ interface HomeClientProps {
 }
 
 export default function HomeClient({ organizations }: HomeClientProps) {
-  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{lat: number, lon: number} | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
 
   const activeOrgs = organizations || [];
 
@@ -318,7 +311,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-slate-900 mb-1">Matchups Are Made</h3>
-                      <p className="text-slate-600">Once registration closes, you'll be paired with opponents based on your rating.</p>
+                      <p className="text-slate-600">Once registration closes, you&apos;ll be paired with opponents based on your rating.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -327,7 +320,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-slate-900 mb-1">Play at Your Pace</h3>
-                      <p className="text-slate-600">Complete your matches by season's end. All incomplete matches will not be counted and no points or rating adjustments will be made.</p>
+                      <p className="text-slate-600">Complete your matches by season&apos;s end. All incomplete matches will not be counted and no points or rating adjustments will be made.</p>
                     </div>
                   </div>
                 </div>
@@ -563,7 +556,7 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                 Ready to Play?
               </h2>
               <p className="text-xl text-slate-300 mb-10">
-                Grab your racquet and let's get moving. The Flexible League awaits.
+                Grab your racquet and let&apos;s get moving. The Flexible League awaits.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link 

@@ -2,36 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/utils/supabase'
-import { sendNotification, notifyMatchScoreSubmitted } from '@/utils/notifications'
+import { sendNotification } from '@/utils/notifications'
 
 interface RouteParams {
   id: string
-}
-
-function parseScore(score: string): { homeSets: number; awaySets: number; totalSets: number } {
-  const sets = score.split(' ')
-  let homeSets = 0
-  let awaySets = 0
-  
-  sets.forEach(set => {
-    const parts = set.includes('(') ? set.split('(')[0] : set
-    const [h, a] = parts.split('-').map(Number)
-    if (h > a) homeSets++
-    else if (a > h) awaySets++
-  })
-  
-  return { homeSets, awaySets, totalSets: sets.length }
-}
-
-function calculateExpectedRating(playerRating: number, opponentRating: number): number {
-  return 1 / (1 + Math.pow(10, (opponentRating - playerRating) / 400))
-}
-
-function getKFactor(matchCount: number, ratingDeviation: number): number {
-  if (ratingDeviation > 50) return 40
-  if (matchCount < 10) return 32
-  if (matchCount < 30) return 24
-  return 16
 }
 
 // Calculate TFR point change based on result and score differential
@@ -39,10 +13,8 @@ function calculateTfrChange(
   playerRating: number,
   opponentRating: number,
   won: boolean,
-  score: string,
-  kFactor: number
+  score: string
 ): number {
-  const expected = calculateExpectedRating(playerRating, opponentRating)
   
   // Determine if it was a blowout (6-0, 6-1, 6-2) or close (6-4, 7-5, etc.)
   const sets = score.split(' ')
@@ -73,7 +45,7 @@ function calculateTfrChange(
 }
 
 async function updatePlayerRatings(
-  adminSupabase: any,
+  adminSupabase: ReturnType<typeof createAdminClient>,
   homePlayerId: string,
   awayPlayerId: string,
   winnerId: string | null,
@@ -114,8 +86,8 @@ async function updatePlayerRatings(
   const awayWon = winnerId === awayPlayerId
   
   // Use TFR point system
-  const homeTfrChange = calculateTfrChange(homeRating, awayRating, homeWon, score, getKFactor(homeMatchCount, homeRD))
-  const awayTfrChange = calculateTfrChange(awayRating, homeRating, awayWon, score, getKFactor(awayMatchCount, awayRD))
+  const homeTfrChange = calculateTfrChange(homeRating, awayRating, homeWon, score)
+  const awayTfrChange = calculateTfrChange(awayRating, homeRating, awayWon, score)
   
   let newHomeRating = homeRating + homeTfrChange
   let newAwayRating = awayRating + awayTfrChange

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import Link from 'next/link'
@@ -28,16 +28,56 @@ interface Message {
   }
 }
 
+type PlayerLike = {
+  id: string
+  profile?: { full_name: string }
+  tfr_singles?: number
+  tfr_doubles?: number
+}
+
+type PartnerLike = {
+  id: string
+  profile?: { full_name: string }
+}
+
+interface MatchData {
+  id: string
+  score: string | null
+  status: string
+  winner_id: string | null
+  home_player_id: string
+  away_player_id: string
+  scheduled_at: string | null
+  verified_by_opponent?: boolean
+  skill_level?: {
+    division?: {
+      type?: string
+      season_id?: string
+    }
+  }
+  home_player?: PlayerLike
+  away_player?: PlayerLike
+  home_partner?: PartnerLike
+  away_partner?: PartnerLike
+}
+
+interface OpponentData {
+  id: string
+  profile?: { full_name: string }
+  tfr_singles: number
+  tfr_doubles: number
+}
+
 interface Availability {
   date: string
   note: string
 }
 
 interface MatchHubClientProps {
-  match: any
+  match: MatchData
   currentUserId: string
   currentPlayerId: string
-  opponent: any
+  opponent: OpponentData
   isPlatformOwner?: boolean
 }
 
@@ -130,7 +170,7 @@ const calendarStyles = `
   }
 `
 
-export default function MatchHubClient({ match, currentUserId, currentPlayerId, opponent, isPlatformOwner }: MatchHubClientProps) {
+export default function MatchHubClient({ match, currentUserId, opponent, isPlatformOwner }: MatchHubClientProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [myAvailability, setMyAvailability] = useState<Availability[]>([])
@@ -152,7 +192,7 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
 
   const isDoubles = match.skill_level?.division?.type?.includes('doubles')
 
-  const getTeamLabel = (player: any, partner: any) => {
+  const getTeamLabel = (player: PlayerLike | undefined | null, partner: PartnerLike | undefined | null) => {
     if (isDoubles && partner) {
       return `${player?.profile?.full_name?.split(' ')[0]} & ${partner?.profile?.full_name?.split(' ')[0]}`
     }
@@ -220,10 +260,30 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
     }
   }
 
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const msgRes = await fetch(`/api/messages?match_id=${match.id}`)
+      const msgData = await msgRes.json()
+      setMessages(msgData.messages || [])
+
+      const myAvailRes = await fetch('/api/player/availability')
+      const myAvailData = await myAvailRes.json()
+      setMyAvailability(myAvailData.availability || [])
+
+      const oppAvailRes = await fetch(`/api/player/availability?player_id=${opponent.id}`)
+      const oppAvailData = await oppAvailRes.json()
+      setOpponentAvailability(oppAvailData.availability || [])
+    } catch (err) {
+      console.error('Failed to load hub data:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [match.id, opponent.id])
+
   useEffect(() => {
     loadData()
 
-    // Subscribe to new messages
     const channel = supabase
       .channel(`match_messages_${match.id}`)
       .on(
@@ -235,7 +295,6 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
           filter: `match_id=eq.${match.id}`
         },
         async (payload: { new: { id: string } }) => {
-          // Fetch the full message with sender profile
           const { data: fullMsg } = await supabase
             .from('messages')
             .select('*, sender:profiles!messages_sender_id_fkey(full_name)')
@@ -252,7 +311,7 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [match.id])
+  }, [loadData, supabase, match.id])
 
   useEffect(() => {
     scrollToBottom()
@@ -260,30 +319,6 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  async function loadData() {
-    setLoading(true)
-    try {
-      // Load messages
-      const msgRes = await fetch(`/api/messages?match_id=${match.id}`)
-      const msgData = await msgRes.json()
-      setMessages(msgData.messages || [])
-
-      // Load my availability
-      const myAvailRes = await fetch('/api/player/availability')
-      const myAvailData = await myAvailRes.json()
-      setMyAvailability(myAvailData.availability || [])
-
-      // Load opponent's availability
-      const oppAvailRes = await fetch(`/api/player/availability?player_id=${opponent.id}`)
-      const oppAvailData = await oppAvailRes.json()
-      setOpponentAvailability(oppAvailData.availability || [])
-    } catch (err) {
-      console.error('Failed to load hub data:', err)
-    } finally {
-      setLoading(false)
-    }
   }
 
   async function sendMessage(e: React.FormEvent) {
@@ -561,7 +596,7 @@ export default function MatchHubClient({ match, currentUserId, currentPlayerId, 
                       const res = await fetch(`/api/matches/${match.id}/verify`, { method: 'POST' });
                       if (res.ok) window.location.reload();
                       else alert('Failed to verify score');
-                    } catch (err) {
+                    } catch {
                       alert('Error verifying score');
                     }
                   }}

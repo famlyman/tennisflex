@@ -47,8 +47,8 @@ export async function GET() {
     .limit(50)
 
   const allRequests = requests || []
-  const pending = allRequests.filter((r: any) => r.status === 'pending')
-  const processed = allRequests.filter((r: any) => r.status !== 'pending')
+  const pending = allRequests.filter((r: { status: string }) => r.status === 'pending')
+  const processed = allRequests.filter((r: { status: string }) => r.status !== 'pending')
 
   return Response.json({ pending, processed })
 }

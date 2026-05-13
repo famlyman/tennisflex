@@ -44,9 +44,9 @@ export default function Login() {
         setError('Login may require email confirmation. Check your email.')
         setLoading(false)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err)
-      setError(err?.message || 'Failed to sign in. Please try again.')
+      setError(err instanceof Error ? err.message : 'Failed to sign in. Please try again.')
       setLoading(false)
     }
   }, [router, email, password])

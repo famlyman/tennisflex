@@ -7,7 +7,7 @@ export default function SeasonNotFound() {
         <div className="space-y-2">
           <h1 className="text-4xl font-bold">Season Not Found</h1>
           <p className="text-gray-600">
-            This season doesn't exist or has been removed.
+            This season doesn&apos;t exist or has been removed.
           </p>
         </div>
         <Link

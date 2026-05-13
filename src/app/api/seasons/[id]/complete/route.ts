@@ -71,7 +71,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const skillLevelIds = skillLevels?.map(s => s.id) || []
 
   // 1. Auto-mark incomplete matches as forfeited
-  const today = new Date().toISOString()
   const { data: expiredMatches } = await adminClient
     .from('matches')
     .update({ status: 'forfeited' })
@@ -89,7 +88,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .eq('status', 'active')
 
   // 3. Generate standings for each skill level
-  const standings: Record<string, any[]> = {}
+  const standings: Record<string, { playerId: string; wins: number; losses: number; setsW: number; setsL: number; matches: number }[]> = {}
 
   for (const skillLevelId of skillLevelIds) {
     const { data: matches } = await adminClient
@@ -188,7 +187,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .eq('season_id', seasonId)
     .eq('status', 'completed')
 
-  const registrationPlayerIds = registrations?.map((r: any) => r.player_id) || []
+  const registrationPlayerIds = registrations?.map((r: { player_id: string }) => r.player_id) || []
   
   const { data: players } = await adminClient
     .from('players')

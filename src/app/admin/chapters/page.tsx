@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 
 interface ChapterRequest {
   id: string
@@ -90,8 +89,8 @@ export default function AdminChapters() {
       }
 
       loadData()
-    } catch (err: any) {
-      setError(err.message || 'Failed to create Flex')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create Flex')
       console.error(err)
     } finally {
       setCreatingId(null)

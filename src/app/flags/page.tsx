@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -34,11 +34,7 @@ export default function FlagsPage() {
   const [newDoublesRating, setNewDoublesRating] = useState('')
   const [updating, setUpdating] = useState(false)
 
-  useEffect(() => {
-    loadFlags()
-  }, [statusFilter])
-
-  async function loadFlags() {
+  const loadFlags = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -59,17 +55,21 @@ export default function FlagsPage() {
       
       const data = await response.json()
       setFlags(data.flags || [])
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter, router])
+
+  useEffect(() => {
+    loadFlags()
+  }, [loadFlags])
 
   async function handleUpdateFlag(flagId: string, status: string) {
     setUpdating(true)
     try {
-      const body: any = { status }
+      const body: Record<string, unknown> = { status }
       
       if (coordinatorNote) {
         body.coordinator_note = coordinatorNote
@@ -100,8 +100,8 @@ export default function FlagsPage() {
       setNewSinglesRating('')
       setNewDoublesRating('')
       loadFlags()
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : String(err))
     } finally {
       setUpdating(false)
     }

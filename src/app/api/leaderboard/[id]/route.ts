@@ -68,11 +68,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ leaderboard: [] })
     }
 
-    const { data: players } = await adminClient
+    const { data: rawPlayers } = await adminClient
       .from('players')
       .select('id, tfr_singles, tfr_doubles, match_count_singles, match_count_doubles, profile:profiles (full_name)')
       .eq('organization_id', orgId)
       .in('id', Array.from(registeredPlayerIds))
+
+    type PlayerRow = { id: string; tfr_singles: number; tfr_doubles: number; match_count_singles: number; match_count_doubles: number; profile?: { full_name?: string } }
+    const players = rawPlayers as unknown as PlayerRow[]
 
     const divisionName = skillLevel.division?.name || ''
     const isDoubles = divisionName.toLowerCase().includes('doubles')
@@ -84,17 +87,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .eq('skill_level_id', skillLevelId)
       .eq('status', 'completed')
 
-    const leaderboard = (players || []).map((player: any) => {
+    const leaderboard = (players || []).map((player: PlayerRow) => {
       const ratingField = isDoubles ? 'tfr_doubles' : 'tfr_singles'
       
-      const playerMatches = (matches || []).filter((m: any) => 
+      const playerMatches = (matches || []).filter((m: { home_player_id: string; away_player_id: string; winner_id?: string }) => 
         m.home_player_id === player.id || m.away_player_id === player.id
       )
       
       let wins = 0
       let losses = 0
       
-      playerMatches.forEach((match: any) => {
+      playerMatches.forEach((match: { winner_id?: string }) => {
         if (match.winner_id === player.id) {
           wins++
         } else if (match.winner_id) {
@@ -113,7 +116,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     })
 
     // Sort by wins (desc), then win percentage
-    leaderboard.sort((a: any, b: any) => {
+    leaderboard.sort((a: { wins: number; matches: number }, b: { wins: number; matches: number }) => {
       if (b.wins !== a.wins) return b.wins - a.wins
       const aWinRate = a.matches > 0 ? a.wins / a.matches : 0
       const bWinRate = b.matches > 0 ? b.wins / b.matches : 0
@@ -121,7 +124,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return b.matches - a.matches
     })
 
-    leaderboard.forEach((entry: any, index: number) => {
+    leaderboard.forEach((entry: { player_id: string; player_name: string; rating: number; matches: number; wins: number; losses: number; rank?: number }, index: number) => {
       entry.rank = index + 1
     })
 
@@ -136,8 +139,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         name: division.name,
       }
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Leaderboard API error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }

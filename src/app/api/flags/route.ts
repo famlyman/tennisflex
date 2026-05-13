@@ -51,9 +51,9 @@ export async function GET(request: Request) {
     }
     
     return NextResponse.json({ flags: filteredFlags })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Flags API error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }
 
@@ -109,8 +109,8 @@ export async function POST(request: Request) {
       .eq('id', target_player_id)
     
     return NextResponse.json({ flag })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Flag creation API error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }

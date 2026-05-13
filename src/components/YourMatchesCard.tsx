@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 
 interface Match {
@@ -8,13 +8,23 @@ interface Match {
   scheduled_at: string | null
   status: string
   verified_by_opponent?: boolean
-  skill_level_name: string
+  skill_level_name?: string
   skill_level_id?: string
-  division_type: string
-  opponent_name: string
+  division_type?: string
+  opponent_name?: string
   opponent_id?: string
   season_id?: string
   h2h?: { wins: number; losses: number }
+  skill_level?: {
+    id: string
+    name: string
+    division?: {
+      id: string
+      name: string
+      type: string
+      season_id: string
+    }
+  }
 }
 
 interface YourMatchesCardProps {
@@ -22,13 +32,8 @@ interface YourMatchesCardProps {
   playerId?: string
 }
 
-export default function YourMatchesCard({ matches, playerId }: YourMatchesCardProps) {
-  const [mounted, setMounted] = useState(false)
+export default function YourMatchesCard({ matches }: YourMatchesCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   if (matches.length === 0) {
     return null
@@ -78,13 +83,13 @@ export default function YourMatchesCard({ matches, playerId }: YourMatchesCardPr
                 </p>
                 {match.scheduled_at && (
                   <p className="text-[10px] font-bold text-emerald-600 mt-1 uppercase tracking-tight">
-                    {mounted ? new Date(match.scheduled_at).toLocaleString(undefined, {
+                    {new Date(match.scheduled_at).toLocaleString(undefined, {
                       weekday: 'short',
                       month: 'short',
                       day: 'numeric',
                       hour: 'numeric',
                       minute: '2-digit'
-                    }) : '---'}
+                    })}
                   </p>
                 )}
               </div>

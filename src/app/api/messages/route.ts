@@ -67,9 +67,9 @@ export async function GET(request: Request) {
         matchId
       }
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('GET Messages Error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }
 
@@ -188,11 +188,12 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ message })
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('POST Message Error:', err)
     return NextResponse.json({ 
-      error: err.message, 
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined 
+      error: message, 
+      stack: process.env.NODE_ENV === 'development' && err instanceof Error ? err.stack : undefined 
     }, { status: 500 })
   }
 }

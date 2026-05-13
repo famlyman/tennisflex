@@ -43,8 +43,8 @@ export default function FlagPlayerButton({ playerId, playerName, variant = 'butt
         setShowModal(false)
         setSuccess(false)
       }, 2000)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setSubmitting(false)
     }

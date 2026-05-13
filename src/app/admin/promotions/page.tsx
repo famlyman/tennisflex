@@ -1,5 +1,4 @@
 import { createAdminClient } from '@/utils/supabase'
-import Link from 'next/link'
 
 export default async function AdminPromotionsPage() {
   const adminClient = createAdminClient()
@@ -45,7 +44,7 @@ export default async function AdminPromotionsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {promotions.map((promo: any) => (
+            {promotions.map((promo) => (
               <div key={promo.id} className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm group">
                 <div className="flex flex-col md:flex-row justify-between gap-6">
                   <div className="flex gap-4 flex-1">

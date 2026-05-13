@@ -5,6 +5,51 @@ import Link from 'next/link'
 import CoordinatorActionButton from '@/components/CoordinatorActionButton'
 import { createAdminClient } from '@/utils/supabase'
 
+type SeasonRow = {
+  id: string
+  organization_id: string
+  name: string
+  description: string | null
+  status: string
+  season_start: string
+  season_end: string
+  registration_start: string
+  registration_end: string
+  organization?: { name: string }
+}
+
+type MatchRow = {
+  id: string
+  skill_level_id: string
+  home_player_id: string
+  away_player_id: string
+  status: string
+  score: string | null
+  winner_id: string | null
+}
+
+type MatchRowWithNames = MatchRow & {
+  home_player_name: string
+  away_player_name: string
+}
+
+type SkillLevelWithMatches = {
+  id: string
+  division_id: string
+  name: string
+  min_rating: number | null
+  max_rating: number | null
+  matches: MatchRowWithNames[]
+}
+
+type DivisionWithLevels = {
+  id: string
+  name: string
+  type: string | null
+  season_id: string
+  skill_levels: SkillLevelWithMatches[]
+}
+
 export default async function SeasonDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: seasonId } = await params
   const cookieStore = await cookies()
@@ -53,7 +98,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   const allOrgIds = Array.from(new Set([...coordinatorOrgIds, ...playerOrgIds]))
 
   // Query each org separately
-  const allSeasons: any[] = []
+  const allSeasons: SeasonRow[] = []
   const seenSeasonIds = new Set()
   
   for (const orgId of allOrgIds) {
@@ -107,7 +152,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   // Get matches for all skill levels in this season
   const skillLevelIds = skillLevels?.map(sl => sl.id) || []
 
-  let matches: any[] = []
+  let matches: MatchRow[] = []
   if (skillLevelIds.length > 0) {
     const { data: matchesData } = await adminClient
       .from('matches')
@@ -154,7 +199,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   // Then get profiles using the profile IDs
   const profileIds = new Set(playerData?.map(p => p.profile_id).filter(Boolean) || [])
   
-  let profileMap = new Map()
+  let profileMap = new Map<string, string | null>()
   if (profileIds.size > 0) {
     const { data: playerProfiles } = await adminClient
       .from('profiles')
@@ -162,13 +207,6 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
       .in('id', Array.from(profileIds))
     profileMap = new Map(playerProfiles?.map(p => [p.id, p.full_name]) || [])
   }
-
-  // Debug player mapping
-  const debugPlayerMapping = Array.from(playerIds).slice(0, 3).map(pid => ({
-    playerId: pid,
-    profileId: playerToProfile.get(pid),
-    profileName: playerToProfile.get(pid) ? profileMap.get(playerToProfile.get(pid)) : null
-  }))
 
   // Attach matches to skill levels
   const skillLevelsWithMatches = skillLevels?.map(sl => ({
@@ -189,8 +227,6 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     ...div,
     skill_levels: skillLevelsWithMatches.filter(sl => sl.division_id === div.id)
   })) || []
-
-  const seasonWithDivisions = { ...season, divisions: divisionsWithLevels }
 
   const statusColors: Record<string, string> = {
     upcoming: 'bg-slate-100 text-slate-600',
@@ -342,9 +378,9 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
           </div>
         ) : (
           <div className="space-y-6">
-            {divisionsWithLevels.map((division: any) => {
-              const divCompleted = division.skill_levels?.reduce((sum: number, lvl: any) => sum + (lvl.matches?.filter((m: any) => m.status === 'completed').length || 0), 0)
-              const divTotal = division.skill_levels?.reduce((sum: number, lvl: any) => sum + (lvl.matches?.length || 0), 0)
+            {divisionsWithLevels.map((division: DivisionWithLevels) => {
+              const divCompleted = division.skill_levels?.reduce((sum: number, lvl: SkillLevelWithMatches) => sum + (lvl.matches?.filter((m: MatchRowWithNames) => m.status === 'completed').length || 0), 0)
+              const divTotal = division.skill_levels?.reduce((sum: number, lvl: SkillLevelWithMatches) => sum + (lvl.matches?.length || 0), 0)
               
               return (
                 <div key={division.id} className={`bg-white rounded-2xl border p-6 ${divTotal > 0 ? 'border-blue-200 shadow-md' : 'border-slate-200'}`}>
@@ -374,8 +410,8 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                     <p className="text-sm text-slate-400">No skill levels defined</p>
                   ) : (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {division.skill_levels.map((level: any) => {
-                        const completedCount = level.matches?.filter((m: any) => m.status === 'completed').length || 0
+                      {division.skill_levels.map((level: SkillLevelWithMatches) => {
+                        const completedCount = level.matches?.filter((m: MatchRowWithNames) => m.status === 'completed').length || 0
                         const totalCount = level.matches?.length || 0
 
                         return (
@@ -406,7 +442,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                             {totalCount > 0 && (
                               <div className="mt-3 pt-3 border-t border-slate-200">
                                 <div className="text-xs text-slate-500 mb-1">Recent Matches:</div>
-                                {level.matches.slice(0, 2).map((match: any) => (
+                                {level.matches.slice(0, 2).map((match: MatchRowWithNames) => (
                                   <div key={match.id} className="flex items-center justify-between text-xs py-1">
                                     <span className={`truncate ${match.status === 'completed' ? 'text-slate-400' : 'text-slate-600'}`}>
                                       {match.home_player_name} vs {match.away_player_name}

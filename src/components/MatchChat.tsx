@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 interface Message {
   id: string
@@ -26,11 +25,7 @@ export default function MatchChat({ matchId, opponentName, currentUserId }: Matc
   const [sending, setSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    loadMessages()
-  }, [matchId])
-
-  async function loadMessages() {
+  const loadMessages = useCallback(async () => {
     try {
       const res = await fetch(`/api/messages?match_id=${matchId}`)
       const data = await res.json()
@@ -40,7 +35,11 @@ export default function MatchChat({ matchId, opponentName, currentUserId }: Matc
     } finally {
       setLoading(false)
     }
-  }
+  }, [matchId])
+
+  useEffect(() => {
+    loadMessages()
+  }, [loadMessages])
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()

@@ -79,11 +79,11 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    params.then(({ id, skillLevelId: slId }) => {
+    params.then(({ skillLevelId: slId }) => {
       setSkillLevelId(slId)
       loadData(slId)
     })
-  }, [])
+  }, [params])
 
   async function loadData(id: string) {
     try {
@@ -94,8 +94,8 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
       }
       const result = await response.json()
       setData(result)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
@@ -152,8 +152,8 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
       }
       setShowScoreModal(false)
       loadData(skillLevelId!)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setSubmitting(false)
     }
@@ -290,7 +290,7 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                               const res = await fetch(`/api/matches/${match.id}/verify`, { method: 'POST' });
                               if (res.ok) loadData(skillLevelId!);
                               else alert('Failed to verify score');
-                            } catch (err) {
+                            } catch {
                               alert('Error verifying score');
                             }
                           }}

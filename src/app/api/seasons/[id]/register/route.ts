@@ -5,7 +5,7 @@ import { createAdminClient } from '@/utils/supabase'
 import { NextResponse } from 'next/server'
 
 async function createNotification(
-  adminClient: any,
+  adminClient: ReturnType<typeof createAdminClient>,
   userId: string,
   type: string,
   title: string,
@@ -63,7 +63,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const formData = await request.formData()
     const divisionIdsAllRaw = formData.getAll('division_ids')
     const divisionIdsRaw = formData.get('division_ids') as string
-    const divisionIdsAll = divisionIdsAllRaw.map((v: any) => String(v))
+    const divisionIdsAll = divisionIdsAllRaw.map((v: FormDataEntryValue) => String(v))
     
     let division_ids: string[]
     if (divisionIdsRaw && divisionIdsRaw.includes(',')) {
@@ -193,8 +193,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const playerRating = isSingles ? finalNtrpSingles : finalNtrpDoubles
     
     // Find matching skill level
-    const skillLevel = division.skill_levels?.find((sl: any) => 
-      playerRating >= sl.min_rating && playerRating <= sl.max_rating
+    const skillLevel = division.skill_levels?.find((sl: Record<string, unknown>) => 
+      playerRating >= (sl.min_rating as number) && playerRating <= (sl.max_rating as number)
     )
     
     // Check if already exists first
@@ -227,7 +227,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Insert new registration
-    const { data: regRecord, error: regError } = await adminClient
+    const { error: regError } = await adminClient
       .from('season_registrations')
       .insert({
         player_id: playerId,

@@ -8,17 +8,170 @@ import YourMatchesCard from '@/components/YourMatchesCard'
 import SeasonHub from '@/components/SeasonHub'
 import NextMatchHero from '@/components/NextMatchHero'
 import ReadyToPlayToggle from '@/components/ReadyToPlayToggle'
+import CoordinatorAnalytics from '@/components/CoordinatorAnalytics'
 
 interface MatchData {
   id: string
   scheduled_at: string | null
   status: string
+  verified_by_opponent?: boolean
   skill_level_name: string
+  skill_level_id?: string
+  season_id?: string
   division_type: string
   opponent_name: string
   match_location: string | null
   is_home: boolean
   h2h?: { wins: number; losses: number }
+}
+
+interface OrgItem {
+  id: string
+  name: string
+  slug?: string
+}
+
+interface SeasonItem {
+  id: string
+  name: string
+  status: string
+  organization_id: string
+  season_start: string
+  season_end: string
+  registration_start: string
+  registration_end: string
+  created_at: string
+  organization?: { id: string; name: string }
+  divisions?: { id: string }[]
+}
+
+interface DivItem {
+  id: string
+  name: string
+  type: string
+  season_id?: string
+}
+
+interface SkillLevelItem {
+  id: string
+  name: string
+  division_id: string
+  min_rating?: number
+  max_rating?: number
+  division?: DivItem
+}
+
+interface ComplaintItem {
+  id: string
+  subject?: string
+  created_at: string
+  player?: { profile?: { full_name?: string } }
+}
+
+interface SeasonRegistrationItem {
+  id: string
+  player_id: string
+  season_id: string
+  division_id: string | null
+  skill_level_id: string | null
+  status: string
+  season?: SeasonItem
+  division?: DivItem
+}
+
+interface LeaderboardEntryItem {
+  player_id: string
+  player_name: string
+  wins: number
+  losses: number
+  matches: number
+  rank?: number
+}
+
+interface LeaderboardData {
+  division: DivItem | null
+  season: SeasonItem | null
+  skillLevel: SkillLevelItem | null
+  leaderboard: LeaderboardEntryItem[]
+  playerRank: number | null
+  playerEntry: LeaderboardEntryItem | null
+}
+
+interface DivisionPulseItem {
+  id: string
+  winner_name: string
+  loser_name: string
+  score: string
+}
+
+interface SeasonHubData {
+  season: SeasonItem
+  divisions: DivItem[]
+  skillLevels: SkillLevelItem[]
+  stats: {
+    totalPlayers: number
+    totalMatches: number
+    completedMatches: number
+    pendingMatches: number
+  }
+  playerSkillLevelId: string | null | undefined
+  divisionPulse: DivisionPulseItem[]
+}
+
+interface CoordinatorData {
+  organizations: OrgItem[]
+  seasons: SeasonItem[]
+  playerCount: number
+  activeSeasonCount: number
+  totalMatches: number
+  pendingMatches: number
+  complaints: ComplaintItem[]
+}
+
+interface MatchItem {
+  id: string
+  status: string
+  scheduled_at: string | null
+  created_at: string
+  home_player_id: string
+  away_player_id: string
+  winner_id?: string
+  score?: string
+  skill_level_id?: string
+  verified_by_opponent?: boolean
+  skill_level_name?: string
+  division_type?: string
+  opponent_name?: string
+  match_location?: string | null
+  is_home?: boolean
+  skill_level?: {
+    id: string
+    name: string
+    division?: {
+      id: string
+      name: string
+      type: string
+      season_id: string
+    }
+  }
+  home_player?: {
+    id: string
+    profile?: { full_name?: string; location?: string }
+  }
+  away_player?: {
+    id: string
+    profile?: { full_name?: string; location?: string }
+  }
+}
+
+interface PlayerProfileItem {
+  id: string
+  organization_id?: string
+  is_ready_to_play?: boolean
+  tfr_singles?: number
+  match_count_singles?: number
+  profile?: { full_name?: string }
+  organization?: { id: string; name: string }
 }
 
 export const dynamic = 'force-dynamic'
@@ -43,14 +196,14 @@ async function getDashboardData(userId: string, email?: string | null) {
   const isCoordinator = coordinatorOrgs && coordinatorOrgs.length > 0
   const orgIds = coordinatorOrgs?.map(c => c.organization_id) || []
 
-  let coordinatorData = {
-    organizations: [] as any[],
-    seasons: [] as any[],
+  let coordinatorData: CoordinatorData = {
+    organizations: [],
+    seasons: [],
     playerCount: 0,
     activeSeasonCount: 0,
     totalMatches: 0,
     pendingMatches: 0,
-    complaints: [] as any[]
+    complaints: []
   }
 
   if (isCoordinator && orgIds.length > 0) {
@@ -98,7 +251,7 @@ async function getDashboardData(userId: string, email?: string | null) {
     }
 
     // Fetch coordinator-level complaints
-    let orgComplaints: any[] = []
+    let orgComplaints: ComplaintItem[] = []
     if (orgIds.length > 0) {
       const { data: compData } = await adminClient
         .from('complaints')
@@ -125,12 +278,12 @@ async function getDashboardData(userId: string, email?: string | null) {
   }
 
   // 2. Player Data (Always fetch, even for coordinators)
-  let playerRegistrations: any[] = []
-  let playerMatches: any[] = []
-  let leaderboardData: any = null
+  let playerRegistrations: SeasonRegistrationItem[] = []
+  let playerMatches: MatchItem[] = []
+  let leaderboardData: LeaderboardData | null = null
   let upcomingMatches: MatchData[] = []
-  let allOrgSeasons: any[] = []
-  let seasonHubData: any = null
+  let allOrgSeasons: SeasonItem[] = []
+  let seasonHubData: SeasonHubData | null = null
   
   const { data: allPlayers } = await adminClient
     .from('players')
@@ -141,7 +294,7 @@ async function getDashboardData(userId: string, email?: string | null) {
   const playerIds = allPlayers?.map(p => p.id) || []
 
   // Fetch registrations across ALL linked players + profile + email
-  let registrationsQuery = adminClient
+  const registrationsQuery = adminClient
     .from('season_registrations')
     .select(`*`)
 
@@ -206,20 +359,23 @@ async function getDashboardData(userId: string, email?: string | null) {
       .or(matchFilter)
       .order('created_at', { ascending: false })
 
-    playerMatches = (matches || []).map((match: any) => {
+    playerMatches = (matches || []).map((match: MatchItem) => {
       const matchedPlayerId = playerIds.find(id => match.home_player_id === id || match.away_player_id === id)
       const isHome = match.home_player_id === matchedPlayerId
       const opponent = isHome ? match.away_player : match.home_player
+      const opponentName = opponent?.profile?.full_name || 'Unknown'
       return {
         ...match,
-        opponent_name: opponent?.profile?.full_name || 'Unknown',
+        skill_level_name: match.skill_level?.name || '',
+        division_type: match.skill_level?.division?.type || '',
+        opponent_name: opponentName,
         match_location: match.home_player?.profile?.location || null,
         is_home: isHome
       }
     })
 
     // Sort: Scheduled matches first (by date), then by status/creation
-    playerMatches.sort((a: any, b: any) => {
+    playerMatches.sort((a: MatchItem, b: MatchItem) => {
       // Completed matches to the end
       if (a.status === 'completed' && b.status !== 'completed') return 1
       if (a.status !== 'completed' && b.status === 'completed') return -1
@@ -238,8 +394,8 @@ async function getDashboardData(userId: string, email?: string | null) {
     })
 
     upcomingMatches = (matches || [])
-      .filter((m: any) => m.status !== 'completed')
-      .map((m: any) => {
+      .filter((m: MatchItem) => m.status !== 'completed')
+      .map((m: MatchItem) => {
         const matchedPlayerId = playerIds.find(id => m.home_player_id === id || m.away_player_id === id)
         const isHome = m.home_player_id === matchedPlayerId
         const opponent = isHome ? m.away_player : m.home_player
@@ -248,22 +404,22 @@ async function getDashboardData(userId: string, email?: string | null) {
           scheduled_at: m.scheduled_at,
           status: m.status,
           verified_by_opponent: m.verified_by_opponent,
-          skill_level_name: m.skill_level?.name,
+          skill_level_name: m.skill_level?.name || '',
           skill_level_id: m.skill_level?.id,
           season_id: m.skill_level?.division?.season_id,
-          division_type: m.skill_level?.division?.type,
-          opponent_name: opponent?.profile?.full_name,
+          division_type: m.skill_level?.division?.type || '',
+          opponent_name: opponent?.profile?.full_name || '',
           match_location: m.home_player?.profile?.location || null,
           is_home: isHome,
         }
       })
 
     // Season Hub Data - Get current registration_open or active season
-    const currentSeason = (allOrgSeasons || []).find((s: any) => s.status === 'registration_open') || 
-                         (allOrgSeasons || []).find((s: any) => s.status === 'active') ||
-                         (allOrgSeasons || []).find((s: any) => s.status === 'completed')
+    const currentSeason = (allOrgSeasons || []).find((s: SeasonItem) => s.status === 'registration_open') || 
+                         (allOrgSeasons || []).find((s: SeasonItem) => s.status === 'active') ||
+                         (allOrgSeasons || []).find((s: SeasonItem) => s.status === 'completed')
     
-    let divisionPulse: any[] = []
+    let divisionPulse: DivisionPulseItem[] = []
     
     if (currentSeason) {
       // Get all divisions for this season
@@ -274,7 +430,7 @@ async function getDashboardData(userId: string, email?: string | null) {
         .order('type', { ascending: true })
 
       // Get all skill levels for all divisions
-      const divisionIds = (seasonDivisions || []).map((d: any) => d.id)
+      const divisionIds = (seasonDivisions || []).map((d: DivItem) => d.id)
       const { data: skillLevels } = divisionIds.length > 0
         ? await adminClient
             .from('skill_levels')
@@ -284,7 +440,7 @@ async function getDashboardData(userId: string, email?: string | null) {
         : { data: [] }
 
       // Get season stats
-      const skillLevelIds = (skillLevels || []).map((sl: any) => sl.id)
+      const skillLevelIds = (skillLevels || []).map((sl: SkillLevelItem) => sl.id)
       
       // Total players registered in this season
       const { count: totalPlayers } = await adminClient
@@ -309,12 +465,12 @@ async function getDashboardData(userId: string, email?: string | null) {
         : { count: 0 }
 
       // Find player's current skill level (most recent match or registration)
-      let playerSkillLevelId: string | null = null
-      const mostRecentMatch = (playerMatches || []).find((m: any) => m.status === 'completed')
+      let playerSkillLevelId: string | null | undefined = null
+      const mostRecentMatch = (playerMatches || []).find((m: MatchItem) => m.status === 'completed')
       if (mostRecentMatch) {
         playerSkillLevelId = mostRecentMatch.skill_level_id
       } else if (playerRegistrations.length > 0) {
-        const activeReg = playerRegistrations.find((r: any) => r.season_id === currentSeason.id && r.skill_level_id)
+        const activeReg = playerRegistrations.find((r: SeasonRegistrationItem) => r.season_id === currentSeason.id && r.skill_level_id)
         if (activeReg) playerSkillLevelId = activeReg.skill_level_id
       }
 
@@ -322,7 +478,7 @@ async function getDashboardData(userId: string, email?: string | null) {
 
       // Division Pulse: Latest 3 results in the player's skill level
       if (playerSkillLevelId) {
-        const { data: pulseMatches } = await adminClient
+        const { data: rawPulseMatches } = await adminClient
           .from('matches')
           .select(`
             id, score, winner_id, home_player_id, away_player_id,
@@ -334,12 +490,14 @@ async function getDashboardData(userId: string, email?: string | null) {
           .order('created_at', { ascending: false })
           .limit(3)
         
-        console.log('DEBUG: pulseMatches found:', pulseMatches?.length)
+        console.log('DEBUG: pulseMatches found:', rawPulseMatches?.length)
 
-        divisionPulse = (pulseMatches || []).map((m: any) => ({
+        type PulseMatchRow = { id: string; score: string; winner_id: string; home_player_id: string; away_player_id: string; home_player?: { profile?: { full_name?: string } }; away_player?: { profile?: { full_name?: string } } }
+        const pulseMatches = rawPulseMatches as unknown as PulseMatchRow[]
+        divisionPulse = pulseMatches.map((m: PulseMatchRow) => ({
           id: m.id,
-          winner_name: m.winner_id === m.home_player_id ? m.home_player?.profile?.full_name : m.away_player?.profile?.full_name,
-          loser_name: m.winner_id === m.home_player_id ? m.away_player?.profile?.full_name : m.home_player?.profile?.full_name,
+          winner_name: m.winner_id === m.home_player_id ? (m.home_player?.profile?.full_name || '') : (m.away_player?.profile?.full_name || ''),
+          loser_name: m.winner_id === m.home_player_id ? (m.away_player?.profile?.full_name || '') : (m.home_player?.profile?.full_name || ''),
           score: m.score
         }))
       }
@@ -391,23 +549,23 @@ async function getDashboardData(userId: string, email?: string | null) {
     // 1. Skill level of the most recent completed match
     // 2. Skill level of the first active registration
     let targetSkillLevelId: string | null = null
-    let targetDivision: any = null
-    let targetSeason: any = null
-    let targetSkillLevelObj: any = null
+    let targetDivision: DivItem | null = null
+    let targetSeason: SeasonItem | null = null
+    let targetSkillLevelObj: SkillLevelItem | null = null
 
     // Find the most recent completed match for this user
-    const mostRecentMatch = (matches || []).find((m: any) => m.status === 'completed')
+    const mostRecentMatch = (matches || []).find((m: MatchItem) => m.status === 'completed')
     
     if (mostRecentMatch) {
       targetSkillLevelId = mostRecentMatch.skill_level_id
-      targetSkillLevelObj = mostRecentMatch.skill_level
-      targetDivision = mostRecentMatch.skill_level?.division
-      targetSeason = (allOrgSeasons || []).find(s => s.id === targetDivision?.season_id)
+      targetSkillLevelObj = mostRecentMatch.skill_level ?? null
+      targetDivision = mostRecentMatch.skill_level?.division ?? null
+      targetSeason = (allOrgSeasons || []).find(s => s.id === targetDivision?.season_id) ?? null
     } else if (playerRegistrations.length > 0) {
       const primaryReg = playerRegistrations[0]
       targetSkillLevelId = primaryReg.skill_level_id
-      targetDivision = primaryReg.division
-      targetSeason = primaryReg.season
+      targetDivision = primaryReg.division ?? null
+      targetSeason = primaryReg.season ?? null
     }
 
     if (targetSkillLevelId) {
@@ -415,7 +573,7 @@ async function getDashboardData(userId: string, email?: string | null) {
       if (!targetSkillLevelObj) {
         const { data: sl } = await adminClient
           .from('skill_levels')
-          .select('id, name, min_rating, max_rating')
+          .select('id, name, division_id, min_rating, max_rating')
           .eq('id', targetSkillLevelId)
           .single()
         targetSkillLevelObj = sl
@@ -423,10 +581,13 @@ async function getDashboardData(userId: string, email?: string | null) {
 
       if (targetSkillLevelObj) {
         // 1. Get all players for this organization as a base
-        const { data: allOrglayers } = await adminClient
+        const { data: rawOrgPlayers } = await adminClient
           .from('players')
           .select('id, profile:profiles!players_profile_id_fkey(full_name)')
           .eq('organization_id', primaryPlayer?.organization_id || orgIds[0])
+
+        type OrgPlayerRow = { id: string; profile?: { full_name?: string } }
+        const allOrglayers = rawOrgPlayers as unknown as OrgPlayerRow[]
 
         // 2. Get registered player IDs for this skill level
         const { data: registrations } = await adminClient
@@ -438,7 +599,7 @@ async function getDashboardData(userId: string, email?: string | null) {
         const registeredPlayerIds = new Set((registrations || []).map(r => r.player_id))
         
         // 3. Filter players who are either registered OR were in the most recent match
-        const eligiblePlayers = (allOrglayers || []).filter((p: any) => 
+        const eligiblePlayers = allOrglayers.filter(p => 
           registeredPlayerIds.has(p.id) || 
           (mostRecentMatch && (mostRecentMatch.home_player_id === p.id || mostRecentMatch.away_player_id === p.id))
         )
@@ -450,25 +611,19 @@ async function getDashboardData(userId: string, email?: string | null) {
           .eq('skill_level_id', targetSkillLevelId)
           .eq('status', 'completed')
 
-        const leaderboard = eligiblePlayers.map((p: any) => {
+        const leaderboard = eligiblePlayers.map((p: OrgPlayerRow) => {
           const pid = p.id
-          const pMatches = (skillLevelMatches || []).filter((m: any) => m.home_player_id === pid || m.away_player_id === pid)
+          const pMatches = (skillLevelMatches || []).filter((m: { home_player_id: string; away_player_id: string; winner_id?: string }) => m.home_player_id === pid || m.away_player_id === pid)
           let wins = 0
           let losses = 0
-          pMatches.forEach((m: any) => {
+          pMatches.forEach((m: { winner_id?: string }) => {
             if (m.winner_id === pid) wins++
             else if (m.winner_id) losses++
           })
           
-          // Ensure we correctly extract the name from the profile relation
-          const profileData = p.profile as any
-          const fullName = Array.isArray(profileData) 
-            ? profileData[0]?.full_name 
-            : profileData?.full_name
-
           return { 
             player_id: pid, 
-            player_name: fullName || 'Unknown Player', 
+            player_name: p.profile?.full_name || 'Unknown Player', 
             wins, 
             losses, 
             matches: pMatches.length 
@@ -485,7 +640,7 @@ async function getDashboardData(userId: string, email?: string | null) {
         })
 
         // Find player's rank
-        const playerRank = leaderboard.findIndex((entry: any) => playerIds.includes(entry.player_id))
+        const playerRank = leaderboard.findIndex((entry: LeaderboardEntryItem) => playerIds.includes(entry.player_id))
         const playerEntry = playerRank !== -1 ? leaderboard[playerRank] : null
 
         leaderboardData = {
@@ -597,7 +752,7 @@ export default async function Dashboard() {
           
           {!isCoordinator && dashboardData.player && (
             <ReadyToPlayToggle 
-              initialStatus={(dashboardData.player as any).is_ready_to_play ?? true} 
+              initialStatus={(dashboardData.player as PlayerProfileItem).is_ready_to_play ?? true} 
               playerId={dashboardData.player.id} 
             />
           )}
@@ -644,6 +799,9 @@ export default async function Dashboard() {
           </div>
         )}
 
+        {/* Coordinator Analytics */}
+        {isCoordinator && <CoordinatorAnalytics />}
+
         {/* Coordinator Complaints Section */}
         {isCoordinator && dashboardData.coordinatorData.complaints.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-6 mb-8">
@@ -651,7 +809,7 @@ export default async function Dashboard() {
               <span className="text-red-500">📫</span> Pending Player Concerns
             </h2>
             <div className="space-y-3">
-              {dashboardData.coordinatorData.complaints.map((comp: any) => (
+              {dashboardData.coordinatorData.complaints.map((comp: ComplaintItem) => (
                 <div key={comp.id} className="flex items-center justify-between p-4 bg-red-50/50 rounded-xl border border-red-100">
                   <div className="flex-1">
                     <p className="font-bold text-slate-900">{comp.subject}</p>
@@ -678,7 +836,7 @@ export default async function Dashboard() {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-8">
             <h2 className="text-xl font-bold mb-4">Manage Seasons</h2>
             <div className="space-y-3">
-              {dashboardData.coordinatorData.seasons.map((season: any) => (
+              {dashboardData.coordinatorData.seasons.map((season: SeasonItem) => (
                 <div key={season.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">

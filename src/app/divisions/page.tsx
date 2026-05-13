@@ -66,8 +66,8 @@ export default function DivisionsPage() {
       if (data.length > 0) {
         setSelectedSeason(data[0].id)
       }
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
@@ -92,8 +92,8 @@ export default function DivisionsPage() {
       setShowAddDivision(null)
       setNewDivision({ name: '', type: 'mens_singles' })
       loadSeasons()
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -116,8 +116,8 @@ export default function DivisionsPage() {
       setShowAddSkillLevel(null)
       setNewSkillLevel({ name: '', min_rating: '', max_rating: '' })
       loadSeasons()
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -135,8 +135,8 @@ export default function DivisionsPage() {
       if (!response.ok) throw new Error(data.error)
 
       loadSeasons()
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : String(err))
     }
   }
 
@@ -154,8 +154,8 @@ export default function DivisionsPage() {
       if (!response.ok) throw new Error(data.error)
 
       loadSeasons()
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : String(err))
     }
   }
 

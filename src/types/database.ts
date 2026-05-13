@@ -188,7 +188,7 @@ export interface Notification {
   title: string
   message: string | null
   link: string | null
-  data: Record<string, any>
+  data: Record<string, unknown>
   read: boolean
   created_at: string
 }

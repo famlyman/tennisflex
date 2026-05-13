@@ -4,8 +4,13 @@ import { getSupabaseClient } from '@/utils/client'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 
+type Organization = {
+  id: string
+  name: string
+}
+
 export default function CreateSeasonPage() {
-  const [organizations, setOrganizations] = useState<any[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)

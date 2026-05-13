@@ -51,7 +51,7 @@ function RegisterContent() {
           const err = await res.json()
           setError(err.error || 'Failed to submit request')
         }
-      } catch (err) {
+      } catch {
         setError('An unexpected error occurred')
       }
     } else {

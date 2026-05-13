@@ -81,7 +81,7 @@ function SetPasswordInner() {
           router.push('/dashboard')
         }, 2000)
       }
-    } catch (err) {
+    } catch {
       setError('Failed to set password. Please try again.')
     } finally {
       setSubmitting(false)

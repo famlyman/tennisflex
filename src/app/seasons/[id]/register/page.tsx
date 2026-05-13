@@ -5,10 +5,25 @@ import Link from 'next/link'
 import RegistrationForm from '@/components/RegistrationForm'
 import { createAdminClient } from '@/utils/supabase'
 
+type SkillLevel = {
+  id: string
+  name: string
+  min_rating: number
+  max_rating: number
+}
+
+type Division = {
+  id: string
+  name: string
+  type: string
+  season_id: string
+  skill_levels: SkillLevel[]
+}
+
 // Find skill level that matches a specific rating
-function findMatchingSkillLevel(skillLevels: any[], rating: number) {
+function findMatchingSkillLevel(skillLevels: SkillLevel[], rating: number) {
   if (!skillLevels || !rating) return null
-  return skillLevels.find((sl: any) => 
+  return skillLevels.find((sl: SkillLevel) => 
     rating >= sl.min_rating && rating <= sl.max_rating
   )
 }
@@ -131,8 +146,8 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
 
   // Filter divisions and find matching skill level for each
   const userDivisions = seasonData.divisions
-    ?.filter((d: any) => allowedTypes.includes(d.type))
-    .map((d: any) => {
+    ?.filter((d: Division) => allowedTypes.includes(d.type))
+    .map((d: Division) => {
       const category = getDivisionCategory(d.type)
       const rating = category === 'singles' ? singlesRating : doublesRating
       const matchingLevel = findMatchingSkillLevel(d.skill_levels, rating)
@@ -147,7 +162,7 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
         max_rating: matchingLevel?.max_rating || null,
       }
     })
-    .filter((d: any) => d.matchingLevel !== null) || []
+    .filter((d: { matchingLevel: SkillLevel | null }) => d.matchingLevel !== null) || []
 
   // Check if already registered - use admin client to bypass RLS
   const adminClient = createAdminClient()
@@ -184,7 +199,7 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
   
   // Divisions NOT yet registered for this season
   const unregisteredDivisions = userDivisions
-    .filter((d: any) => !registeredDivisionIds.includes(d.id))
+    .filter((d: { id: string }) => !registeredDivisionIds.includes(d.id))
 
   // Show prompt to update profile if no ratings set
   const needsProfileSetup = !profile?.initial_ntrp_singles && !profile?.initial_ntrp_doubles

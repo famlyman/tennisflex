@@ -1,26 +1,31 @@
 import { createAdminClient } from '@/utils/supabase'
-import Link from 'next/link'
 
-interface AdminFlag {
+interface FlagTargetPlayer {
+  id: string
+  tfr_singles: number
+  flag_count: number
+  organization: { name: string } | null
+  profile: { full_name: string } | null
+}
+
+interface FlagReporter {
+  full_name: string
+}
+
+interface RatingFlagRow {
   id: string
   reason: string
   status: string
   created_at: string
-  reporter: { full_name: string }
-  target_player: {
-    id: string
-    organization: { name: string }
-    profile: { full_name: string }
-    tfr_singles: number
-    flag_count: number
-  }
+  reporter: FlagReporter | null
+  target_player: FlagTargetPlayer | null
 }
 
 export default async function AdminFlagsPage() {
   const adminClient = createAdminClient()
 
   // Fetch all pending and reviewed flags
-  const { data: flags, error } = await adminClient
+  const { data: rawFlags, error } = await adminClient
     .from('rating_flags')
     .select(`
       id,
@@ -28,15 +33,17 @@ export default async function AdminFlagsPage() {
       status,
       created_at,
       reporter:profiles!rating_flags_reporter_id_fkey(full_name),
-      target_player:players(
+      target_player:players!rating_flags_target_player_id_fkey(
         id,
         tfr_singles,
         flag_count,
-        organization:organizations(name),
-        profile:profiles(full_name)
+        organization:organizations!players_organization_id_fkey(name),
+        profile:profiles!players_profile_id_fkey(full_name)
       )
     `)
     .order('created_at', { ascending: false })
+
+  const flags = rawFlags as unknown as RatingFlagRow[]
 
   return (
     <main className="p-8">
@@ -65,7 +72,7 @@ export default async function AdminFlagsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {flags.map((flag: any) => (
+            {flags.map((flag) => (
               <div key={flag.id} className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:border-red-200 transition-colors group">
                 <div className="flex flex-col lg:flex-row justify-between gap-6">
                   <div className="flex-1">
@@ -105,7 +112,7 @@ export default async function AdminFlagsPage() {
                     <div className="space-y-4 mb-6">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Current TFR</span>
-                        <span className="text-lg font-black text-indigo-600">{Math.round(flag.target_player?.tfr_singles)}</span>
+                        <span className="text-lg font-black text-indigo-600">{flag.target_player ? Math.round(flag.target_player.tfr_singles) : '-'}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Flags</span>

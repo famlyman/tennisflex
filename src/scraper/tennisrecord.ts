@@ -84,7 +84,6 @@ export async function searchPlayers(playerName: string): Promise<PlayerSearchRes
 
 export async function scrapePlayerRating(playerName: string, locationFilter?: string, playerIdParam?: string): Promise<PlayerRating | null> {
   let playerId: string | null = playerIdParam || null;
-  let usedName = playerName;
   
   if (!playerId && locationFilter) {
     const searchResults = await searchPlayers(playerName);
@@ -93,7 +92,6 @@ export async function scrapePlayerRating(playerName: string, locationFilter?: st
     );
     if (match) {
       playerId = match.playerId;
-      usedName = match.name;
     } else if (searchResults.length > 0) {
       return null;
     }
@@ -139,14 +137,14 @@ export async function scrapePlayerRating(playerName: string, locationFilter?: st
     if (dateMatch) dynamicRatingDate = dateMatch[1];
 
     let singlesRating = '';
-    let singlesLastMatch: string | null = null;
+    const singlesLastMatch: string | null = null;
     const singlesRow = $('td:contains("TTR Singles Rating")').parent();
     const singlesText = singlesRow.find('td').last().text().trim();
     const singlesMatch = singlesText.match(/([\d.]+)/);
     if (singlesMatch) singlesRating = singlesMatch[1];
 
     let doublesRating = '';
-    let doublesLastMatch: string | null = null;
+    const doublesLastMatch: string | null = null;
     const doublesRow = $('td:contains("TTR Doubles Rating")').parent();
     const doublesText = doublesRow.find('td').last().text().trim();
     const doublesMatch = doublesText.match(/([\d.]+)/);
