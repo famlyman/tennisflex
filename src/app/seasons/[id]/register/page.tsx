@@ -187,7 +187,8 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
     .eq('season_id', seasonId)
     .in('partner_id', playerIds) : { data: [] }
 
-  const merged = new Map<string, typeof byProfileId[0]>()
+  type RegistrationRow = NonNullable<typeof byProfileId>[number]
+  const merged = new Map<string, RegistrationRow>()
   for (const reg of [...(byProfileId || []), ...(byPartner || [])]) {
     if (!merged.has(reg.division_id)) {
       merged.set(reg.division_id, reg)
