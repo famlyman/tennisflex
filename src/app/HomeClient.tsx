@@ -595,18 +595,18 @@ export default function HomeClient({ organizations }: HomeClientProps) {
                   title="Penn Championship Balls"
                   description="The #1 choice for league play. Stock up on a case of 24 cans before your first match."
                   cta="Shop on Amazon"
-                  link="#"
+                  link="https://amzn.to/3Pcg58x"
                   icon="🎾"
                 />
               </AnimatedSection>
               <AnimatedSection delay={200}>
                 <PromoCard 
                   type="affiliate"
-                  title="Wilson Overgrips"
-                  description="Keep your racquet fresh and your grip firm. The most trusted overgrips on the tour."
-                  cta="View Gear"
-                  link="#"
-                  icon="🏸"
+                  title="Wilson Tennis Balls"
+                  description="Tour-level feel and durability. Grab a case for the season ahead."
+                  cta="Shop on Amazon"
+                  link="https://amzn.to/49tdk9E"
+                  icon="🎾"
                 />
               </AnimatedSection>
               <AnimatedSection delay={300}>

@@ -516,10 +516,10 @@ export default function SeasonHub({ data, playerId, playerTfr }: SeasonHubProps)
             <PromoCard 
               type="affiliate"
               compact={true}
-              title="Fresh Balls for Your Match?"
-              description="Get a case of Penn Championship delivered."
-              link="#"
-              icon="🎾"
+              title="Get A Grip Overgrip"
+              description="Tacky feel that lasts. Stock up before your next match."
+              link="https://amzn.to/3P3wkoq"
+              icon="🏸"
             />
             <PromoCard 
               type="placeholder"

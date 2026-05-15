@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/utils/supabase'
+import { checkCoordinator } from '@/utils/auth'
 
 export async function GET() {
   const cookieStore = await cookies()
@@ -101,6 +102,21 @@ const adminSupabase = createAdminClient()
     const name = formData.get('name') as string
     const type = formData.get('type') as string
 
+    const { data: season } = await adminSupabase
+      .from('seasons')
+      .select('organization_id')
+      .eq('id', season_id)
+      .single()
+
+    if (!season) {
+      return NextResponse.json({ error: 'Season not found' }, { status: 404 })
+    }
+
+    const isCoord = await checkCoordinator(user.id, season.organization_id)
+    if (!isCoord) {
+      return NextResponse.json({ error: 'Not a coordinator' }, { status: 403 })
+    }
+
     const { data: division, error } = await adminSupabase
       .from('divisions')
       .insert({ season_id, name, type })
@@ -120,6 +136,31 @@ const adminSupabase = createAdminClient()
     const min_rating = formData.get('min_rating') ? parseFloat(formData.get('min_rating') as string) : null
     const max_rating = formData.get('max_rating') ? parseFloat(formData.get('max_rating') as string) : null
 
+    const { data: division } = await adminSupabase
+      .from('divisions')
+      .select('season_id')
+      .eq('id', division_id)
+      .single()
+
+    if (!division) {
+      return NextResponse.json({ error: 'Division not found' }, { status: 404 })
+    }
+
+    const { data: season } = await adminSupabase
+      .from('seasons')
+      .select('organization_id')
+      .eq('id', division.season_id)
+      .single()
+
+    if (!season) {
+      return NextResponse.json({ error: 'Season not found' }, { status: 404 })
+    }
+
+    const isCoord = await checkCoordinator(user.id, season.organization_id)
+    if (!isCoord) {
+      return NextResponse.json({ error: 'Not a coordinator' }, { status: 403 })
+    }
+
     const { data: skillLevel, error } = await adminSupabase
       .from('skill_levels')
       .insert({ division_id, name, min_rating, max_rating })
@@ -136,6 +177,31 @@ const adminSupabase = createAdminClient()
   if (action === 'delete_division') {
     const division_id = formData.get('division_id') as string
 
+    const { data: division } = await adminSupabase
+      .from('divisions')
+      .select('season_id')
+      .eq('id', division_id)
+      .single()
+
+    if (!division) {
+      return NextResponse.json({ error: 'Division not found' }, { status: 404 })
+    }
+
+    const { data: season } = await adminSupabase
+      .from('seasons')
+      .select('organization_id')
+      .eq('id', division.season_id)
+      .single()
+
+    if (!season) {
+      return NextResponse.json({ error: 'Season not found' }, { status: 404 })
+    }
+
+    const isCoord = await checkCoordinator(user.id, season.organization_id)
+    if (!isCoord) {
+      return NextResponse.json({ error: 'Not a coordinator' }, { status: 403 })
+    }
+
     const { error } = await adminSupabase
       .from('divisions')
       .delete()
@@ -150,6 +216,41 @@ const adminSupabase = createAdminClient()
 
   if (action === 'delete_skill_level') {
     const skill_level_id = formData.get('skill_level_id') as string
+
+    const { data: skillLevel } = await adminSupabase
+      .from('skill_levels')
+      .select('division_id')
+      .eq('id', skill_level_id)
+      .single()
+
+    if (!skillLevel) {
+      return NextResponse.json({ error: 'Skill level not found' }, { status: 404 })
+    }
+
+    const { data: division } = await adminSupabase
+      .from('divisions')
+      .select('season_id')
+      .eq('id', skillLevel.division_id)
+      .single()
+
+    if (!division) {
+      return NextResponse.json({ error: 'Division not found' }, { status: 404 })
+    }
+
+    const { data: season } = await adminSupabase
+      .from('seasons')
+      .select('organization_id')
+      .eq('id', division.season_id)
+      .single()
+
+    if (!season) {
+      return NextResponse.json({ error: 'Season not found' }, { status: 404 })
+    }
+
+    const isCoord = await checkCoordinator(user.id, season.organization_id)
+    if (!isCoord) {
+      return NextResponse.json({ error: 'Not a coordinator' }, { status: 403 })
+    }
 
     const { error } = await adminSupabase
       .from('skill_levels')

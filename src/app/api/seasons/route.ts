@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createAdminClient } from '@/utils/supabase'
+import { checkCoordinator } from '@/utils/auth'
 
 export async function POST(request: Request) {
   const cookieStore = await cookies()
@@ -48,6 +49,11 @@ export async function POST(request: Request) {
     const registration_end = formData.get('registration_end') as string
     const season_start = formData.get('season_start') as string
     const season_end = formData.get('season_end') as string
+
+    const isCoord = await checkCoordinator(user.id, organization_id)
+    if (!isCoord) {
+      return Response.json({ error: 'Not a coordinator of this organization' }, { status: 403 })
+    }
 
     // Create the season
     const { data: seasonData, error } = await adminSupabase.from('seasons').insert({

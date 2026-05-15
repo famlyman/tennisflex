@@ -1,10 +1,31 @@
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/utils/supabase'
+import { checkCoordinator } from '@/utils/auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: flagId } = await params
+  const cookieStore = await cookies()
+  
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll() {},
+      },
+    }
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const adminClient = createAdminClient()
   
   try {
@@ -26,6 +47,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     
     if (flagError || !flag) {
       return NextResponse.json({ error: 'Flag not found' }, { status: 404 })
+    }
+
+    const { data: targetPlayer } = await adminClient
+      .from('players')
+      .select('organization_id')
+      .eq('id', flag.target_player_id)
+      .single()
+
+    if (!targetPlayer) {
+      return NextResponse.json({ error: 'Target player not found' }, { status: 404 })
+    }
+
+    const isCoord = await checkCoordinator(user.id, targetPlayer.organization_id)
+    if (!isCoord) {
+      return NextResponse.json({ error: 'Not a coordinator' }, { status: 403 })
     }
     
     const updates: Record<string, unknown> = {
