@@ -5,6 +5,13 @@ import Link from 'next/link'
 import FlagPlayerButton from '@/components/FlagPlayerButton'
 import { getConfidenceDisplay } from '@/utils/rating'
 
+interface PlayerWithProfile {
+  id: string
+  tfr_singles: number
+  tfr_doubles: number
+  profile: { id: string, full_name: string }
+}
+
 interface Match {
   id: string
   status: string
@@ -12,19 +19,13 @@ interface Match {
   scheduled_at: string | null
   home_player_id: string
   away_player_id: string
+  home_partner_id: string | null
+  away_partner_id: string | null
   verified_by_opponent: boolean
-  home_player: {
-    id: string
-    tfr_singles: number
-    tfr_doubles: number
-    profile: { id: string, full_name: string }
-  }
-  away_player: {
-    id: string
-    tfr_singles: number
-    tfr_doubles: number
-    profile: { id: string, full_name: string }
-  }
+  home_player: PlayerWithProfile
+  home_partner: PlayerWithProfile | null
+  away_player: PlayerWithProfile
+  away_partner: PlayerWithProfile | null
   winner_id: string | null
 }
 
@@ -311,28 +312,31 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                   </div>
 
                    <div className="flex items-center gap-4">
-                     <div className="flex-1 text-right">
-                       <div className={`font-medium ${match.winner_id === match.home_player?.id ? 'text-emerald-600 font-bold' : 'text-slate-900'}`}>
-                         {match.home_player?.profile?.full_name}
-                         {match.winner_id === match.home_player?.id && (
-                           <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Winner</span>
-                         )}
-                       </div>
-                       <div className="text-sm text-slate-500">
-                         {skill_level.division?.name?.includes('Doubles') ? (
-                           <>TFR-D: {Math.round(match.home_player?.tfr_doubles)}</>
-                         ) : (
-                           <>TFR-S: {Math.round(match.home_player?.tfr_singles)}</>
-                         )}
-                       </div>
-                       {match.home_player?.id && (
-                         <FlagPlayerButton
-                           playerId={match.home_player.id}
-                           playerName={match.home_player?.profile?.full_name || 'Unknown'}
-                           variant="icon"
-                         />
-                       )}
-                     </div>
+                      <div className="flex-1 text-right">
+                        <div className={`font-medium ${match.winner_id === match.home_player?.id ? 'text-emerald-600 font-bold' : 'text-slate-900'}`}>
+                          {match.home_player?.profile?.full_name}
+                          {match.home_partner && <>&ensp;&&ensp;{match.home_partner?.profile?.full_name}</>}
+                          {match.winner_id === match.home_player?.id && (
+                            <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Winner</span>
+                          )}
+                        </div>
+                        {match.home_partner ? (
+                          <div className="text-sm text-slate-500 space-x-2">
+                            <span>TFR-D: {Math.round(match.home_player?.tfr_doubles)} / {Math.round(match.home_partner?.tfr_doubles)}</span>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-slate-500">
+                            TFR-S: {Math.round(match.home_player?.tfr_singles)}
+                          </div>
+                        )}
+                        {match.home_player?.id && (
+                          <FlagPlayerButton
+                            playerId={match.home_player.id}
+                            playerName={match.home_player?.profile?.full_name || 'Unknown'}
+                            variant="icon"
+                          />
+                        )}
+                      </div>
 
                     <div className="px-6 py-3 bg-slate-100 rounded-xl text-center">
                       {match.status === 'completed' && match.score ? (
@@ -343,28 +347,31 @@ export default function SkillLevelPage({ params }: { params: Promise<{ id: strin
                     </div>
 
                      <div className="flex-1 text-left">
-                       <div className={`font-medium ${match.winner_id === match.away_player?.id ? 'text-emerald-600 font-bold' : 'text-slate-900'}`}>
-                         {match.away_player?.profile?.full_name}
-                         {match.winner_id === match.away_player?.id && (
-                           <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Winner</span>
-                         )}
-                       </div>
-                       <div className="text-sm text-slate-500">
-                         {skill_level.division?.name?.includes('Doubles') ? (
-                           <>TFR-D: {Math.round(match.away_player?.tfr_doubles)}</>
-                         ) : (
-                           <>TFR-S: {Math.round(match.away_player?.tfr_singles)}</>
-                         )}
-                       </div>
-                       {match.away_player?.id && (
-                         <FlagPlayerButton
-                           playerId={match.away_player.id}
-                           playerName={match.away_player?.profile?.full_name || 'Unknown'}
-                           variant="icon"
-                         />
-                       )}
-                     </div>
-                  </div>
+                        <div className={`font-medium ${match.winner_id === match.away_player?.id ? 'text-emerald-600 font-bold' : 'text-slate-900'}`}>
+                          {match.away_player?.profile?.full_name}
+                          {match.away_partner && <>&ensp;&&ensp;{match.away_partner?.profile?.full_name}</>}
+                          {match.winner_id === match.away_player?.id && (
+                            <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Winner</span>
+                          )}
+                        </div>
+                        {match.away_partner ? (
+                          <div className="text-sm text-slate-500 space-x-2">
+                            <span>TFR-D: {Math.round(match.away_player?.tfr_doubles)} / {Math.round(match.away_partner?.tfr_doubles)}</span>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-slate-500">
+                            TFR-S: {Math.round(match.away_player?.tfr_singles)}
+                          </div>
+                        )}
+                        {match.away_player?.id && (
+                          <FlagPlayerButton
+                            playerId={match.away_player.id}
+                            playerName={match.away_player?.profile?.full_name || 'Unknown'}
+                            variant="icon"
+                          />
+                        )}
+                      </div>
+                   </div>
                 </div>
               ))
             )}

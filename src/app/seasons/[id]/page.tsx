@@ -23,6 +23,8 @@ type MatchRow = {
   skill_level_id: string
   home_player_id: string
   away_player_id: string
+  home_partner_id: string | null
+  away_partner_id: string | null
   status: string
   score: string | null
   winner_id: string | null
@@ -31,6 +33,8 @@ type MatchRow = {
 type MatchRowWithNames = MatchRow & {
   home_player_name: string
   away_player_name: string
+  home_partner_name: string | null
+  away_partner_name: string | null
 }
 
 type SkillLevelWithMatches = {
@@ -156,7 +160,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   if (skillLevelIds.length > 0) {
     const { data: matchesData } = await adminClient
       .from('matches')
-      .select('id, skill_level_id, home_player_id, away_player_id, status, score, winner_id')
+      .select('id, skill_level_id, home_player_id, away_player_id, home_partner_id, away_partner_id, status, score, winner_id')
       .in('skill_level_id', skillLevelIds)
     matches = matchesData || []
   }
@@ -186,6 +190,8 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
   matches.forEach(m => {
     if (m.home_player_id) playerIds.add(m.home_player_id)
     if (m.away_player_id) playerIds.add(m.away_player_id)
+    if (m.home_partner_id) playerIds.add(m.home_partner_id)
+    if (m.away_partner_id) playerIds.add(m.away_partner_id)
   })
   
   // First get players to map player ID -> profile ID
@@ -214,10 +220,14 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
     matches: matches.filter(m => m.skill_level_id === sl.id).map(m => {
       const homeProfileId = playerToProfile.get(m.home_player_id)
       const awayProfileId = playerToProfile.get(m.away_player_id)
+      const homePartnerProfileId = m.home_partner_id ? playerToProfile.get(m.home_partner_id) : null
+      const awayPartnerProfileId = m.away_partner_id ? playerToProfile.get(m.away_partner_id) : null
       return {
         ...m,
         home_player_name: homeProfileId ? profileMap.get(homeProfileId) || 'Unknown' : 'TBD',
         away_player_name: awayProfileId ? profileMap.get(awayProfileId) || 'Unknown' : 'TBD',
+        home_partner_name: homePartnerProfileId ? profileMap.get(homePartnerProfileId) || 'Unknown' : null,
+        away_partner_name: awayPartnerProfileId ? profileMap.get(awayPartnerProfileId) || 'Unknown' : null,
       }
     })
   })) || []
@@ -445,7 +455,7 @@ export default async function SeasonDetailPage({ params }: { params: Promise<{ i
                                 {level.matches.slice(0, 2).map((match: MatchRowWithNames) => (
                                   <div key={match.id} className="flex items-center justify-between text-xs py-1">
                                     <span className={`truncate ${match.status === 'completed' ? 'text-slate-400' : 'text-slate-600'}`}>
-                                      {match.home_player_name} vs {match.away_player_name}
+                                      {match.home_player_name}{match.home_partner_name ? ` & ${match.home_partner_name}` : ''} vs {match.away_player_name}{match.away_partner_name ? ` & ${match.away_partner_name}` : ''}
                                     </span>
                                     <span className={`ml-2 px-1.5 py-0.5 rounded ${match.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
                                       {match.status === 'completed' ? match.score || ' Done' : 'Pending'}

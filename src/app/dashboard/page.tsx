@@ -135,6 +135,8 @@ interface MatchItem {
   created_at: string
   home_player_id: string
   away_player_id: string
+  home_partner_id: string | null
+  away_partner_id: string | null
   winner_id?: string
   score?: string
   skill_level_id?: string
@@ -144,6 +146,9 @@ interface MatchItem {
   opponent_name?: string
   match_location?: string | null
   is_home?: boolean
+  opponent_partner_name?: string
+  home_team_name?: string
+  away_team_name?: string
   skill_level?: {
     id: string
     name: string
@@ -158,9 +163,17 @@ interface MatchItem {
     id: string
     profile?: { full_name?: string; location?: string }
   }
+  home_partner?: {
+    id: string
+    profile?: { full_name?: string }
+  }
   away_player?: {
     id: string
     profile?: { full_name?: string; location?: string }
+  }
+  away_partner?: {
+    id: string
+    profile?: { full_name?: string }
   }
 }
 
@@ -352,8 +365,14 @@ async function getDashboardData(userId: string, email?: string | null) {
         home_player:players!matches_home_player_id_fkey (
           id, profile:profiles!players_profile_id_fkey (full_name, location)
         ),
+        home_partner:players!matches_home_partner_id_fkey (
+          id, profile:profiles!players_profile_id_fkey (full_name)
+        ),
         away_player:players!matches_away_player_id_fkey (
           id, profile:profiles!players_profile_id_fkey (full_name, location)
+        ),
+        away_partner:players!matches_away_partner_id_fkey (
+          id, profile:profiles!players_profile_id_fkey (full_name)
         )
       `)
       .or(matchFilter)
@@ -363,12 +382,16 @@ async function getDashboardData(userId: string, email?: string | null) {
       const matchedPlayerId = playerIds.find(id => match.home_player_id === id || match.away_player_id === id)
       const isHome = match.home_player_id === matchedPlayerId
       const opponent = isHome ? match.away_player : match.home_player
+      const opponentPartner = isHome ? match.away_partner : match.home_partner
       const opponentName = opponent?.profile?.full_name || 'Unknown'
+      const isDoubles = match.home_partner_id || match.away_partner_id
       return {
         ...match,
         skill_level_name: match.skill_level?.name || '',
         division_type: match.skill_level?.division?.type || '',
-        opponent_name: opponentName,
+        opponent_name: isDoubles && opponentPartner
+          ? `${opponentName} & ${opponentPartner?.profile?.full_name}`
+          : opponentName,
         match_location: match.home_player?.profile?.location || null,
         is_home: isHome
       }
@@ -399,6 +422,8 @@ async function getDashboardData(userId: string, email?: string | null) {
         const matchedPlayerId = playerIds.find(id => m.home_player_id === id || m.away_player_id === id)
         const isHome = m.home_player_id === matchedPlayerId
         const opponent = isHome ? m.away_player : m.home_player
+        const opponentPartner = isHome ? m.away_partner : m.home_partner
+        const isDoubles = m.home_partner_id || m.away_partner_id
         return {
           id: m.id,
           scheduled_at: m.scheduled_at,
@@ -408,7 +433,9 @@ async function getDashboardData(userId: string, email?: string | null) {
           skill_level_id: m.skill_level?.id,
           season_id: m.skill_level?.division?.season_id,
           division_type: m.skill_level?.division?.type || '',
-          opponent_name: opponent?.profile?.full_name || '',
+          opponent_name: isDoubles && opponentPartner
+            ? `${opponent?.profile?.full_name || ''} & ${opponentPartner?.profile?.full_name || ''}`
+            : opponent?.profile?.full_name || '',
           match_location: m.home_player?.profile?.location || null,
           is_home: isHome,
         }

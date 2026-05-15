@@ -70,7 +70,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         tfr_doubles,
         profile:profiles!players_profile_id_fkey (id, full_name)
       ),
+      home_partner:players!matches_home_partner_id_fkey (
+        id,
+        tfr_singles,
+        tfr_doubles,
+        profile:profiles!players_profile_id_fkey (id, full_name)
+      ),
       away_player:players!matches_away_player_id_fkey (
+        id,
+        tfr_singles,
+        tfr_doubles,
+        profile:profiles!players_profile_id_fkey (id, full_name)
+      ),
+      away_partner:players!matches_away_partner_id_fkey (
         id,
         tfr_singles,
         tfr_doubles,
