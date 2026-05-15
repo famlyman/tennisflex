@@ -46,5 +46,27 @@ This document outlines the logical progression for the Tennis-Flex platform foll
 - [ ] **Email Templates:** Polish transactional emails for match schedules and score verifications.
 - [ ] **Rate Limiting:** Implement Vercel Edge middleware for API protection.
 
+## ⚡ Next.js 16 Audit (May 15, 2026)
+
+### ✅ Migrated / Compatible
+- **Async Request APIs:** All `params`/`searchParams` correctly use `await` or `use()` — no sync access found
+- **`middleware` → `proxy`:** Already migrated (`src/proxy.ts` with `NextProxy` type and `proxy` export)
+- **Parallel routes:** None exist → no `default.js` requirement
+- **Turbopack by default:** Build uses Turbopack, compiles in ~4s
+- **`next.config.ts`:** Clean config, no deprecated options (`experimental_ppr`, `dynamicIO`, etc.)
+- **ESLint flat config:** `eslint.config.mjs` using `eslint-config-next` (flat format)
+- **No deprecated APIs in use:** No `unstable_cacheLife`, `unstable_cacheTag`, `experimental.turbopack`, `next lint`, `next/legacy/image`, or `images.domains`
+
+### ❌ Known Issues
+- **Lint broken:** `fast-glob@3.3.1` has empty `filters/` directory in `node_modules` — fix with `rm -rf node_modules && npm install`
+
+### 🔜 Optional Enhancements (v16 features not yet adopted)
+- **`cacheComponents: true`** — Enables PPR, `'use cache'`, `cacheLife`/`cacheTag`, and `unstable_instant` for instant navigation validation
+- **React Compiler** — Add `reactCompiler: true` to `next.config.ts` for auto-memoization
+- **`revalidateTag` 2nd arg** — If used, now requires a `cacheLife` profile (e.g. `revalidateTag('posts', 'max')`)
+- **`updateTag`** — New Server Actions API for immediate read-your-writes semantics
+- **`npx next typegen`** — Generates `PageProps`/`LayoutProps`/`RouteContext` type helpers
+- **`images.localPatterns.search`** — Required for local images with query strings
+
 ---
-*Updated: May 13, 2026 - Technical debt cleanup, E2E testing, and coordinator analytics completed*
+*Updated: May 15, 2026 - Next.js 16 compatibility audit, build/lint verification, docs review*
