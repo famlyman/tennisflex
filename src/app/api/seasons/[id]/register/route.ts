@@ -247,6 +247,31 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       continue
     }
 
+    if (partner_id && partner_status === 'confirmed') {
+      const { data: partnerPlayer } = await adminClient
+        .from('players')
+        .select('profile_id')
+        .eq('id', partner_id)
+        .single()
+
+      if (partnerPlayer?.profile_id) {
+        const { data: divisionInfo } = await adminClient
+          .from('divisions')
+          .select('name')
+          .eq('id', divisionId)
+          .single()
+
+        await createNotification(
+          adminClient,
+          partnerPlayer.profile_id,
+          'partner_added',
+          `You've been added as a doubles partner`,
+          `${profile.full_name} registered you as their ${divisionInfo?.name || 'doubles'} partner for ${season?.name || 'the season'}.`,
+          `/seasons/${seasonId}`
+        )
+      }
+    }
+
     registrations.push(division.type)
   }
 

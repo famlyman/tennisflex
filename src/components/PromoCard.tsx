@@ -46,9 +46,15 @@ export default function PromoCard({
     placeholder: 'Partner'
   }
 
+  const isExternal = link.startsWith('http')
+
+  const linkProps = isExternal
+    ? { target: '_blank', rel: 'noopener noreferrer' }
+    : {}
+
   if (compact) {
     return (
-      <Link href={link} className={`block p-4 rounded-2xl border transition-all hover:shadow-md ${bgStyles[type]}`}>
+      <Link href={link} {...linkProps} className={`block p-4 rounded-2xl border transition-all hover:shadow-md ${bgStyles[type]}`}>
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm ${iconBg[type]}`}>
             <span className="text-lg">{icon}</span>
@@ -67,7 +73,7 @@ export default function PromoCard({
   }
 
   return (
-    <Link href={link} className={`block p-6 rounded-3xl border-2 transition-all hover:shadow-xl hover:shadow-indigo-500/5 group ${bgStyles[type]}`}>
+    <Link href={link} {...linkProps} className={`block p-6 rounded-3xl border-2 transition-all hover:shadow-xl hover:shadow-indigo-500/5 group ${bgStyles[type]}`}>
       <div className="flex items-start justify-between mb-4">
         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-lg transition-transform group-hover:scale-110 ${iconBg[type]}`}>
           {icon}
