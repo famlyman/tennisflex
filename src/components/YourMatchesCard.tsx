@@ -12,6 +12,7 @@ interface Match {
   skill_level_id?: string
   division_type?: string
   opponent_name?: string
+  player_team_name?: string
   opponent_id?: string
   season_id?: string
   h2h?: { wins: number; losses: number }
@@ -62,7 +63,10 @@ export default function YourMatchesCard({ matches }: YourMatchesCardProps) {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-0.5">
                   <p className="font-bold text-slate-900 text-sm">
-                    vs {match.opponent_name}
+                    {match.player_team_name && match.player_team_name !== match.opponent_name
+                      ? `${match.player_team_name} vs ${match.opponent_name}`
+                      : `vs ${match.opponent_name}`
+                    }
                   </p>
                   {match.h2h && (
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">

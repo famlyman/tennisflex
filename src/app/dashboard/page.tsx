@@ -23,6 +23,7 @@ interface MatchData {
   match_location: string | null
   is_home: boolean
   h2h?: { wins: number; losses: number }
+  player_team_name?: string
 }
 
 interface OrgItem {
@@ -381,17 +382,14 @@ async function getDashboardData(userId: string, email?: string | null) {
     playerMatches = (matches || []).map((match: MatchItem) => {
       const matchedPlayerId = playerIds.find(id => match.home_player_id === id || match.away_player_id === id || match.home_partner_id === id || match.away_partner_id === id)
       const isHome = match.home_player_id === matchedPlayerId || match.home_partner_id === matchedPlayerId
-      const opponent = isHome ? match.away_player : match.home_player
-      const opponentPartner = isHome ? match.away_partner : match.home_partner
-      const opponentName = opponent?.profile?.full_name || 'Unknown'
-      const isDoubles = match.home_partner_id || match.away_partner_id
+      const playerSide = (isHome ? [match.home_player, match.home_partner] : [match.away_player, match.away_partner]).map(p => p?.profile?.full_name).filter(Boolean)
+      const opponentSide = (isHome ? [match.away_player, match.away_partner] : [match.home_player, match.home_partner]).map(p => p?.profile?.full_name).filter(Boolean)
       return {
         ...match,
         skill_level_name: match.skill_level?.name || '',
         division_type: match.skill_level?.division?.type || '',
-        opponent_name: isDoubles && opponentPartner
-          ? `${opponentName} & ${opponentPartner?.profile?.full_name}`
-          : opponentName,
+        opponent_name: opponentSide.join(' & ') || 'Unknown',
+        player_team_name: playerSide.join(' & ') || 'Unknown',
         match_location: match.home_player?.profile?.location || null,
         is_home: isHome
       }
@@ -421,9 +419,8 @@ async function getDashboardData(userId: string, email?: string | null) {
       .map((m: MatchItem) => {
         const matchedPlayerId = playerIds.find(id => m.home_player_id === id || m.away_player_id === id || m.home_partner_id === id || m.away_partner_id === id)
         const isHome = m.home_player_id === matchedPlayerId || m.home_partner_id === matchedPlayerId
-        const opponent = isHome ? m.away_player : m.home_player
-        const opponentPartner = isHome ? m.away_partner : m.home_partner
-        const isDoubles = m.home_partner_id || m.away_partner_id
+        const playerSide = (isHome ? [m.home_player, m.home_partner] : [m.away_player, m.away_partner]).map(p => p?.profile?.full_name).filter(Boolean)
+        const opponentSide = (isHome ? [m.away_player, m.away_partner] : [m.home_player, m.home_partner]).map(p => p?.profile?.full_name).filter(Boolean)
         return {
           id: m.id,
           scheduled_at: m.scheduled_at,
@@ -433,9 +430,8 @@ async function getDashboardData(userId: string, email?: string | null) {
           skill_level_id: m.skill_level?.id,
           season_id: m.skill_level?.division?.season_id,
           division_type: m.skill_level?.division?.type || '',
-          opponent_name: isDoubles && opponentPartner
-            ? `${opponent?.profile?.full_name || ''} & ${opponentPartner?.profile?.full_name || ''}`
-            : opponent?.profile?.full_name || '',
+          opponent_name: opponentSide.join(' & ') || '',
+          player_team_name: playerSide.join(' & ') || '',
           match_location: m.home_player?.profile?.location || null,
           is_home: isHome,
         }

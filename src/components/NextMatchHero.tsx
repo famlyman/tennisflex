@@ -9,6 +9,7 @@ interface Match {
   skill_level_name: string
   division_type: string
   opponent_name: string
+  player_team_name?: string
   match_location: string | null
   is_home: boolean
   h2h?: { wins: number, losses: number }
@@ -50,7 +51,10 @@ export default function NextMatchHero({ match }: NextMatchHeroProps) {
           </div>
           
           <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
-            vs {match.opponent_name}
+            {match.player_team_name
+              ? `${match.player_team_name} vs ${match.opponent_name}`
+              : `vs ${match.opponent_name}`
+            }
           </h2>
           <p className="text-slate-400 font-medium text-lg">
             {match.skill_level_name} • {match.division_type.replace('_', ' ')}
