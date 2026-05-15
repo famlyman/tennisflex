@@ -167,13 +167,34 @@ export default async function SeasonRegisterPage({ params }: { params: Promise<{
   // Check if already registered - use admin client to bypass RLS
   const adminClient = createAdminClient()
   
+  const { data: playerRecords } = await adminClient
+    .from('players')
+    .select('id')
+    .eq('profile_id', session.user.id)
+    .eq('organization_id', seasonData.organization_id)
+
+  const playerIds = playerRecords?.map(p => p.id) || []
+
   const { data: byProfileId } = await adminClient
     .from('season_registrations')
     .select('*')
     .eq('profile_id', session.user.id)
     .eq('season_id', seasonId)
 
-  const existingRegistrations = byProfileId || []
+  const { data: byPartner } = playerIds.length > 0 ? await adminClient
+    .from('season_registrations')
+    .select('*')
+    .eq('season_id', seasonId)
+    .in('partner_id', playerIds) : { data: [] }
+
+  const merged = new Map<string, typeof byProfileId[0]>()
+  for (const reg of [...(byProfileId || []), ...(byPartner || [])]) {
+    if (!merged.has(reg.division_id)) {
+      merged.set(reg.division_id, reg)
+    }
+  }
+
+  const existingRegistrations = Array.from(merged.values())
   const isRegisteredForSeason = existingRegistrations.length > 0
   const registeredDivisionIds = existingRegistrations.map(r => r.division_id) || []
   
