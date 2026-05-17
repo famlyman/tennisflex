@@ -75,7 +75,7 @@ export default function SeasonStatsHero({
         </div>
 
         <Link
-          href={`/seasons/${seasonId}`}
+          href={`/seasons/${seasonId}/summary`}
           className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-2xl font-bold hover:bg-white/20 transition-all border border-white/10"
         >
           View Season Summary
