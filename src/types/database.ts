@@ -181,6 +181,22 @@ export interface SeasonRegistration {
   skill_level?: SkillLevel
 }
 
+export interface Promotion {
+  id: string
+  organization_id: string | null
+  type: 'direct' | 'affiliate' | 'placeholder'
+  title: string
+  description: string | null
+  image_url: string | null
+  link_url: string | null
+  call_to_action: string | null
+  is_active: boolean
+  display_locations: string[]
+  priority: number
+  created_at: string
+  organization?: { name: string }
+}
+
 export interface Notification {
   id: string
   user_id: string

@@ -6,6 +6,15 @@ import Link from "next/link";
 import { Organization } from "@/types/database";
 import PromoCard from "@/components/PromoCard";
 
+interface LandingPromo {
+  id: string
+  type: 'direct' | 'affiliate' | 'placeholder'
+  title: string
+  description: string | null
+  link_url: string | null
+  call_to_action: string | null
+}
+
 function TennisBall({ className }: { className?: string }) {
   return (
     <div className={`relative ${className}`}>
@@ -128,6 +137,14 @@ interface HomeClientProps {
 export default function HomeClient({ organizations }: HomeClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{lat: number, lon: number} | null>(null);
+  const [landingPromos, setLandingPromos] = useState<LandingPromo[]>([]);
+
+  useEffect(() => {
+    fetch('/api/promotions?location=landing')
+      .then(res => res.json())
+      .then(data => setLandingPromos(data))
+      .catch(() => {})
+  }, [])
 
   const activeOrgs = organizations || [];
 
@@ -589,36 +606,28 @@ export default function HomeClient({ organizations }: HomeClientProps) {
             </AnimatedSection>
 
             <div className="grid md:grid-cols-3 gap-8">
-              <AnimatedSection delay={100}>
-                <PromoCard 
-                  type="affiliate"
-                  title="Penn Championship Balls"
-                  description="The #1 choice for league play. Stock up on a case of 24 cans before your first match."
-                  cta="Shop on Amazon"
-                  link="https://amzn.to/3Pcg58x"
-                  icon="🎾"
-                />
-              </AnimatedSection>
-              <AnimatedSection delay={200}>
-                <PromoCard 
-                  type="affiliate"
-                  title="Wilson Tennis Balls"
-                  description="Tour-level feel and durability. Grab a case for the season ahead."
-                  cta="Shop on Amazon"
-                  link="https://amzn.to/49tdk9E"
-                  icon="🎾"
-                />
-              </AnimatedSection>
-              <AnimatedSection delay={300}>
-                <PromoCard 
-                  type="placeholder"
-                  title="Sponsor a Flex"
-                  description="Reach hundreds of active tennis players in your city. Partner with us today."
-                  cta="Get in Touch"
-                  link="/register?type=request"
-                  icon="🤝"
-                />
-              </AnimatedSection>
+              {[0, 1, 2].map(i => (
+                <AnimatedSection key={i} delay={100 + i * 100}>
+                  {landingPromos[i] ? (
+                    <PromoCard
+                      type={landingPromos[i].type}
+                      title={landingPromos[i].title}
+                      description={landingPromos[i].description || ''}
+                      link={landingPromos[i].link_url || '#'}
+                      cta={landingPromos[i].call_to_action || 'Learn More'}
+                    />
+                  ) : (
+                    <PromoCard
+                      type="placeholder"
+                      title="Sponsor a Flex"
+                      description="Reach hundreds of active tennis players in your city. Partner with us today."
+                      cta="Get in Touch"
+                      link="/register?type=request"
+                      icon="🤝"
+                    />
+                  )}
+                </AnimatedSection>
+              ))}
             </div>
           </div>
         </section>

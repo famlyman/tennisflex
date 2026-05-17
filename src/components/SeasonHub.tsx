@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import PromoCard from './PromoCard'
+import PromotionSlot from './PromotionSlot'
 
 interface Division {
   id: string
@@ -513,22 +513,7 @@ export default function SeasonHub({ data, playerId, playerTfr }: SeasonHubProps)
 
           {/* Sidebar Promotions */}
           <div className="space-y-3 mt-8 pt-6 border-t border-slate-100">
-            <PromoCard 
-              type="affiliate"
-              compact={true}
-              title="Get A Grip Overgrip"
-              description="Tacky feel that lasts. Stock up before your next match."
-              link="https://amzn.to/3P3wkoq"
-              icon="🏸"
-            />
-            <PromoCard 
-              type="placeholder"
-              compact={true}
-              title="Your Brand Here"
-              description="Reach every player in this division."
-              link="/register?type=request"
-              icon="🤝"
-            />
+            <PromotionSlot location="dashboard" compact limit={2} />
           </div>
         </div>
       </div>
