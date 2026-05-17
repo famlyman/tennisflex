@@ -70,7 +70,7 @@ export default function SeasonStatsHero({
           </div>
           <div className="bg-white/5 rounded-xl p-4 border border-white/10">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">TFR Rating</p>
-            <p className="text-2xl font-black text-emerald-400">{tfrRating?.toFixed(1) ?? '—'}</p>
+            <p className="text-2xl font-black text-emerald-400">{tfrRating != null ? Math.round(tfrRating) : '—'}</p>
           </div>
         </div>
 
