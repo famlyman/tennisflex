@@ -461,7 +461,7 @@ export default async function SeasonSummaryPage({ params }: { params: Promise<{ 
                         {playerSide.join(' & ')} vs {opponentSide.join(' & ')}
                       </p>
                       <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span>{new Date(match.display_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                        <span>{new Date(match.display_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                         {match.score && <><span className="text-slate-300">&#x2022;</span><span className="font-medium text-slate-700">{match.score}</span></>}
                         {isPending && <><span className="text-slate-300">&#x2022;</span><span className="text-amber-600 font-medium">Pending</span></>}
                         {match.status === 'forfeited' && <><span className="text-slate-300">&#x2022;</span><span className="text-slate-500">Forfeited</span></>}

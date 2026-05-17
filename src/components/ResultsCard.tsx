@@ -68,7 +68,7 @@ export default function ResultsCard({ results }: ResultsCardProps) {
                 {result.date && (
                   <>
                     <span className="text-slate-300">&#x2022;</span>
-                    <span>{new Date(result.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                    <span>{new Date(result.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                   </>
                 )}
               </div>
