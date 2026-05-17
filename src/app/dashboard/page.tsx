@@ -7,6 +7,8 @@ import NotificationBell from '@/components/NotificationBell'
 import YourMatchesCard from '@/components/YourMatchesCard'
 import SeasonHub from '@/components/SeasonHub'
 import NextMatchHero from '@/components/NextMatchHero'
+import SeasonStatsHero from '@/components/SeasonStatsHero'
+import ResultsCard from '@/components/ResultsCard'
 import ReadyToPlayToggle from '@/components/ReadyToPlayToggle'
 import CoordinatorAnalytics from '@/components/CoordinatorAnalytics'
 
@@ -145,6 +147,7 @@ interface MatchItem {
   skill_level_name?: string
   division_type?: string
   opponent_name?: string
+  player_team_name?: string
   match_location?: string | null
   is_home?: boolean
   opponent_partner_name?: string
@@ -689,6 +692,7 @@ async function getDashboardData(userId: string, email?: string | null) {
     leaderboardData,
     upcomingMatches,
     seasonHubData,
+    playerIds,
   }
 }
 
@@ -730,6 +734,32 @@ export default async function Dashboard() {
   const heroMatch = [...dashboardData.upcomingMatches]
     .filter(m => m.scheduled_at)
     .sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime())[0]
+
+  // Season completion stats
+  const seasonId = dashboardData.seasonHubData?.season.id
+  const isSeasonCompleted = dashboardData.seasonHubData?.season.status === 'completed'
+  const seasonCompletedMatches = dashboardData.playerMatches.filter(m =>
+    m.status === 'completed' && m.skill_level?.division?.season_id === seasonId
+  )
+  const seasonWins = seasonCompletedMatches.filter(m =>
+    dashboardData.playerIds?.includes(m.winner_id)
+  ).length
+  const seasonLosses = seasonCompletedMatches.filter(m =>
+    m.winner_id && !dashboardData.playerIds?.includes(m.winner_id)
+  ).length
+
+  // Recent results for active seasons (last 5 completed matches)
+  const isSeasonActive = dashboardData.seasonHubData?.season.status === 'active'
+  const activeCompletedMatches = dashboardData.playerMatches
+    .filter(m => m.status === 'completed' && m.skill_level?.division?.season_id === seasonId)
+  const recentResults = activeCompletedMatches.slice(0, 5).map(m => ({
+    id: m.id,
+    opponentName: m.opponent_name ?? '',
+    playerTeamName: m.player_team_name,
+    isWin: dashboardData.playerIds?.includes(m.winner_id) ?? false,
+    score: m.score ?? null,
+    date: m.scheduled_at ?? m.created_at,
+  }))
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -781,8 +811,20 @@ export default async function Dashboard() {
           )}
         </div>
 
-        {/* Next Match Hero Section */}
-        {!isCoordinator && heroMatch && (
+        {/* Season Stats Hero (completed season) or Next Match Hero (active season) */}
+        {!isCoordinator && isSeasonCompleted && seasonCompletedMatches.length > 0 && (
+          <SeasonStatsHero
+            seasonName={dashboardData.seasonHubData!.season.name}
+            wins={seasonWins}
+            losses={seasonLosses}
+            matchesPlayed={seasonCompletedMatches.length}
+            playerRank={dashboardData.leaderboardData?.playerRank ?? null}
+            tfrRating={dashboardData.player?.tfr_singles}
+            seasonId={dashboardData.seasonHubData!.season.id}
+          />
+        )}
+
+        {!isCoordinator && !isSeasonCompleted && heroMatch && (
           <NextMatchHero match={heroMatch} />
         )}
         
@@ -844,6 +886,13 @@ export default async function Dashboard() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Recent Results Card (active season) */}
+        {!isCoordinator && isSeasonActive && recentResults.length > 0 && (
+          <div className="mb-8">
+            <ResultsCard results={recentResults} />
           </div>
         )}
 
